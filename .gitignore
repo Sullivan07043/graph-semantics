@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+outputs/
+records*.json
+*.npz
+*.sav
+*.csv
+*.log
+data_cache/*.sav
+data_cache/
