@@ -10,13 +10,21 @@ decorrelate; unit-norm regularization keeps embeddings decode-stable.
 import numpy as np
 
 
+def resolve_device(torch, device="auto"):
+    """Use CUDA by default when PyTorch can see a GPU."""
+    if device is None or str(device).lower() == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    return device
+
+
 def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3, lam_norm=0.1,
-                        seed=0, device="cpu", verbose=False):
+                        seed=0, device="auto", verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
     import torch
     torch.manual_seed(seed)
+    device = resolve_device(torch, device)
     labeled = set(labeled_emb)
     free = [n for n in g.nodes if n not in labeled]                  # latents + unlabeled observed
     if not free:

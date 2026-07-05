@@ -15,6 +15,7 @@ FOLDS = int(os.environ.get("FOLDS", 5))
 STEPS = int(os.environ.get("STEPS", 1500))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
+DEVICE = os.environ.get("DEVICE", "auto")
 
 
 def ts():
@@ -60,7 +61,8 @@ def run_dataset(ds, C, cwords, records):
         masked = set(int(i) for i in fold)
         vis_emb = {obs[i]: T[i] for i in range(len(obs)) if i not in masked}
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
-                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno)
+                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM,
+                                           seed=fno, device=DEVICE)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])

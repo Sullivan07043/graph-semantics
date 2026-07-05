@@ -14,6 +14,7 @@ FOLDS = int(os.environ.get("FOLDS", 5))
 STEPS = int(os.environ.get("STEPS", 1500))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
+DEVICE = os.environ.get("DEVICE", "auto")
 
 
 def ts():
@@ -52,7 +53,8 @@ def run_dataset(ds, C, cwords, records):
             preds[name] = P
         # CORE: graph-constrained embedding optimization
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
-                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno)
+                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM,
+                                           seed=fno, device=DEVICE)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         for a, P in preds.items():
             arms[a]["exact"].append(metrics.exact_acc(P, masked, Tn))
