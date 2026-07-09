@@ -7,11 +7,15 @@ ACC = fraction judged yes, mirroring TLVD's "proportion of latent variables corr
 Key from env OPENAI_API_KEY ONLY (never written to disk). Batched (one call judges a numbered list),
 temperature 0, in-process cache keyed by (mode, recovered, target).
 """
-import os, json
+import os, json, socket, time
+import ssl
+import urllib.error
 import urllib.request
 
 _CACHE = {}
 MODEL = os.environ.get("JUDGE_MODEL", "gpt-4o-mini")
+RETRIES = int(os.environ.get("JUDGE_RETRIES", 5))
+RETRY_BASE = float(os.environ.get("JUDGE_RETRY_BASE", 1.0))
 
 
 def available():
@@ -22,7 +26,9 @@ def _chat(prompt, model=None):
     key = os.environ["OPENAI_API_KEY"]
     payload = {"model": model or MODEL, "temperature": 0,
                "messages": [{"role": "user", "content": prompt}]}
-    for attempt in range(2):
+    last_err = None
+    max_attempts = max(RETRIES, 1)
+    for attempt in range(max_attempts):
         req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
                                      data=json.dumps(payload).encode(),
                                      headers={"Authorization": f"Bearer {key}",
@@ -32,11 +38,20 @@ def _chat(prompt, model=None):
             return r["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
             msg = e.read().decode(errors="replace")
-            if attempt == 0 and "temperature" in msg and "temperature" in payload:
+            if "temperature" in msg and "temperature" in payload:
                 payload.pop("temperature")             # some newer models reject explicit temperature
                 continue
-            raise RuntimeError(f"judge API error: {msg[:200]}")
-    raise RuntimeError("judge API unreachable")
+            if e.code not in (408, 409, 429, 500, 502, 503, 504):
+                raise RuntimeError(f"judge API error: HTTP {e.code}: {msg[:200]}")
+            last_err = RuntimeError(f"judge API error: HTTP {e.code}: {msg[:200]}")
+        except (urllib.error.URLError, TimeoutError, socket.timeout, ssl.SSLError) as e:
+            last_err = e
+        if attempt < max_attempts - 1:
+            wait = RETRY_BASE * (2 ** attempt)
+            print(f"  [judge retry {attempt + 1}/{max_attempts} after {last_err}; sleeping {wait:.1f}s]",
+                  flush=True)
+            time.sleep(wait)
+    raise RuntimeError(f"judge API unreachable after {max_attempts} attempts: {last_err}")
 
 
 def _k(mode, rec, tgt):
@@ -56,6 +71,7 @@ def judge_batch(items, mode):
             todo.append(i)
         else:
             out[i] = v
+    failed = False
     if todo:
         lines = []
         for r, i in enumerate(todo):
@@ -104,8 +120,9 @@ def judge_batch(items, mode):
                           f'something else or too generic.')
                 try:
                     v = _chat(q + " Answer yes or no only.").strip().lower().startswith("y")
-                except Exception:
-                    v = False
-                _CACHE[_k(mode, *items[i])] = v
-                out[i] = v
-    return out
+                    _CACHE[_k(mode, *items[i])] = v
+                    out[i] = v
+                except Exception as item_e:
+                    print(f"  [judge item failed ({item_e}); marking judge unavailable]", flush=True)
+                    failed = True
+    return None if failed or any(v is None for v in out) else out

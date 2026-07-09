@@ -68,8 +68,9 @@ python run_task1.py                # observed-label completion, all testbeds
 python run_task2.py                # + latent translation
 ```
 
-Env knobs: `DATASET=tlvd|himi|bigfive|all`, `FOLDS`, `LAM_ZERO`, `LAM_NORM`, `STEPS`, `DEVICE=auto|cuda|cpu`, `JUDGE_MODEL`,
-`RECORDS_OUT`.
+Env knobs: `DATASET=tlvd|himi|bigfive|all`, `FOLDS`, `LAM_ZERO`, `LAM_NORM`, `STEPS`, `DEVICE=cpu|auto|cuda`,
+`EDGE_WEIGHT_MODE=signed|abs|positive`, `NORMALIZE_GEN=0|1`, `LAM_OBS_PRIOR`, `OBS_PRIOR_SCOPE=siblings|all`,
+`JUDGE_MODEL`, `RECORDS_OUT`.
 
 ## Honest notes
 

@@ -15,7 +15,11 @@ FOLDS = int(os.environ.get("FOLDS", 5))
 STEPS = int(os.environ.get("STEPS", 1500))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
-DEVICE = os.environ.get("DEVICE", "auto")
+DEVICE = os.environ.get("DEVICE", "cpu")
+EDGE_WEIGHT_MODE = os.environ.get("EDGE_WEIGHT_MODE", "signed")
+NORMALIZE_GEN = os.environ.get("NORMALIZE_GEN", "0").lower() in ("1", "true", "yes", "on")
+LAM_OBS_PRIOR = float(os.environ.get("LAM_OBS_PRIOR", 0.0))
+OBS_PRIOR_SCOPE = os.environ.get("OBS_PRIOR_SCOPE", "siblings")
 
 
 def ts():
@@ -39,7 +43,8 @@ def llm_name(child_labels, model="gpt-4o-mini"):
     try:
         r = json.loads(urllib.request.urlopen(req, timeout=60).read())
         return r["choices"][0]["message"]["content"].strip()
-    except Exception:
+    except Exception as e:
+        print(f"  [llm_name failed ({e})]", flush=True)
         return None
 
 
@@ -50,19 +55,29 @@ def run_dataset(ds, C, cwords, records):
     T = encode.embed([labels[o] for o in obs])
     alpha = metrics.pick_alpha(T, C)
     W, _ = g.estimate_weights(X, oi)
+    Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     lat_names = [L for L in g.latents if L in gt]
     core_accs, qual = [], []
-    print(f"[{ts()}] {ds['name']}: Task 2 over {len(lat_names)} latents x {FOLDS} folds", flush=True)
+    print(f"[{ts()}] {ds['name']}: Task 2 over {len(lat_names)} latents x {FOLDS} folds | "
+          f"edge={EDGE_WEIGHT_MODE}, norm_gen={NORMALIZE_GEN}, "
+          f"obs_prior={LAM_OBS_PRIOR:g}/{OBS_PRIOR_SCOPE}, lam_zero={LAM_ZERO:g}", flush=True)
 
     for fno, fold in enumerate(folds):
         masked = set(int(i) for i in fold)
-        vis_emb = {obs[i]: T[i] for i in range(len(obs)) if i not in masked}
+        visible = [i for i in range(len(obs)) if i not in masked]
+        vis_emb = {obs[i]: T[i] for i in visible}
+        obs_priors = (optimize.observed_label_priors(g, Craw, obs, visible, vis_emb, scope=OBS_PRIOR_SCOPE)
+                      if LAM_OBS_PRIOR > 0 else None)
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM,
-                                           seed=fno, device=DEVICE)
+                                           seed=fno, device=DEVICE,
+                                           edge_weight_mode=EDGE_WEIGHT_MODE,
+                                           normalize_gen=NORMALIZE_GEN,
+                                           observed_prior_emb=obs_priors,
+                                           lam_obs_prior=LAM_OBS_PRIOR)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])

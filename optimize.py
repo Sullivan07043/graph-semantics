@@ -10,15 +10,64 @@ decorrelate; unit-norm regularization keeps embeddings decode-stable.
 import numpy as np
 
 
-def resolve_device(torch, device="auto"):
-    """Use CUDA by default when PyTorch can see a GPU."""
+def resolve_device(torch, device="cpu"):
+    """Resolve the requested PyTorch device.
+
+    Defaults to CPU because the current graph-embedding optimization is dominated
+    by many small tensor operations where CUDA launch overhead is slower.
+    """
     if device is None or str(device).lower() == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
     return device
 
 
+def resolve_edge_weight(w, mode="signed"):
+    """Map data correlations to semantic edge weights."""
+    mode = str(mode).lower()
+    if mode in ("signed", "raw"):
+        return float(w)
+    if mode in ("abs", "magnitude"):
+        return abs(float(w))
+    if mode in ("positive", "pos", "clip"):
+        return max(float(w), 0.0)
+    raise ValueError(f"unknown edge_weight_mode: {mode}")
+
+
+def observed_label_priors(g, corr, obs, visible, labeled_emb, scope="siblings"):
+    """Build item-level priors for masked observed nodes from visible observed labels.
+
+    The causal graph gates which labels may inform a masked observed variable; correlations only set
+    the local mixture weights. This keeps factor-level graph structure while preserving item-level
+    distinctions within a factor.
+    """
+    scope = str(scope).lower()
+    visible = list(visible)
+    visible_set = set(visible)
+    priors = {}
+    for i, name in enumerate(obs):
+        if i in visible_set:
+            continue
+        candidates = []
+        for j in visible:
+            if scope == "siblings":
+                if not (set(g.parents(name)) & set(g.parents(obs[j]))):
+                    continue
+            elif scope != "all":
+                raise ValueError(f"unknown observed prior scope: {scope}")
+            candidates.append(j)
+        if not candidates:
+            continue
+        weights = np.clip(corr[i, candidates], 0.0, None)
+        if weights.sum() < 1e-9:
+            continue
+        v = sum(float(w) * labeled_emb[obs[j]] for w, j in zip(weights, candidates)) / weights.sum()
+        priors[name] = v / (np.linalg.norm(v) + 1e-9)
+    return priors
+
+
 def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3, lam_norm=0.1,
-                        seed=0, device="auto", verbose=False):
+                        seed=0, device="cpu", verbose=False, edge_weight_mode="signed",
+                        normalize_gen=False, observed_prior_emb=None, lam_obs_prior=0.0):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
@@ -40,6 +89,10 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
             init[n] = np.zeros(d)
     E = {n: torch.nn.Parameter(torch.tensor(init[n], dtype=torch.float32, device=device)) for n in free}
     A = {n: torch.tensor(v, dtype=torch.float32, device=device) for n, v in labeled_emb.items()}
+    P = {}
+    if observed_prior_emb:
+        P = {n: torch.tensor(v, dtype=torch.float32, device=device)
+             for n, v in observed_prior_emb.items() if n in E}
 
     def emb(n):
         return A[n] if n in A else E[n]
@@ -49,10 +102,14 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
         if not ps:
             return None
         tot = None
+        denom = 0.0
         for p in ps:
-            w = float(W.get((p, n), 0.0))
+            w = resolve_edge_weight(W.get((p, n), 0.0), edge_weight_mode)
             t = w * emb(p)
             tot = t if tot is None else tot + t
+            denom += abs(w)
+        if normalize_gen and denom > 1e-9:
+            tot = tot / denom
         return tot
 
     zero_pairs = [(a, b) for a, b in g.independent_pairs()]
@@ -76,6 +133,11 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
                 nb = eb / (eb.norm() + 1e-9)
                 zp = zp + (na @ nb) ** 2
             loss = loss + lam_zero * zp / len(zero_pairs)
+        if P and lam_obs_prior > 0:
+            op = 0.0
+            for n, pv in P.items():
+                op = op + ((E[n] - pv) ** 2).sum()
+            loss = loss + lam_obs_prior * op / len(P)
         if lam_norm > 0:
             nr = 0.0
             for n in free:

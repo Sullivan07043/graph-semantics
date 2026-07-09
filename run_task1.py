@@ -14,7 +14,11 @@ FOLDS = int(os.environ.get("FOLDS", 5))
 STEPS = int(os.environ.get("STEPS", 1500))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
-DEVICE = os.environ.get("DEVICE", "auto")
+DEVICE = os.environ.get("DEVICE", "cpu")
+EDGE_WEIGHT_MODE = os.environ.get("EDGE_WEIGHT_MODE", "signed")
+NORMALIZE_GEN = os.environ.get("NORMALIZE_GEN", "0").lower() in ("1", "true", "yes", "on")
+LAM_OBS_PRIOR = float(os.environ.get("LAM_OBS_PRIOR", 0.0))
+OBS_PRIOR_SCOPE = os.environ.get("OBS_PRIOR_SCOPE", "siblings")
 
 
 def ts():
@@ -35,7 +39,9 @@ def run_dataset(ds, C, cwords, records):
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     arms = {a: {"judge": [], "match": [], "exact": []} for a in ["uniform", "rawcorr", "core"]}
     print(f"[{ts()}] {ds['name']}: {X.shape[0]}x{len(obs)} | graph: {len(g.latents)} latents, "
-          f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha={alpha:.2e}", flush=True)
+          f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha={alpha:.2e} | "
+          f"edge={EDGE_WEIGHT_MODE}, norm_gen={NORMALIZE_GEN}, "
+          f"obs_prior={LAM_OBS_PRIOR:g}/{OBS_PRIOR_SCOPE}, lam_zero={LAM_ZERO:g}", flush=True)
 
     for fno, fold in enumerate(folds):
         masked = sorted(int(i) for i in fold)
@@ -52,9 +58,15 @@ def run_dataset(ds, C, cwords, records):
                 P[r] = (w / w.sum()) @ T
             preds[name] = P
         # CORE: graph-constrained embedding optimization
+        obs_priors = (optimize.observed_label_priors(g, Craw, obs, visible, vis_emb, scope=OBS_PRIOR_SCOPE)
+                      if LAM_OBS_PRIOR > 0 else None)
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM,
-                                           seed=fno, device=DEVICE)
+                                           seed=fno, device=DEVICE,
+                                           edge_weight_mode=EDGE_WEIGHT_MODE,
+                                           normalize_gen=NORMALIZE_GEN,
+                                           observed_prior_emb=obs_priors,
+                                           lam_obs_prior=LAM_OBS_PRIOR)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         for a, P in preds.items():
             arms[a]["exact"].append(metrics.exact_acc(P, masked, Tn))
