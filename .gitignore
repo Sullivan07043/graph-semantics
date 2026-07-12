@@ -8,3 +8,5 @@ records*.json
 *.log
 data_cache/*.sav
 data_cache/
+data/oracle_*/
+experiment_logs/experiment setting/

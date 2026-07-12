@@ -1,4 +1,4 @@
-"""Three given-graph testbeds (real data; graphs from released files / documented study design).
+"""Given-graph testbeds: three real-data studies plus generated oracle diagnostics.
 Each loader returns a dict:
   graph      : graph.Graph
   X          : [n_samples, n_observed] z-scored, columns ordered as graph.observed
@@ -8,6 +8,7 @@ Each loader returns a dict:
 Data locations: env GRAPHSEM_DATA (default ../data relative to this file's parent project);
 TLVD graph/description files cached by fetch_tlvd.sh into data_cache/.
 """
+import csv
 import os, json
 import numpy as np
 import graph as G
@@ -15,6 +16,7 @@ import graph as G
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", "data")))
 CACHE = os.path.join(HERE, "data_cache")
+ORACLE_DATA = os.environ.get("GRAPHSEM_ORACLE_DATA", os.path.join(HERE, "data"))
 
 
 def z(a):
@@ -99,4 +101,72 @@ def bigfive(nsub=3000):
     return dict(name="bigfive", graph=g, X=z(R), labels=item_text, latent_gt=latent_gt)
 
 
-LOADERS = {"tlvd": tlvd, "himi": himi, "bigfive": bigfive}
+# --------------------------------------------------------------------------- Controlled oracle graphs
+ORACLE_DATASETS = (
+    "oracle_clean",
+    "oracle_polarity",
+    "oracle_mixed_parent",
+    "oracle_sparse_sibling",
+)
+
+
+def _oracle_folder(name):
+    roots = [ORACLE_DATA, os.path.join(HERE, "data"), DATA]
+    seen = set()
+    for root in roots:
+        root = os.path.abspath(root)
+        if root in seen:
+            continue
+        seen.add(root)
+        folder = os.path.join(root, name)
+        if os.path.isfile(os.path.join(folder, "graph.dot")):
+            return folder
+    raise FileNotFoundError(
+        f"oracle dataset '{name}' is missing. Run scripts/make_oracle_datasets.py first; "
+        f"searched: {', '.join(os.path.join(root, name) for root in roots)}"
+    )
+
+
+def oracle(name):
+    folder = _oracle_folder(name)
+    g = G.from_dot(os.path.join(folder, "graph.dot"))
+    labels = {}
+    with open(os.path.join(folder, "codebook.txt"), encoding="utf-8") as handle:
+        for line in handle:
+            node, text = line.rstrip("\n").split("\t", 1)
+            labels[node] = text
+    with open(os.path.join(folder, "data.csv"), newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        rows = [[float(row[node]) for node in g.observed] for row in reader]
+    latent_gt = json.load(open(os.path.join(folder, "latent_labels.json"), encoding="utf-8"))
+    metadata = json.load(open(os.path.join(folder, "oracle_metadata.json"), encoding="utf-8"))
+    return dict(name=name, graph=g, X=z(np.asarray(rows, dtype=float)), labels=labels,
+                latent_gt=latent_gt, oracle_metadata=metadata)
+
+
+def oracle_clean():
+    return oracle("oracle_clean")
+
+
+def oracle_polarity():
+    return oracle("oracle_polarity")
+
+
+def oracle_mixed_parent():
+    return oracle("oracle_mixed_parent")
+
+
+def oracle_sparse_sibling():
+    return oracle("oracle_sparse_sibling")
+
+
+DEFAULT_TASK1_DATASETS = ("tlvd", "himi", "bigfive")
+LOADERS = {
+    "tlvd": tlvd,
+    "himi": himi,
+    "bigfive": bigfive,
+    "oracle_clean": oracle_clean,
+    "oracle_polarity": oracle_polarity,
+    "oracle_mixed_parent": oracle_mixed_parent,
+    "oracle_sparse_sibling": oracle_sparse_sibling,
+}

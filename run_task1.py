@@ -94,7 +94,8 @@ def run_dataset(ds, C, cwords, records):
 
 def main():
     which = os.environ.get("DATASET", "all")
-    names = list(datasets.LOADERS) if which == "all" else [which]
+    # Keep the historical DATASET=all behavior limited to the three real-data testbeds.
+    names = list(datasets.DEFAULT_TASK1_DATASETS) if which == "all" else [which]
     C, cwords = encode.load_dictionary()
     records, summary = [], {}
     for n in names:

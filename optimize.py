@@ -33,7 +33,34 @@ def resolve_edge_weight(w, mode="signed"):
     raise ValueError(f"unknown edge_weight_mode: {mode}")
 
 
-def observed_label_priors(g, corr, obs, visible, labeled_emb, scope="siblings"):
+def relative_loading_polarity(g, edge_weights, left, right, eps=1e-9):
+    """Return the loading-sign relation for two observed nodes.
+
+    The relation is invariant to flipping the global sign of a latent score: two
+    loadings flip together, so the sign of their product is unchanged.
+    """
+    if edge_weights is None:
+        return "unavailable"
+    shared = set(g.parents(left)) & set(g.parents(right))
+    signs = []
+    for parent in shared:
+        product = float(edge_weights.get((parent, left), 0.0)) * float(
+            edge_weights.get((parent, right), 0.0)
+        )
+        if abs(product) > eps:
+            signs.append(1 if product > 0 else -1)
+    if not signs:
+        return "unavailable"
+    if all(sign > 0 for sign in signs):
+        return "same"
+    if all(sign < 0 for sign in signs):
+        return "opposite"
+    return "ambiguous"
+
+
+def observed_label_priors(g, corr, obs, visible, labeled_emb, scope="siblings",
+                          polarity_mode="corr_positive", edge_weights=None,
+                          return_details=False):
     """Build item-level priors for masked observed nodes from visible observed labels.
 
     The causal graph gates which labels may inform a masked observed variable; correlations only set
@@ -41,28 +68,65 @@ def observed_label_priors(g, corr, obs, visible, labeled_emb, scope="siblings"):
     distinctions within a factor.
     """
     scope = str(scope).lower()
+    polarity_mode = str(polarity_mode).lower()
+    if polarity_mode not in ("corr_positive", "loading_same"):
+        raise ValueError(f"unknown observed prior polarity mode: {polarity_mode}")
+    if polarity_mode == "loading_same" and edge_weights is None:
+        raise ValueError("loading_same prior requires edge_weights")
     visible = list(visible)
     visible_set = set(visible)
-    priors = {}
+    priors, details = {}, {}
     for i, name in enumerate(obs):
         if i in visible_set:
             continue
-        candidates = []
+        scope_candidates = []
         for j in visible:
             if scope == "siblings":
                 if not (set(g.parents(name)) & set(g.parents(obs[j]))):
                     continue
             elif scope != "all":
                 raise ValueError(f"unknown observed prior scope: {scope}")
-            candidates.append(j)
+            scope_candidates.append(j)
+        relations = {
+            j: relative_loading_polarity(g, edge_weights, name, obs[j])
+            for j in scope_candidates
+        }
+        candidates = [
+            j for j in scope_candidates
+            if polarity_mode != "loading_same" or relations[j] == "same"
+        ]
+        info = {
+            "polarity_mode": polarity_mode,
+            "scope_candidates": [obs[j] for j in scope_candidates],
+            "eligible_candidates": [obs[j] for j in candidates],
+            "prior_available": False,
+            "contributors": [],
+        }
         if not candidates:
+            details[name] = info
             continue
-        weights = np.clip(corr[i, candidates], 0.0, None)
+        candidate_corr = np.asarray(corr[i, candidates], dtype=float)
+        weights = (np.clip(candidate_corr, 0.0, None)
+                   if polarity_mode == "corr_positive" else np.abs(candidate_corr))
         if weights.sum() < 1e-9:
+            details[name] = info
             continue
         v = sum(float(w) * labeled_emb[obs[j]] for w, j in zip(weights, candidates)) / weights.sum()
         priors[name] = v / (np.linalg.norm(v) + 1e-9)
-    return priors
+        info["prior_available"] = True
+        info["contributors"] = [
+            {
+                "variable": obs[j],
+                "correlation": float(correlation),
+                "weight": float(weight),
+                "normalized_weight": float(weight / weights.sum()),
+                "loading_relation": relations[j],
+            }
+            for j, correlation, weight in zip(candidates, candidate_corr, weights)
+            if weight > 0
+        ]
+        details[name] = info
+    return (priors, details) if return_details else priors
 
 
 def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3, lam_norm=0.1,
@@ -126,13 +190,11 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
             else:                                                    # free node: equals its generation
                 loss = loss + ((E[n] - gn) ** 2).sum()
         if zero_pairs and lam_zero > 0:
-            zp = 0.0
-            for a, b in zero_pairs:
-                ea, eb = emb(a), emb(b)
-                na = ea / (ea.norm() + 1e-9)
-                nb = eb / (eb.norm() + 1e-9)
-                zp = zp + (na @ nb) ** 2
-            loss = loss + lam_zero * zp / len(zero_pairs)
+            left = torch.stack([emb(a) for a, _ in zero_pairs])
+            right = torch.stack([emb(b) for _, b in zero_pairs])
+            left = left / (left.norm(dim=1, keepdim=True) + 1e-9)
+            right = right / (right.norm(dim=1, keepdim=True) + 1e-9)
+            loss = loss + lam_zero * ((left * right).sum(dim=1) ** 2).mean()
         if P and lam_obs_prior > 0:
             op = 0.0
             for n, pv in P.items():
