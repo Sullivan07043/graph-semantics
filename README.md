@@ -68,6 +68,15 @@ python run_task1.py                # observed-label completion, all testbeds
 python run_task2.py                # + latent translation
 ```
 
+Experiment and diagnostic utilities live in `scripts/` and should be run from the repository root:
+
+```
+python scripts/make_oracle_datasets.py
+python scripts/run_task1_ablation.py
+python scripts/run_oracle_diagnostics.py
+python scripts/run_polarity_ablation.py
+```
+
 Env knobs: `DATASET=tlvd|himi|bigfive|all`, `FOLDS`, `LAM_ZERO`, `LAM_NORM`, `STEPS`, `DEVICE=cpu|auto|cuda`,
 `EDGE_WEIGHT_MODE=signed|abs|positive`, `NORMALIZE_GEN=0|1`, `LAM_OBS_PRIOR`, `OBS_PRIOR_SCOPE=siblings|all`,
 `JUDGE_MODEL`, `RECORDS_OUT`.

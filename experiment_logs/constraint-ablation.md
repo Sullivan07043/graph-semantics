@@ -1,6 +1,6 @@
-# 2026-07-06 Constraint Ablation
+# Task 1 Constraint Experiments
 
-## Purpose
+## Overall Purpose
 
 Task 1 baseline results showed that the original graph-constrained `core` method was unstable:
 
@@ -8,8 +8,11 @@ Task 1 baseline results showed that the original graph-constrained `core` method
 - It matched raw correlation on TLVD matching-ACC but did not beat it on judge-ACC.
 - It failed badly on Big Five, especially compared with `rawcorr`.
 
-This experiment tested whether changing graph-derived constraints improves observed-variable semantic
-completion.
+The experiments below form one sequential study of whether changing graph-derived constraints improves
+observed-variable semantic completion. Experiment 0 establishes the original method, Experiment 1 tests all
+three proposed constraint changes together, Experiments 2 and 3 separate and select those changes on real data,
+and Experiment 4 diagnoses the selected method on controlled graphs. Task 2, a GNN, MI/CMI constraints, a new
+decoder, and a new training algorithm are outside the scope of this report.
 
 ## Code Changes
 
@@ -149,9 +152,41 @@ Judge:
 | Retry defaults | `JUDGE_RETRIES=5`, `JUDGE_RETRY_BASE=1.0` |
 | Failure handling | If judge fails after retries, judge result is recorded as unavailable rather than false. |
 
+## Experiment Roadmap
+
+The experiment numbering records the decision sequence, not separate versions of the whole method. The
+polarity-aware follow-up is Experiment 4B because it answers a failure isolated by the main oracle run in
+Experiment 4A.
+
+| Experiment | Main question and purpose | Change relative to the preceding stage | Judge | Resulting decision |
+|---|---|---|---|---|
+| Exp0: original baseline | Where does the released Task 1 method already succeed or fail? | No new constraint; record `signed`, unnormalized generation, and no observed prior as the reference. | On | Big Five is the clearest failure case, motivating a constraint intervention. |
+| Exp1: bundled constraint test | Can a plausible package of three graph constraints improve the weak Big Five result without destroying the other datasets? | Jointly switch to absolute edge weights, normalized generation, and a sibling prior with weight `0.5`. | On | Big Five improves, but TLVD judge and Himi matching decline. Because all three terms changed together, attribution is impossible. |
+| Exp2: no-judge ablation | Which edge transform, normalization choice, and prior strength produce the matching gains? | Replace the single Exp1 setting with 14 globally applied arms that isolate individual terms and sweep the prior. | Off | M has the best macro matching and Big Five matching; five representative arms are shortlisted. |
+| Exp3: targeted judged selection | Do the shortlisted matching gains correspond to semantic quality, and can one global Task 1 v1.1 setting be fixed? | Keep only A, D, H, K, and M; rerun all with the LLM judge and judged baselines. | On | M is selected as fixed real-data Task 1 v1.1. |
+| Exp4A: oracle diagnosis | Does M recover semantics under known clean, polarity, mixed-parent, and sparse-sibling graph structures? | Move from observational testbeds to four deterministic synthetic datasets and add oracle structural metrics. | Off | M recovers parent structure, but absolute edges fail polarity and sparse support lowers cosine. |
+| Exp4B: polarity-aware follow-up | Is the polarity failure caused by sibling selection or by the edge relation itself? | Restrict to `oracle_polarity`; cross signed/absolute generation with no prior, current prior, and loading-sign-filtered prior. | Off | Loading-sign filtering is redundant; neither absolute weighting nor negative scalar multiplication is an adequate semantic relation for reverse items. |
+
+All comparisons use the same global configuration for every dataset in a run. No experiment switches constraints
+according to dataset or graph type. Within-run controls are the primary basis for comparisons: the historical Exp0
+run used the old default device/code path, and LLM judge calls can also vary between separate runs even at
+temperature zero.
+
 ## Experiment 0: Original Full Baseline
 
-Configuration:
+### Purpose
+
+Establish a reproducible reference for the released Task 1 method before introducing any new constraint. Exp0 is
+not a proposed improvement: it measures the three existing arms (`uniform`, `rawcorr`, and graph-constrained
+`core`) and identifies the datasets and metrics that later changes must preserve or improve.
+
+### Change and Controls
+
+There is no methodological change in Exp0. Under the current parameter names, the original `core` uses signed
+data-derived edge coefficients, an unnormalized parent sum, and no observed-variable prior. The observed labels,
+graph, folds, optimization objective, encoder, decoder, and judge protocol establish the reference for later runs.
+
+### Configuration
 
 ```text
 DATASET=all
@@ -178,7 +213,7 @@ Output:
 outputs/task1_records.json
 ```
 
-Results:
+### Results
 
 | Dataset | Arm | Judge-ACC | Matching-ACC | Exact |
 |---|---|---:|---:|---:|
@@ -192,11 +227,42 @@ Results:
 | Big Five | rawcorr | 0.400 | 0.700 | 0.000 |
 | Big Five | core | 0.100 | 0.240 | 0.000 |
 
+### Interpretation and Next Decision
+
+- TLVD core reaches matching-ACC `1.000`, but its judge-ACC (`0.600`) remains below `rawcorr` (`0.700`), showing
+  that identity matching and decoded semantic quality are not equivalent.
+- Himi is the only dataset where original core clearly improves judge-ACC over both baselines (`0.483` versus
+  `0.317` and `0.300`), although its matching-ACC is below `rawcorr`.
+- Big Five is the main failure: core judge-ACC is at the uniform baseline (`0.100`) and matching-ACC is `0.240`,
+  far below rawcorr (`0.700`).
+
+This failure pattern motivates Exp1: first test whether the proposed constraint package can rescue Big Five, while
+checking whether the already useful TLVD and Himi behavior is preserved.
+
 ## Experiment 1: Full Judge Run With New Constraints
 
-Goal: rerun the new constraint configuration with full settings aligned to the original baseline.
+### Purpose
 
-Configuration:
+Run an initial end-to-end test of the complete proposed constraint package under the full five-fold judged
+protocol. The hypothesis is that removing edge-sign inversion, controlling the scale of parent aggregation, and
+adding item-level evidence from graph-gated visible siblings can improve Big Five semantic completion.
+
+### Changes From Experiment 0
+
+Exp1 changes all three constraint components at once:
+
+| Component | Exp0 | Exp1 | Intended effect |
+|---|---|---|---|
+| Edge transformation | `signed` | `abs` | Prevent a negative scalar from being treated as a valid semantic antonym operation. |
+| Parent generation | Unnormalized sum | Absolute-weight-normalized average | Remove variation caused only by parent count or total edge magnitude. |
+| Observed-variable prior | None | Sibling-only prior, `LAM_OBS_PRIOR=0.5` | Preserve item-level meaning using visible labels that share a latent parent. |
+
+The task, datasets, folds, steps, regularizers, optimizer, learning rate, encoder, decoder, and judge are retained.
+The run explicitly uses CPU, whereas the historical Exp0 device was the original default. Because the three
+constraint components are introduced jointly, Exp1 estimates only their combined effect and cannot identify which
+component causes a gain or regression.
+
+### Configuration
 
 ```text
 DATASET=all
@@ -217,7 +283,7 @@ LLM judge enabled
 RECORDS_OUT=outputs/exp_task1_all_constraints_full_judge.json
 ```
 
-Results:
+### Results
 
 | Dataset | Arm | Judge-ACC | Matching-ACC | Exact |
 |---|---|---:|---:|---:|
@@ -242,7 +308,7 @@ Full-run core comparison:
 | Big Five | Judge-ACC | 0.100 | 0.260 | +0.160 |
 | Big Five | Matching-ACC | 0.240 | 0.640 | +0.400 |
 
-## Interim Summary After Experiment 1
+### Interpretation and Next Decision
 
 Confirmed improvements:
 
@@ -259,7 +325,7 @@ Negative or neutral changes:
 Conclusion:
 
 - The new constraints are useful for Big Five.
-- They are not a universal replacement for the original constraints.
+- The bundled setting is not yet a universal replacement for the original constraints.
 - For now, keep one global constraint configuration during each run, so later ablations are easier to interpret.
 
 Open issue:
@@ -267,19 +333,35 @@ Open issue:
 - We need a constraint design that preserves TLVD judge-ACC and Himi matching-ACC while improving Big Five.
 - The next round should avoid dataset-specific or graph-type-specific switching and instead test globally applied objective changes.
 
+Therefore Exp2 separates the three interventions and sweeps the prior strength before spending more judge API
+budget.
+
 ## Experiment 2: Full No-Judge Constraint Sweep
 
-### Goal
+### Purpose
 
 Before spending API budget on semantic judging, run a complete global constraint ablation over the currently
 implemented controls. This is a screening experiment only: it uses matching-ACC and exact top-1 to identify
 promising configurations, while deliberately leaving judge-ACC unavailable. It does not establish semantic
 quality by itself.
 
+### Changes From Experiment 1
+
+- Disable the LLM judge (`RUN_JUDGE=0`) so a larger constraint screen can be run without API cost.
+- Replace Exp1's single bundled setting, which corresponds to arm H, with 14 globally applied arms A through N.
+- Add edge-only controls (`B_abs_only`, `C_positive_only`), a normalization-only control (`D_norm_only`),
+  combinations with and without the prior, and sibling-prior weights `0.1`, `0.3`, `0.5`, and `1.0` under the
+  signed/normalized and absolute/normalized settings.
+- Retain the same datasets, five folds, 1,500 steps, regularizers, optimizer, learning rate, seeds, CPU device,
+  encoder, decoder, and sibling scope.
+
+The purpose of this design is attribution and candidate screening, not a final semantic claim. Arm A is rerun
+inside the same code path as the experiment-local original control.
+
 ### Configuration
 
 ```text
-Runner=run_task1_ablation.py
+Runner=scripts/run_task1_ablation.py
 DATASET=all
 FOLDS=5
 STEPS=1500
@@ -321,6 +403,15 @@ All core exact top-1 values are `0.000`, except `F_prior_only_05` on Big Five (`
 
 - TLVD matching-ACC is saturated at `1.000` for every core configuration, so this metric cannot choose among
   constraints for TLVD.
+- Absolute weights alone do not explain the gain: relative to A, B lowers Big Five matching (`0.280 -> 0.180`),
+  while the positive-only transform C raises it only to `0.320`.
+- Normalization has a dataset-dependent isolated effect. A to D improves Himi (`0.767 -> 0.867`) but lowers Big
+  Five (`0.280 -> 0.240`); under absolute edges, B to E improves both Himi (`0.767 -> 0.867`) and Big Five
+  (`0.180 -> 0.300`).
+- The large Big Five gain requires an interaction between absolute generation and the sibling prior. E to M
+  raises Big Five matching from `0.300` to `0.640`; the analogous signed setting D to J reaches only `0.300`.
+- Prior strength is not monotonic. Under absolute normalized generation, `0.3` is best on Big Five (`0.640`),
+  while `0.1`, `0.5`, and `1.0` reach `0.620`, `0.600`, and `0.580` respectively.
 - Himi is strongest for `K_signed_norm_prior_10` and `N_abs_norm_prior_10` (`0.900`).
 - Big Five and macro matching are strongest for `M_abs_norm_prior_03` (`0.640` and `0.836`).
 - `H_abs_norm_prior_05` is a close Big Five candidate (`0.600`) with a stronger sibling prior, while
@@ -328,6 +419,9 @@ All core exact top-1 values are `0.000`, except `F_prior_only_05` on Big Five (`
 
 The no-judge sweep therefore selected `A_original`, `D_norm_only`, `H_abs_norm_prior_05`,
 `K_signed_norm_prior_10`, and `M_abs_norm_prior_03` for the subsequent semantic-quality evaluation.
+This selection carries forward the original control, the normalization control, the Exp1 bundled setting, the
+best Himi signed setting, and the best macro/Big Five setting. Exp3 must judge them because Exp2 cannot resolve
+TLVD's saturated matching or establish natural-language semantic correctness.
 
 Outputs:
 
@@ -341,7 +435,7 @@ outputs/diagnostics/error_report.md
 
 ## Experiment 3: Targeted Judged Selection for Task 1 v1.1
 
-### Goal
+### Purpose
 
 The first full judged run used one new configuration (`abs` weights, normalized generation, and sibling prior
 weight `0.5`) and showed a Big Five improvement, but it did not establish whether the gain reflected semantic
@@ -352,6 +446,17 @@ all three arms.
 The decision criterion was semantic quality first: retain a candidate only if it improves or preserves judge-ACC
 relative to the original core and does not materially degrade TLVD. Matching-ACC was used as a complementary
 identity metric, not as a substitute for semantic correctness.
+
+### Changes From Experiment 2
+
+- No new constraint or optimizer is introduced.
+- Reduce the 14-arm screen to the five diagnostic candidates selected in Exp2: A, D, H, K, and M.
+- Turn the LLM judge back on for `uniform`, `rawcorr`, and `core` under every candidate, while retaining the same
+  datasets, folds, optimization settings, seeds, and CPU device.
+- Add judged per-item comparisons so equal aggregate matching scores can be separated by decoded semantic
+  quality, especially on TLVD.
+
+Thus Exp3 is a confirmatory selection run for the existing candidates, whereas Exp2 is only a low-cost screen.
 
 ### Common Run Settings
 
@@ -439,6 +544,13 @@ Each dataset contributes equally to the macro average.
   under A, D, and M, so the current graph constraints and decoder do not yet robustly recover that construct's
   specific semantics.
 
+### Decision and Link to Experiment 4
+
+M is the strongest tested global real-data configuration by macro judge-ACC and improves the original control on
+all three datasets. This is enough to freeze a Task 1 v1.1 benchmark, but not enough to explain why it works or
+whether its use of absolute edges is valid when edge sign has known meaning. Exp4 therefore keeps M fixed and
+changes the data to controlled graph regimes with known causal/loadings metadata.
+
 ## Final Decision: Task 1 v1.1
 
 **Fix `M_abs_norm_prior_03` as the global Task 1 v1.1 configuration.**
@@ -469,7 +581,7 @@ Limitations:
 
 ## Experiment 4: Controlled Synthetic/Oracle Graph Diagnosis
 
-### Goal
+### Experiment 4A Purpose
 
 Experiment 3 selected `M_abs_norm_prior_03` as the fixed real-data Task 1 v1.1 configuration. Experiment 4
 tests whether its apparent semantic benefit survives four controlled graph structures with known loadings,
@@ -479,6 +591,20 @@ decoder, or a new optimization algorithm.
 The six evaluated arms are `uniform`, `rawcorr`, `A_original`, `D_norm_only`,
 `M_abs_norm_prior_03`, and `K_signed_norm_prior_10`. The controlled comparisons isolate whether failures arise
 from the graph-constraint representation or from generic embedding optimization.
+
+### Changes From Experiment 3
+
+- Replace the three real datasets with four deterministic synthetic datasets whose latent parents, loading signs,
+  item types, and sibling density are known exactly.
+- Disable the LLM judge and add direct oracle metrics: cosine to the true label embedding, parent-set accuracy,
+  polarity accuracy/margin, and prior coverage.
+- Compare `uniform`, `rawcorr`, A, D, M, and K. This retains the original, normalization-only, selected v1.1,
+  and signed strong-prior controls while avoiding another broad sweep.
+- Keep five folds, 1,500 steps, `LAM_ZERO=0.3`, `LAM_NORM=0.1`, Adam, learning rate, seeds, CPU device, encoder,
+  decoder, and sibling scope unchanged.
+
+This stage changes the testbed and diagnostics, not the main optimization algorithm. Its purpose is to distinguish
+a representation failure that occurs under a specific known graph condition from a generic failure to optimize.
 
 ### Oracle Data Generation
 
@@ -514,7 +640,7 @@ count for every observed variable.
 ### Configuration
 
 ```text
-Runner=run_oracle_diagnostics.py
+Runner=scripts/run_oracle_diagnostics.py
 ORACLE_DATASET=all
 FOLDS=5
 STEPS=1500
@@ -618,12 +744,19 @@ value rather than treating unavailable values as zero.
   `0.354`. Each sparse item has one visible sibling on average, versus `2.5` for the clean graph. The matching
   metric is saturated by the smaller candidate set and does not reveal this semantic-quality decline.
 
-### Small Polarity-Aware Follow-up
+### Experiment 4B: Small Polarity-Aware Follow-up
+
+#### Purpose and Changes From Experiment 4A
 
 The initial oracle diagnosis could not distinguish whether M's polarity failure came from the absolute edge
 transformation or from the sibling prior. A focused follow-up therefore runs only `oracle_polarity` with the same
 five folds, 1,500 optimization steps, `LAM_ZERO=0.3`, `LAM_NORM=0.1`, normalized generation, and CPU. The judge
 remains disabled.
+
+Unlike Exp4A, this follow-up adds one diagnostic prior mode: a visible sibling contributes only when its loading
+has the same sign as the masked item's loading under a shared parent. It crosses this loading-aware prior with
+signed and absolute generation and includes matched no-prior/current-prior controls. It does not change the fixed
+real-data v1.1 default, train a relation model, or introduce a new decoder.
 
 The core design is a small factorial comparison:
 
@@ -680,6 +813,11 @@ The next smallest controlled test should use a separate balanced polarity oracle
 per latent and estimate positive/reverse sign-group semantic prototypes from visible labels. This non-parametric
 relation representation should be tested before learning a parameterized positive/reverse transform or replacing
 the general optimizer.
+
+Across Exp0 through Exp4, the evidence supports a precise scope for the current result: M is the selected fixed
+configuration for the three real Task 1 datasets, but not a universal semantic interpretation of signed graph
+edges. The next study should address the representation of negative-loading semantic relations before treating
+generic optimizer design as the primary bottleneck.
 
 Outputs:
 

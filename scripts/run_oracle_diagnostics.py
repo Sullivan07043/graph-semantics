@@ -16,8 +16,9 @@ from pathlib import Path
 import numpy as np
 
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(REPO_ROOT))
 
 import datasets
 import encode
@@ -32,7 +33,7 @@ LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
 DEVICE = os.environ.get("DEVICE", "cpu")
 OBS_PRIOR_SCOPE = os.environ.get("OBS_PRIOR_SCOPE", "siblings")
 WHICH = os.environ.get("ORACLE_DATASET", os.environ.get("DATASET", "all"))
-OUT_DIR = Path(os.environ.get("ORACLE_OUT_DIR", HERE / "outputs" / "oracle"))
+OUT_DIR = Path(os.environ.get("ORACLE_OUT_DIR", REPO_ROOT / "outputs" / "oracle"))
 
 
 ARM_SPECS = (

@@ -8,10 +8,16 @@ from __future__ import annotations
 import csv
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
 import numpy as np
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(SCRIPT_DIR))
 
 import encode
 import metrics
@@ -19,8 +25,7 @@ import optimize
 import run_oracle_diagnostics as oracle
 
 
-HERE = Path(__file__).resolve().parent
-OUT_DIR = Path(os.environ.get("POLARITY_OUT_DIR", HERE / "outputs" / "polarity_ablation"))
+OUT_DIR = Path(os.environ.get("POLARITY_OUT_DIR", REPO_ROOT / "outputs" / "polarity_ablation"))
 FOLDS = int(os.environ.get("FOLDS", 5))
 STEPS = int(os.environ.get("STEPS", 1500))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))

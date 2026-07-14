@@ -14,8 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(REPO_ROOT))
 
 import datasets
 import encode
@@ -31,8 +32,8 @@ LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
 DEVICE = os.environ.get("DEVICE", "cpu")
 DATASET = os.environ.get("DATASET", "all")
 RUN_JUDGE = os.environ.get("RUN_JUDGE", "0").lower() in ("1", "true", "yes", "on")
-OUT_DIR = Path(os.environ.get("ABLATION_OUT_DIR", HERE / "outputs" / "ablations"))
-DIAG_DIR = Path(os.environ.get("DIAGNOSTIC_OUT_DIR", HERE / "outputs" / "diagnostics"))
+OUT_DIR = Path(os.environ.get("ABLATION_OUT_DIR", REPO_ROOT / "outputs" / "ablations"))
+DIAG_DIR = Path(os.environ.get("DIAGNOSTIC_OUT_DIR", REPO_ROOT / "outputs" / "diagnostics"))
 ERROR_REPORT_FILENAME = os.environ.get("ERROR_REPORT_FILENAME", "error_report.md")
 CONFIG_FILTER = [x.strip() for x in os.environ.get("ABLATION_CONFIGS", "").split(",") if x.strip()]
 
@@ -905,7 +906,7 @@ def main():
         all_records.extend(cfg_records)
         out_file = OUT_DIR / f"{cfg['name']}.json"
         write_json(out_file, {"config": cfg, "summary": cfg_summary, "records": cfg_records})
-        manifest["files"][cfg["name"]] = str(out_file.relative_to(HERE))
+        manifest["files"][cfg["name"]] = str(out_file.relative_to(REPO_ROOT))
         print(f"[{ts()}] saved {out_file}", flush=True)
 
     write_json(OUT_DIR / "ablation_manifest.json", manifest)
