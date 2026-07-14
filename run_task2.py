@@ -1,6 +1,6 @@
 """Task 2 — Task 1 + translate the LATENT variables (same given-graph setting).
 The same graph-constrained optimization already produces latent embeddings u_j; this runner decodes them and
-judges against the dataset's latent ground-truth descriptions (see datasets.py; on TLVD the GT texts are the
+judges against the dataset's latent ground-truth descriptions (see testbeds.py; on TLVD the GT texts are the
 four construct descriptions shipped in TLVD's own description file). Latent baseline: LLM-naming (TLVD-style
 single call over the latent's children labels), judged by the same judge. Records -> RECORDS_OUT."""
 import os, sys, json, time
@@ -8,7 +8,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import datasets, encode, metrics, optimize
+import testbeds, encode, metrics, optimize
 import judge as judge_mod
 
 FOLDS = int(os.environ.get("FOLDS", 5))
@@ -105,11 +105,11 @@ def run_dataset(ds, C, cwords, records):
 
 def main():
     which = os.environ.get("DATASET", "all")
-    names = list(datasets.LOADERS) if which == "all" else [which]
+    names = list(testbeds.LOADERS) if which == "all" else [which]
     C, cwords = encode.load_dictionary()
     records, summary = [], {}
     for n in names:
-        summary[n] = run_dataset(datasets.LOADERS[n](), C, cwords, records)
+        summary[n] = run_dataset(testbeds.LOADERS[n](), C, cwords, records)
     out = os.environ.get("RECORDS_OUT", os.path.join(HERE, "outputs", "task2_records.json"))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump({"summary": summary, "records": records}, open(out, "w"), ensure_ascii=False, indent=1)

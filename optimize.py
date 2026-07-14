@@ -47,7 +47,10 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
             tot = t if tot is None else tot + t
         return tot
 
-    zero_pairs = [(a, b) for a, b in g.independent_pairs()]
+    node_idx = {n: i for i, n in enumerate(g.nodes)}
+    zp_pairs = g.independent_pairs()
+    ia = torch.tensor([node_idx[a] for a, b in zp_pairs], dtype=torch.long, device=device)
+    ib = torch.tensor([node_idx[b] for a, b in zp_pairs], dtype=torch.long, device=device)
     opt = torch.optim.Adam(list(E.values()), lr=lr)
     for step in range(steps):
         opt.zero_grad()
@@ -60,19 +63,13 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=1500, lr=5e-2, lam_zero=0.3,
                 loss = loss + ((gn - A[n]) ** 2).sum()
             else:                                                    # free node: equals its generation
                 loss = loss + ((E[n] - gn) ** 2).sum()
-        if zero_pairs and lam_zero > 0:
-            zp = 0.0
-            for a, b in zero_pairs:
-                ea, eb = emb(a), emb(b)
-                na = ea / (ea.norm() + 1e-9)
-                nb = eb / (eb.norm() + 1e-9)
-                zp = zp + (na @ nb) ** 2
-            loss = loss + lam_zero * zp / len(zero_pairs)
+        if len(zp_pairs) and lam_zero > 0:                           # vectorized independence decorrelation
+            M = torch.stack([emb(n) for n in g.nodes])
+            Mn = torch.nn.functional.normalize(M, dim=1)
+            loss = loss + lam_zero * (((Mn[ia] * Mn[ib]).sum(1)) ** 2).mean()
         if lam_norm > 0:
-            nr = 0.0
-            for n in free:
-                nr = nr + (E[n].norm() - 1.0) ** 2
-            loss = loss + lam_norm * nr / len(free)
+            nr = torch.stack([E[n].norm() for n in free])
+            loss = loss + lam_norm * ((nr - 1.0) ** 2).mean()
         loss.backward()
         opt.step()
         if verbose and (step % 300 == 0 or step == steps - 1):

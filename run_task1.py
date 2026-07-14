@@ -7,7 +7,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import datasets, encode, metrics, optimize
+import testbeds, encode, metrics, optimize
 import judge as judge_mod
 
 FOLDS = int(os.environ.get("FOLDS", 5))
@@ -80,11 +80,11 @@ def run_dataset(ds, C, cwords, records):
 
 def main():
     which = os.environ.get("DATASET", "all")
-    names = list(datasets.LOADERS) if which == "all" else [which]
+    names = list(testbeds.LOADERS) if which == "all" else [which]
     C, cwords = encode.load_dictionary()
     records, summary = [], {}
     for n in names:
-        summary[n] = run_dataset(datasets.LOADERS[n](), C, cwords, records)
+        summary[n] = run_dataset(testbeds.LOADERS[n](), C, cwords, records)
     out = os.environ.get("RECORDS_OUT", os.path.join(HERE, "outputs", "task1_records.json"))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump({"summary": summary, "records": records}, open(out, "w"), ensure_ascii=False, indent=1)

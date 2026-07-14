@@ -76,6 +76,6 @@ Env knobs: `DATASET=tlvd|himi|bigfive|all`, `FOLDS`, `LAM_ZERO`, `LAM_NORM`, `ST
 - The judge and the matching metric measure different things (semantic correctness vs individual identity);
   we report both.
 - On TLVD's graph the latent ground truth uses the 4 construct descriptions found in TLVD's own released
-  description file; the latent→description mapping is stated in `datasets.py` and is a derivation, not a
+  description file; the latent→description mapping is stated in `testbeds.py` and is a derivation, not a
   released artifact.
 - λ's are fixed defaults, not tuned per dataset.
