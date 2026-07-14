@@ -18,6 +18,9 @@ def pick_alpha(E, C, target_l0=8):
 
 
 def decode_words(V, C, cwords, alpha, topk=6):
+    # Negative-loading direction: a node generated with net-negative weight points OPPOSITE its parent in
+    # embedding space, and nonnegative SpLiCE selects no concept for such vectors. When the straight decode
+    # is empty, decode -v instead and mark the antonym direction with a "low " prefix.
     out = []
     for v in np.atleast_2d(V):
         nv = np.linalg.norm(v)
@@ -25,7 +28,11 @@ def decode_words(V, C, cwords, alpha, topk=6):
             out.append([])
             continue
         W = splice.splice_batch(v[None] / nv, C, alpha=alpha)
-        out.append([w for w, _ in splice.top_concepts(W[0], cwords, k=topk)])
+        ws = [w for w, _ in splice.top_concepts(W[0], cwords, k=topk)]
+        if not ws:
+            W = splice.splice_batch(-v[None] / nv, C, alpha=alpha)
+            ws = ["low " + w for w, _ in splice.top_concepts(W[0], cwords, k=topk)]
+        out.append(ws)
     return out
 
 
