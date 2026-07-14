@@ -116,7 +116,7 @@ def main():
     C, cwords = encode.load_dictionary()
     records, summary = [], {}
     for n in names:
-        summary[n] = run_dataset(testbeds.LOADERS[n](), C, cwords, records)
+        summary[n] = run_dataset(ALL_LOADERS[n](), C, cwords, records)
     out = os.environ.get("RECORDS_OUT", os.path.join(HERE, "outputs", "task2_records.json"))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump({"summary": summary, "records": records}, open(out, "w"), ensure_ascii=False, indent=1)
