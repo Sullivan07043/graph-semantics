@@ -8,13 +8,17 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import testbeds, encode, metrics, optimize
+import testbeds, pool, encode, metrics, optimize
 import judge as judge_mod
+from run_task1 import ALL_LOADERS, select_datasets
 
 FOLDS = int(os.environ.get("FOLDS", 5))
-STEPS = int(os.environ.get("STEPS", 1500))
+STEPS = int(os.environ.get("STEPS", 400))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
+FREE_W = os.environ.get("FREE_W", "0") == "1"
+RESIDUAL = float(os.environ.get("RESIDUAL", 0.0))
+LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 
 
 def ts():
@@ -48,7 +52,8 @@ def run_dataset(ds, C, cwords, records):
     oi = {o: k for k, o in enumerate(obs)}
     T = encode.embed([labels[o] for o in obs])
     alpha = metrics.pick_alpha(T, C)
-    W, _ = g.estimate_weights(X, oi)
+    W, score = g.estimate_weights(X, oi)
+    pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
@@ -60,7 +65,9 @@ def run_dataset(ds, C, cwords, records):
         masked = set(int(i) for i in fold)
         vis_emb = {obs[i]: T[i] for i in range(len(obs)) if i not in masked}
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
-                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno)
+                                           lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
+                                           free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
+                                           partial_corr=pc)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])
@@ -105,7 +112,7 @@ def run_dataset(ds, C, cwords, records):
 
 def main():
     which = os.environ.get("DATASET", "all")
-    names = list(testbeds.LOADERS) if which == "all" else [which]
+    names = select_datasets(which)
     C, cwords = encode.load_dictionary()
     records, summary = [], {}
     for n in names:
