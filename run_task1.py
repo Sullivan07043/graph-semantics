@@ -29,6 +29,7 @@ LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
 FREE_W = os.environ.get("FREE_W", "0") == "1"
 RESIDUAL = float(os.environ.get("RESIDUAL", 0.0))
 LAM_RES = float(os.environ.get("LAM_RES", 0.0))
+GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
 
 
 def ts():
@@ -48,7 +49,15 @@ def run_dataset(ds, C, cwords, records):
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
-    arms = {a: {"judge": [], "match": [], "exact": []} for a in ["uniform", "rawcorr", "core"]}
+    arm_names = ["uniform", "rawcorr", "core"] + (["gnn"] if GNN_ARM else [])
+    gnn_ctx = None
+    if GNN_ARM:
+        import torch, gnn as gnn_mod
+        ck = torch.load(gnn_mod.CKPT, map_location=gnn_mod.DEVICE)
+        gmodel = gnn_mod.CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(gnn_mod.DEVICE)
+        gmodel.load_state_dict(ck["state"]); gmodel.eval()
+        gnn_ctx = (gnn_mod, gmodel, gnn_mod.graph_tensors(ds))
+    arms = {a: {"judge": [], "match": [], "exact": []} for a in arm_names}
     print(f"[{ts()}] {ds['name']}: {X.shape[0]}x{len(obs)} | graph: {len(g.latents)} latents, "
           f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha={alpha:.2e}", flush=True)
 
@@ -72,6 +81,12 @@ def run_dataset(ds, C, cwords, records):
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
+        if gnn_ctx is not None:
+            import torch
+            gnn_mod, gmodel, gt_ = gnn_ctx
+            with torch.no_grad():
+                o = gnn_mod.masked_forward(gmodel, gt_, masked)
+            preds["gnn"] = o[gt_["obs_pos"][masked].to(gnn_mod.DEVICE)].cpu().numpy().astype(np.float64)
         for a, P in preds.items():
             arms[a]["exact"].append(metrics.exact_acc(P, masked, Tn))
             arms[a]["match"].append(metrics.match_acc(P, masked, T))
@@ -89,7 +104,7 @@ def run_dataset(ds, C, cwords, records):
 
     print(f"\n[{ts()}] === Task 1 results: {ds['name']} ===   judge   match(chance~{1/len(folds[0]):.2f})   exact",
           flush=True)
-    for a in ["uniform", "rawcorr", "core"]:
+    for a in arm_names:
         j = f"{np.mean(arms[a]['judge']):.3f}" if arms[a]["judge"] else "  -  "
         print(f"  {a:10s}: {j}   {np.mean(arms[a]['match']):.3f}            {np.mean(arms[a]['exact']):.3f}",
               flush=True)
