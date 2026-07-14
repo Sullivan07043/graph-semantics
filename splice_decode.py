@@ -14,16 +14,38 @@ def _norm(M):
     return M / (np.linalg.norm(M, axis=-1, keepdims=True) + 1e-9)
 
 
-def splice_batch(E, C, alpha=0.01, max_iter=3000):
-    """E: [m, d] embeddings; C: [V, d] dictionary. Returns W: [m, V] sparse nonneg weights."""
-    E = _norm(np.atleast_2d(np.asarray(E, np.float64)))
-    Cn = _norm(np.asarray(C, np.float64))
-    Xd = Cn.T                                          # [d, V] design (columns = concept embeddings)
-    W = np.zeros((E.shape[0], Cn.shape[0]), np.float32)
+_DICT_CACHE = {}
+
+
+def _norm_dict(C):
+    """Row-normalized float32 view of the dictionary, cached by array id (a 521k-atom dictionary in
+    float64 costs a 4GB copy per call otherwise — pick_alpha alone calls the solver 12 times)."""
+    key = id(C)
+    if key not in _DICT_CACHE:
+        _DICT_CACHE.clear()
+        _DICT_CACHE[key] = _norm(np.asarray(C, np.float32))
+    return _DICT_CACHE[key]
+
+
+def splice_batch(E, C, alpha=0.01, max_iter=3000, screen_k=2000):
+    """E: [m, d] embeddings; C: [V, d] dictionary. Returns W: [m, V] sparse nonneg weights.
+    For large dictionaries (>screen_k atoms) a cosine screening step preselects the screen_k most
+    aligned atoms per embedding before the lasso solve (sure-screening for nonneg lasso: unit-norm
+    atoms with low inner product cannot enter the support at moderate alpha)."""
+    E = _norm(np.atleast_2d(np.asarray(E, np.float32)))
+    Cn = _norm_dict(C)
+    V = Cn.shape[0]
+    W = np.zeros((E.shape[0], V), np.float32)
     for i in range(E.shape[0]):
         m = Lasso(alpha=alpha, positive=True, fit_intercept=False, max_iter=max_iter)
-        m.fit(Xd, E[i])
-        W[i] = m.coef_
+        if V > screen_k:
+            sims = Cn @ E[i]
+            idx = np.argpartition(sims, -screen_k)[-screen_k:]
+            m.fit(np.asarray(Cn[idx].T, np.float64), np.asarray(E[i], np.float64))
+            W[i, idx] = m.coef_
+        else:
+            m.fit(np.asarray(Cn.T, np.float64), np.asarray(E[i], np.float64))
+            W[i] = m.coef_
     return W
 
 

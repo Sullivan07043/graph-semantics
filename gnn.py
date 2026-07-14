@@ -51,14 +51,22 @@ def graph_tensors(ds):
     W, _ = g.estimate_weights(X, oi)
     nidx = {n: i for i, n in enumerate(g.nodes)}
     lat = set(g.latents)
-    rel_src, rel_dst, rel_w = [[] for _ in range(8)], [[] for _ in range(8)], [[] for _ in range(8)]
+    NREL = 9
+    rel_src, rel_dst, rel_w = ([[] for _ in range(NREL)] for _ in range(3))
     for a, b in g.edges:
         r = (2 if a in lat else 0) + (1 if b in lat else 0)          # ll=3, lo=2, ol=1, oo=0
         w = float(W.get((a, b), 0.0))
         rel_src[r].append(nidx[a]); rel_dst[r].append(nidx[b]); rel_w[r].append(w)
         rel_src[r + 4].append(nidx[b]); rel_dst[r + 4].append(nidx[a]); rel_w[r + 4].append(w)
+    # relation 8: data-correlation top-k neighbours among observed (signed corr as weight) — injects the
+    # data signal beyond the design edges (what the raw-correlation baseline exploits), no label leakage
+    Cr = np.corrcoef(X.T); np.fill_diagonal(Cr, 0.0)
+    K = min(5, len(obs) - 1)
+    for i, o in enumerate(obs):
+        for j in np.argsort(-np.abs(Cr[i]))[:K]:
+            rel_src[8].append(nidx[obs[j]]); rel_dst[8].append(nidx[o]); rel_w[8].append(float(Cr[i, j]))
     rels = []
-    for r in range(8):
+    for r in range(NREL):
         rels.append((torch.tensor(rel_src[r], dtype=torch.long),
                      torch.tensor(rel_dst[r], dtype=torch.long),
                      torch.tensor(rel_w[r], dtype=torch.float32)))
@@ -67,24 +75,29 @@ def graph_tensors(ds):
     gen_pa = [(nidx[n], [(nidx[p], float(W.get((p, n), 0.0))) for p in g.parents(n)])
               for n in g.nodes if g.parents(n)]
     return dict(name=ds["name"], g=g, T=torch.tensor(T, dtype=torch.float32), rels=rels,
-                obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa)
+                obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa,
+                Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32))
 
 
 class CompletionGNN(nn.Module):
     def __init__(self, d, hid=HID, layers=LAYERS):
         super().__init__()
-        self.inp = nn.Linear(d + 2, hid)
+        # input: [own label emb (0 if hidden), rawcorr-weighted mean of visible label embs, flags]
+        self.inp = nn.Linear(2 * d + 2, hid)
         self.msg = nn.ModuleList([nn.ModuleList(
             [nn.Sequential(nn.Linear(hid + 1, hid), nn.GELU(), nn.Linear(hid, hid))
-             for _ in range(8)]) for _ in range(layers)])
+             for _ in range(9)]) for _ in range(layers)])
         self.upd = nn.ModuleList([nn.Sequential(nn.Linear(2 * hid, hid), nn.GELU(),
                                                 nn.Linear(hid, hid)) for _ in range(layers)])
         self.ln = nn.ModuleList([nn.LayerNorm(hid) for _ in range(layers)])
         self.head = nn.Linear(hid, d)
 
-    def forward(self, gt, node_emb, labeled_mask):
-        """node_emb: [n, d] label embeddings with zeros for unlabeled; labeled_mask: [n] float."""
-        x = torch.cat([node_emb, labeled_mask[:, None], gt["is_lat"].to(node_emb.device)[:, None]], 1)
+    def forward(self, gt, node_emb, labeled_mask, corr_emb):
+        """node_emb: [n, d] label embeddings with zeros for unlabeled; labeled_mask: [n] float;
+        corr_emb: [n, d] rawcorr-weighted mean of the VISIBLE label embeddings (the strong no-graph
+        baseline, provided as an input feature so the network learns the structure delta on top)."""
+        x = torch.cat([node_emb, corr_emb, labeled_mask[:, None],
+                       gt["is_lat"].to(node_emb.device)[:, None]], 1)
         h = self.inp(x)
         for L in range(len(self.upd)):
             agg = torch.zeros_like(h)
@@ -110,7 +123,12 @@ def masked_forward(model, gt, mask_obs_idx):
     pos = gt["obs_pos"][keep].to(DEVICE)
     node_emb[pos] = gt["T"][keep].to(DEVICE)
     labeled[pos] = 1.0
-    return model(gt, node_emb, labeled)
+    # rawcorr-weighted mean of visible labels, for every OBSERVED node (zeros for latents)
+    corr_emb = torch.zeros(n, d, device=DEVICE)
+    Wc = gt["Craw"][:, keep].to(DEVICE)                              # [n_obs, n_keep]
+    Wc = Wc / Wc.sum(1, keepdim=True).clamp(min=1e-9)
+    corr_emb[gt["obs_pos"].to(DEVICE)] = Wc @ gt["T"][keep].to(DEVICE)
+    return model(gt, node_emb, labeled, corr_emb)
 
 
 def gen_consistency(out, gt):
