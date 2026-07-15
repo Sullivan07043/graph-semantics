@@ -61,7 +61,7 @@ def run_dataset(ds, C, cwords, records):
         import torch, gnn as gnn_mod
         ck = torch.load(gnn_mod.CKPT, map_location=gnn_mod.DEVICE)
         gmodel = gnn_mod.CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(gnn_mod.DEVICE)
-        gmodel.load_state_dict(ck["state"]); gmodel.eval()
+        gmodel.load_state_dict(ck["state"], strict=False); gmodel.eval()
         gnn_ctx = (gnn_mod, gmodel, gnn_mod.graph_tensors(ds))
     arms = {a: {"judge": [], "match": [], "exact": []} for a in arm_names}
     print(f"[{ts()}] {ds['name']}: {X.shape[0]}x{len(obs)} | graph: {len(g.latents)} latents, "

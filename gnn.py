@@ -365,7 +365,7 @@ def evaluate_local(group="heldout", folds=5):
     forward pass on its root-family subgraph only. Same folds/metrics as evaluate()."""
     ck = torch.load(CKPT, map_location=DEVICE)
     model = CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(DEVICE)
-    model.load_state_dict(ck["state"]); model.eval()
+    model.load_state_dict(ck["state"], strict=False); model.eval()
     names = pool.HELDOUT if group == "heldout" else (pool.DEV if group == "dev" else [group])
     out = {}
     for n in names:
@@ -409,7 +409,7 @@ def evaluate_local(group="heldout", folds=5):
 def evaluate(group="heldout", folds=5):
     ck = torch.load(CKPT, map_location=DEVICE)
     model = CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(DEVICE)
-    model.load_state_dict(ck["state"]); model.eval()
+    model.load_state_dict(ck["state"], strict=False); model.eval()
     names = pool.HELDOUT if group == "heldout" else (pool.DEV if group == "dev" else [group])
     out = {}
     for n in names:
