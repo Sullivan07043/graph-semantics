@@ -72,6 +72,47 @@ class Graph:
                 pairs.append((a, b))
         return pairs
 
+    def markov_blanket(self, n):
+        """Parents + children + spouses (other parents of children)."""
+        mb = set(self._pa[n]) | set(self._ch[n])
+        for c in self._ch[n]:
+            mb |= set(self._pa[c])
+        mb.discard(n)
+        return mb
+
+    def mb_observed(self, n):
+        """Observed projection of the Markov-blanket closure: observed members of MB(n) plus the
+        children of n's parents (siblings). In a bipartite design graph MB(n) is just the latent
+        parent (no label), so the operational locality set for label completion is the siblings —
+        'everything relevant to n flows through its parents'."""
+        s = self.markov_blanket(n)
+        for p in self._pa[n]:
+            s |= set(self._ch[p])
+        s.discard(n)
+        obs = set(self.observed)
+        return sorted(x for x in s if x in obs)
+
+    def trek_pairs(self):
+        """Pairs CONNECTED by a trek (one is an ancestor of the other, or they share a common
+        ancestor) — the complement of independent_pairs(). Faithfulness direction: these pairs are
+        dependent, so their semantics should not collapse to orthogonality."""
+        anc = {n: self.ancestors(n) | {n} for n in self.nodes}
+        return [(a, b) for i, a in enumerate(self.nodes) for b in self.nodes[i + 1:]
+                if anc[a] & anc[b]]
+
+    def v_structures(self):
+        """(p1, p2, c) triples where p1 -> c <- p2 and p1, p2 are marginally independent (no trek).
+        Conditioning on the collider c induces dependence between the parents (explaining away)."""
+        anc = {n: self.ancestors(n) | {n} for n in self.nodes}
+        out = []
+        for c in self.nodes:
+            ps = self._pa[c]
+            for i, p1 in enumerate(ps):
+                for p2 in ps[i + 1:]:
+                    if not (anc[p1] & anc[p2]):
+                        out.append((p1, p2, c))
+        return out
+
     def estimate_weights(self, X, obs_index):
         """Signed edge strengths on the given support. X: [n_samples, n_observed]; obs_index: name -> col.
         Latent score = PC1 of its observed descendants (sign-aligned to positive mean loading)."""

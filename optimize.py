@@ -41,6 +41,16 @@ def partial_residual_corr(g, X, obs_index, score):
     return obs, P
 
 
+def shrink_corr(P, n_samples):
+    """Graph-vs-data blend for conditional-independence anchors: the graph's local Markov claim is
+    rho = 0; keep a data partial correlation only when it clears the ~2-sigma noise floor 2/sqrt(n),
+    else trust the graph's zero."""
+    tau = 2.0 / max(np.sqrt(n_samples), 1.0)
+    Q = P.copy()
+    Q[np.abs(Q) < tau] = 0.0
+    return Q
+
+
 # --------------------------------------------------------------------------- ALS pieces
 def _solve_embeddings(g, W, A, free, d):
     """Closed-form least squares of the generation objective over the free embeddings.
@@ -91,12 +101,16 @@ def _solve_weights(g, W_sign, emb):
 
 def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0.1,
                         seed=0, device="cpu", free_w=False, als_rounds=5,
-                        residual=0.0, lam_res=0.0, partial_corr=None, verbose=False):
+                        residual=0.0, lam_res=0.0, partial_corr=None,
+                        lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0, verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
     residual (mu>0): per-node residual channel; lam_res + partial_corr=(obs_names, P) anchor residual
-    directions to the data's partial correlations.
+    directions to the data's partial correlations (pass P through shrink_corr for the graph-zero blend).
+    lam_dep + dep_corr=(obs_names, R): faithfulness floor — trek-connected observed pairs keep
+    |cos(e_i,e_k)| >= dep_kappa*|rho_ik| (hinge). lam_coll: explaining-away at v-structures — after
+    projecting the two parents orthogonal to their common child, penalize any remaining POSITIVE cos.
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
     import torch
     torch.manual_seed(seed)
@@ -157,6 +171,21 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     zp_pairs = g.independent_pairs()
     ia = torch.tensor([node_idx[a] for a, b in zp_pairs], dtype=torch.long, device=device)
     ib = torch.tensor([node_idx[b] for a, b in zp_pairs], dtype=torch.long, device=device)
+    # faithfulness floor: trek-connected OBSERVED pairs with a data-corr-scaled minimum |cos|
+    dep_terms = None
+    if lam_dep > 0 and dep_corr is not None:
+        dn, Rm_ = dep_corr
+        di = {n: k for k, n in enumerate(dn)}
+        obs_set = set(dn)
+        pairs = [(a, b) for a, b in g.trek_pairs() if a in obs_set and b in obs_set]
+        if pairs:
+            da = torch.tensor([node_idx[a] for a, b in pairs], dtype=torch.long, device=device)
+            db = torch.tensor([node_idx[b] for a, b in pairs], dtype=torch.long, device=device)
+            floor = torch.tensor([dep_kappa * abs(float(Rm_[di[a], di[b]])) for a, b in pairs],
+                                 dtype=torch.float32, device=device)
+            dep_terms = (da, db, floor)
+    colls = [(node_idx[p1], node_idx[p2], node_idx[c]) for p1, p2, c in g.v_structures()] \
+        if lam_coll > 0 else []
     opt = torch.optim.Adam(params, lr=lr)
     for step in range(steps):
         opt.zero_grad()
@@ -177,10 +206,24 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                 Rm = torch.stack([Rv[n] for n in pc_nodes])
                 Rm = torch.nn.functional.normalize(Rm, dim=1)
                 loss = loss + lam_res * (((Rm @ Rm.T) - Pt)[offdiag] ** 2).mean()
-        if len(zp_pairs) and lam_zero > 0:                           # vectorized independence decorrelation
+        need_M = (len(zp_pairs) and lam_zero > 0) or dep_terms is not None or colls
+        if need_M:
             M = torch.stack([emb(n) for n in g.nodes])
             Mn = torch.nn.functional.normalize(M, dim=1)
+        if len(zp_pairs) and lam_zero > 0:                           # vectorized independence decorrelation
             loss = loss + lam_zero * (((Mn[ia] * Mn[ib]).sum(1)) ** 2).mean()
+        if dep_terms is not None:                                    # faithfulness dependence floor
+            da, db, floor = dep_terms
+            cs = (Mn[da] * Mn[db]).sum(1).abs()
+            loss = loss + lam_dep * (torch.relu(floor - cs) ** 2).mean()
+        if colls:                                                    # explaining away at v-structures
+            cl = 0.0
+            for i1, i2, ic in colls:
+                u1 = Mn[i1] - (Mn[i1] @ Mn[ic]) * Mn[ic]
+                u2 = Mn[i2] - (Mn[i2] @ Mn[ic]) * Mn[ic]
+                cnum = (u1 @ u2) / (u1.norm() * u2.norm() + 1e-9)
+                cl = cl + torch.relu(cnum) ** 2
+            loss = loss + lam_coll * cl / len(colls)
         if lam_norm > 0:
             nr = torch.stack([E[n].norm() for n in free])
             loss = loss + lam_norm * ((nr - 1.0) ** 2).mean()

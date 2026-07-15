@@ -34,7 +34,7 @@ DEVICE = os.environ.get("GNN_DEVICE", "cuda:1" if torch.cuda.is_available()
 STEPS = int(os.environ.get("GNN_STEPS", 4000))
 HID = int(os.environ.get("GNN_HID", 256))
 LAYERS = int(os.environ.get("GNN_LAYERS", 4))
-CKPT = os.path.join(HERE, "outputs", "gnn.pt")
+CKPT = os.environ.get("GNN_CKPT", os.path.join(HERE, "outputs", "gnn.pt"))
 
 
 def ts():
@@ -74,9 +74,11 @@ def graph_tensors(ds):
     is_lat = torch.tensor([1.0 if n in lat else 0.0 for n in g.nodes])
     gen_pa = [(nidx[n], [(nidx[p], float(W.get((p, n), 0.0))) for p in g.parents(n)])
               for n in g.nodes if g.parents(n)]
+    obs_i = {o: k for k, o in enumerate(obs)}
+    mb_obs = [[obs_i[x] for x in g.mb_observed(o)] for o in obs]     # observed MB-closure per item
     return dict(name=ds["name"], g=g, T=torch.tensor(T, dtype=torch.float32), rels=rels,
                 obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa,
-                Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32))
+                Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32), mb_obs=mb_obs)
 
 
 class CompletionGNN(nn.Module):
@@ -161,6 +163,13 @@ def train():
         target = gt["T"][mask].to(DEVICE)
         loss = (1 - F.cosine_similarity(out[pos], target, dim=1)).mean()
         loss = loss + 0.1 * gen_consistency(out, gt)
+        # Markov-blanket locality (aux): the prediction for one sampled masked item should not change
+        # when every label OUTSIDE its observed MB-closure is hidden too
+        k = int(mask[int(rng.integers(len(mask)))])
+        outside = [j for j in range(n_obs) if j not in set(gt["mb_obs"][k])]
+        out_mb = masked_forward(model, gt, sorted(set(mask) | set(outside)))
+        pk = gt["obs_pos"][k].to(DEVICE)
+        loss = loss + 0.1 * (1 - F.cosine_similarity(out[pk], out_mb[pk], dim=0))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
         if step % 200 == 0 or step == STEPS - 1:
             print(f"[{ts()}]   step {step}/{STEPS} loss={float(loss):.4f} ({gt['name']})", flush=True)

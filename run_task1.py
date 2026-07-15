@@ -29,6 +29,9 @@ LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
 FREE_W = os.environ.get("FREE_W", "0") == "1"
 RESIDUAL = float(os.environ.get("RESIDUAL", 0.0))
 LAM_RES = float(os.environ.get("LAM_RES", 0.0))
+SHRINK = os.environ.get("SHRINK", "0") == "1"            # graph-zero blend for CI anchors
+LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))          # faithfulness dependence floor
+LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))        # explaining-away at v-structures
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
 
 
@@ -45,7 +48,10 @@ def run_dataset(ds, C, cwords, records):
     alpha = metrics.pick_alpha(T, C)
     W, score = g.estimate_weights(X, oi)
     pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
+    if pc is not None and SHRINK:
+        pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
+    dep = (obs, Craw) if LAM_DEP > 0 else None
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
@@ -79,7 +85,8 @@ def run_dataset(ds, C, cwords, records):
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
-                                           partial_corr=pc)
+                                           partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
+                                           lam_coll=LAM_COLL)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch
