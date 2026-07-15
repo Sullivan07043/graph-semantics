@@ -8,3 +8,5 @@ records*.json
 *.log
 data_cache/*.sav
 data_cache/
+logs/
+outputs_*.log
