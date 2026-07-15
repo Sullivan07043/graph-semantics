@@ -25,7 +25,8 @@ import torch.nn.functional as F
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import pool, encode
-from run_task1 import ALL_LOADERS
+# NOTE: run_task1 is imported LAZILY inside dev_pole_pairs() — the runners import this module at
+# startup (NEGOP=1) and a top-level import here would be circular.
 
 DEVICE = "cuda:1" if torch.cuda.is_available() and torch.cuda.device_count() > 1 else "cpu"
 CKPT = os.environ.get("NEGOP_CKPT", os.path.join(HERE, "outputs", "negop.pt"))
@@ -61,6 +62,7 @@ def wordnet_pairs():
 
 
 def dev_pole_pairs():
+    from run_task1 import ALL_LOADERS
     out = []
     for name in pool.DEV:
         ds = ALL_LOADERS[name]()
