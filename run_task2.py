@@ -75,7 +75,7 @@ def run_dataset(ds, C, cwords, records):
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     lat_names = [L for L in g.latents if L in gt]
-    core_accs, qual = [], []
+    core_accs, qual, llm_accs = [], [], []
     gnn_ctx, gnn_accs, jac_accs, gen_accs = None, [], [], []
     if GNN_ARM or GNN_JAC or GNN_GEN:
         import torch, gnn as gnn_mod
@@ -143,25 +143,30 @@ def run_dataset(ds, C, cwords, records):
                                     "arm": "gnn_genhead", "latent": L, "gt": gt[L],
                                     "decoded_words": w_,
                                     "judge": (bool(ok) if ok is not None else None)})
+        # LLM-naming baseline, ALIGNED TO THE TASK (user correction 2026-07-15): the task gives a
+        # SUBSET of labels, so the baseline names from the fold's VISIBLE children only — never from
+        # labels our method cannot see. Evaluated per fold, averaged like core.
+        if judge_mod.available():
+            items, meta = [], []
+            for L in lat_names:
+                ch = [labels[c] for c in g.observed_descendants(L) if oi[c] not in masked][:6]
+                nm = llm_name(ch) if ch else None
+                if nm is None:
+                    items = []
+                    break
+                items.append(([nm], gt[L])); meta.append((L, nm))
+            if len(items) == len(lat_names):
+                import judge
+                v = judge.judge_batch(items, "latent")
+                if v:
+                    llm_accs.append(float(np.mean(v)))
+                for (L, nm), ok in zip(meta, v or []):
+                    records.append({"task": 2, "dataset": ds["name"], "fold": fno, "arm": "llm_name",
+                                    "latent": L, "gt": gt[L], "decoded_words": [nm],
+                                    "judge": bool(ok)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
-    # LLM-naming baseline (full labels; single call per latent), judged by the same judge
-    base_acc = None
-    if judge_mod.available():
-        items, meta = [], []
-        for L in lat_names:
-            ch = [labels[c] for c in g.observed_descendants(L)][:6]
-            nm = llm_name(ch)
-            if nm is None:
-                break
-            items.append(([nm], gt[L])); meta.append((L, nm))
-        if len(items) == len(lat_names):
-            import judge
-            v = judge.judge_batch(items, "latent")
-            base_acc = float(np.mean(v)) if v else None
-            for (L, nm), ok in zip(meta, v or []):
-                records.append({"task": 2, "dataset": ds["name"], "fold": -1, "arm": "llm_name",
-                                "latent": L, "gt": gt[L], "decoded_words": [nm], "judge": bool(ok)})
+    base_acc = float(np.mean(llm_accs)) if llm_accs else None
 
     print(f"\n[{ts()}] === Task 2 results: {ds['name']} (latent judge-ACC) ===", flush=True)
     print(f"  core (graph-optimized embeddings): "

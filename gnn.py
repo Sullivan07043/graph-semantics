@@ -142,7 +142,8 @@ class CompletionGNN(nn.Module):
         # (without it the rawcorr input feature lets predictions bypass latents entirely).
         self.gen = nn.Linear(hid, d)
 
-    def forward(self, gt, node_emb, labeled_mask, corr_emb, h_delta=None, return_hidden=False):
+    def forward(self, gt, node_emb, labeled_mask, corr_emb, h_delta=None, return_hidden=False,
+                swap=None):
         """node_emb: [n, d] label embeddings with zeros for unlabeled; labeled_mask: [n] float;
         corr_emb: [n, d] rawcorr-weighted mean of the VISIBLE label embeddings (the strong no-graph
         baseline, provided as an input feature so the network learns the structure delta on top).
@@ -165,6 +166,10 @@ class CompletionGNN(nn.Module):
                 cnt = cnt.index_add(0, dst, torch.ones(len(dst), 1, device=h.device))
             agg = agg / cnt.clamp(min=1.0)
             h = self.ln[L](h + self.upd[L](torch.cat([h, agg], 1)))
+            if swap is not None and L == swap[2]:                    # intervention: swap two nodes'
+                i1, i2 = swap[0], swap[1]                            # hidden states mid-network
+                h = h.clone()
+                h[[i1, i2]] = h[[i2, i1]]
         out = F.normalize(self.head(h), dim=1)
         if return_hidden:
             return out, h
