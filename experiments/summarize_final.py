@@ -3,7 +3,7 @@ printed report. Reads: final_dev_task1/2(+2b), final_heldout_task1/2, gnn_c_*_de
 import json, os, re
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
 OUT = os.path.join(HERE, "outputs")
 HELDOUT = ["hexaco", "riasec", "kims"]                   # final split (user 2026-07-14 evening)
 

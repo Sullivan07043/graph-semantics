@@ -16,7 +16,7 @@ Geometric only (no judge). Output: outputs/intervene.json + printed per-dataset 
 import os, sys, json, time
 import numpy as np
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
 sys.path.insert(0, HERE)
 import pool, encode, metrics, optimize
 from run_task1 import ALL_LOADERS
