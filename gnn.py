@@ -46,6 +46,9 @@ LAM_JAC = float(os.environ.get("GNN_LAM_JAC", 0.0))      # Jacobian locality: d(
 LAM_GEN = float(os.environ.get("GNN_LAM_GEN", 0.0))      # latent generation head: masked child ~
                                                          # sign * gen(h_parent) (latents must carry
                                                          # their children's semantics)
+LAM_LATSUP = float(os.environ.get("GNN_LAM_LATSUP", 0.0))  # supervise latent outputs with the DEV
+                                                           # datasets' latent GT embeddings (train-time
+                                                           # only; held-out latents stay zero-shot)
 
 
 def ts():
@@ -107,11 +110,18 @@ def graph_tensors(ds):
     Wmat = torch.zeros(len(g.nodes), len(g.nodes))
     for a, b in g.edges:
         Wmat[nidx[b], nidx[a]] = float(W.get((a, b), 0.0))
+    # latent GT embeddings (training supervision on DEV only; evaluation target everywhere)
+    lat_gt = ds.get("latent_gt", {})
+    lat_sup_names = [L for L in g.latents if L in lat_gt]
+    lat_sup_pos = torch.tensor([nidx[L] for L in lat_sup_names], dtype=torch.long)
+    lat_sup_emb = torch.tensor(encode.embed([lat_gt[L] for L in lat_sup_names]),
+                               dtype=torch.float32) if lat_sup_names else torch.zeros(0, T.shape[1])
     return dict(name=ds["name"], g=g, T=torch.tensor(T, dtype=torch.float32), rels=rels,
                 obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa,
                 Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32), mb_obs=mb_obs,
                 zp=(zp_a, zp_b), vst=vst, tp=(tp_a, tp_b, tp_floor),
-                Ppc=torch.tensor(Ppc, dtype=torch.float32), Wmat=Wmat, indep_of=indep_of)
+                Ppc=torch.tensor(Ppc, dtype=torch.float32), Wmat=Wmat, indep_of=indep_of,
+                lat_sup=(lat_sup_pos, lat_sup_emb))
 
 
 class CompletionGNN(nn.Module):
@@ -271,6 +281,10 @@ def train():
         target = gt["T"][mask].to(DEVICE)
         loss = (1 - F.cosine_similarity(out[pos], target, dim=1)).mean()
         loss = loss + 0.1 * gen_consistency(out, gt)
+        if LAM_LATSUP > 0 and len(gt["lat_sup"][0]):                 # dev latent GT supervision
+            lp = gt["lat_sup"][0].to(DEVICE)
+            le = gt["lat_sup"][1].to(DEVICE)
+            loss = loss + LAM_LATSUP * (1 - F.cosine_similarity(out[lp], le, dim=1)).mean()
         if LAM_GEN > 0:                                              # latent generation head
             g_ = gt["g"]
             nidx = {n_: i2 for i2, n_ in enumerate(g_.nodes)}
