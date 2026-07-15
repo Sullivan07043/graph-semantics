@@ -25,7 +25,8 @@ def task2_summary(paths):
 def main():
     t1_dev = task1_table("final_dev_task1.json")
     t1_ho = task1_table("final_heldout_task1.json")
-    t2 = task2_summary(["final_dev_task2.json", "final_dev_task2b.json", "final_heldout_task2.json"])
+    t2 = task2_summary(["final_dev_task2.json", "final_dev_task2a.json", "final_dev_task2b.json",
+                        "final_heldout_task2.json"])
     gnn_ab = {}
     for a in ["none", "indep", "res", "coll", "dep", "mb"]:
         f = os.path.join(OUT, f"gnn_c_{a}_dev.json")
