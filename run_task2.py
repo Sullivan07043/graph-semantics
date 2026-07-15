@@ -22,9 +22,16 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))
+NEGOP = os.environ.get("NEGOP", "0") == "1"          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # decode the GNN's latent-node outputs too
 GNN_JAC = os.environ.get("GNN_JAC", "0") == "1"          # Jacobian read-off latent translation
 GNN_GEN = os.environ.get("GNN_GEN", "0") == "1"          # generation-head read-off (needs gen-trained ckpt)
+
+
+NEG_OP = None
+if NEGOP:
+    import negop
+    NEG_OP = negop.load()
 
 
 def ts():
@@ -87,7 +94,7 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])

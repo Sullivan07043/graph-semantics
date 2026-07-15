@@ -102,7 +102,8 @@ def _solve_weights(g, W_sign, emb):
 def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0.1,
                         seed=0, device="cpu", free_w=False, als_rounds=5,
                         residual=0.0, lam_res=0.0, partial_corr=None,
-                        lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0, verbose=False):
+                        lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
+                        neg_op=None, verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
@@ -111,6 +112,10 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     lam_dep + dep_corr=(obs_names, R): faithfulness floor — trek-connected observed pairs keep
     |cos(e_i,e_k)| >= dep_kappa*|rho_ik| (hinge). lam_coll: explaining-away at v-structures — after
     projecting the two parents orthogonal to their common child, penalize any remaining POSITIVE cos.
+    neg_op: frozen semantic-negation module (negop.NegOp); when set, a NEGATIVE edge's generation
+    contribution becomes |w| * neg_op(e_p) instead of w * e_p in the Adam stage (a reverse item is
+    the semantic negation of its factor, not the vector negation; the linear ALS init is a declared
+    approximation corrected here). Gradients flow through the frozen operator to the parent.
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
     import torch
     torch.manual_seed(seed)
@@ -186,6 +191,8 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
             dep_terms = (da, db, floor)
     colls = [(node_idx[p1], node_idx[p2], node_idx[c]) for p1, p2, c in g.v_structures()] \
         if lam_coll > 0 else []
+    if neg_op is not None:
+        neg_op = neg_op.to(device)
     opt = torch.optim.Adam(params, lr=lr)
     for step in range(steps):
         opt.zero_grad()
@@ -193,7 +200,11 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
         for n in gen_nodes:
             tot = None
             for p in g.parents(n):
-                t = wt((p, n)) * emb(p)
+                w_e = wt((p, n))
+                if neg_op is not None and float(W.get((p, n), 0.0)) < 0:
+                    t = torch.abs(w_e) * neg_op(emb(p))
+                else:
+                    t = w_e * emb(p)
                 tot = t if tot is None else tot + t
             if use_res:
                 tot = tot + Rv[n]

@@ -32,7 +32,14 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"            # graph-zero blend for CI anchors
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))          # faithfulness dependence floor
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))        # explaining-away at v-structures
+NEGOP = os.environ.get("NEGOP", "0") == "1"          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
+
+
+NEG_OP = None
+if NEGOP:
+    import negop
+    NEG_OP = negop.load()
 
 
 def ts():
@@ -86,7 +93,7 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch
