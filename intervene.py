@@ -32,10 +32,21 @@ def ts():
     return time.strftime("%H:%M:%S")
 
 
-def family_refs(g, T, obs_i, visible_set):
+def family_refs(g, T, obs_i, visible_set, W=None):
+    """Family reference = the latent's POSITIVE pole: mean of positively-loaded visible descendants.
+    (Reverse-keyed items point away from the pole; including them made the reference near-random on
+    bigfive/hexaco — the sign fix registered 2026-07-15.) Falls back to all visible if no positives."""
+    def load_sign(o):
+        if W is None:
+            return 1.0
+        ps = [p for p in g.parents(o) if g.is_latent(p)]
+        return W.get((ps[0], o), 0.0) if ps else 1.0
+
     refs = {}
     for L in g.latents:
-        rows = [T[obs_i[o]] for o in g.observed_descendants(L) if obs_i[o] in visible_set]
+        vis = [o for o in g.observed_descendants(L) if obs_i[o] in visible_set]
+        pos = [o for o in vis if load_sign(o) >= 0]
+        rows = [T[obs_i[o]] for o in (pos if pos else vis)]
         if rows:
             v = np.mean(rows, 0)
             refs[L] = v / (np.linalg.norm(v) + 1e-9)
@@ -83,7 +94,7 @@ def run_dataset(name):
         mset = set(masked)
         visible_set = set(range(len(obs))) - mset
         vis_emb = {obs[i]: T[i] for i in visible_set}
-        refs = family_refs(g, T, obs_i, visible_set)
+        refs = family_refs(g, T, obs_i, visible_set, W)
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], seed=fno,
                                            residual=1.0, lam_res=1.0, partial_corr=pc)
         ne, lb, ce = gnn_mod.masked_inputs(gt_, masked)
