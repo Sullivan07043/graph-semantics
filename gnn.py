@@ -43,6 +43,10 @@ LAM_DEP = float(os.environ.get("GNN_LAM_DEP", 0.0))      # faithfulness floor on
 LAM_MB = float(os.environ.get("GNN_LAM_MB", 0.0))        # Markov-blanket locality consistency
 LAM_JAC = float(os.environ.get("GNN_LAM_JAC", 0.0))      # Jacobian locality: d(pred_i)/d(label_j) ~ 0
                                                          # for j marginally independent of i (soft MB)
+JAC_GLOBAL = os.environ.get("GNN_JAC_GLOBAL", "0") == "1"  # ATTRIBUTION CONTROL: penalize the gradient
+                                                           # wrt ALL other nodes (same budget) — if this
+                                                           # matches indep-only, the transfer gain is
+                                                           # generic contraction, not graph selectivity
 LAM_GEN = float(os.environ.get("GNN_LAM_GEN", 0.0))      # latent generation head: masked child ~
                                                          # sign * gen(h_parent) (latents must carry
                                                          # their children's semantics)
@@ -342,7 +346,10 @@ def train():
             g_ = gt["g"]
             nidx = {n_: i2 for i2, n_ in enumerate(g_.nodes)}
             tgt_name = g_.observed[k]
-            indep = gt["indep_of"].get(tgt_name, [])
+            if JAC_GLOBAL:
+                indep = [n_ for n_ in g_.nodes if n_ != tgt_name]
+            else:
+                indep = gt["indep_of"].get(tgt_name, [])
             if indep:
                 node_emb2, labeled2, corr_emb2 = masked_inputs(gt, mask)
                 node_emb2 = node_emb2.detach().requires_grad_(True)
