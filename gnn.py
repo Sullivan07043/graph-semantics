@@ -26,7 +26,7 @@ import torch.nn.functional as F
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import testbeds, pool, encode, metrics
+import testbeds, pool, encode, metrics, optimize
 from run_task1 import ALL_LOADERS
 
 DEVICE = os.environ.get("GNN_DEVICE", "cuda:1" if torch.cuda.is_available()
@@ -35,6 +35,12 @@ STEPS = int(os.environ.get("GNN_STEPS", 4000))
 HID = int(os.environ.get("GNN_HID", 256))
 LAYERS = int(os.environ.get("GNN_LAYERS", 4))
 CKPT = os.environ.get("GNN_CKPT", os.path.join(HERE, "outputs", "gnn.pt"))
+# causal-constraint losses on the GNN's OUTPUT embeddings (all trained across the dev pool):
+LAM_INDEP = float(os.environ.get("GNN_LAM_INDEP", 0.0))  # d-separated pairs -> decorrelate outputs
+LAM_RES = float(os.environ.get("GNN_LAM_RES", 0.0))      # residual (out - gen) cos ~ shrunk partial corr
+LAM_COLL = float(os.environ.get("GNN_LAM_COLL", 0.0))    # explaining away at v-structures
+LAM_DEP = float(os.environ.get("GNN_LAM_DEP", 0.0))      # faithfulness floor on trek pairs
+LAM_MB = float(os.environ.get("GNN_LAM_MB", 0.0))        # Markov-blanket locality consistency
 
 
 def ts():
@@ -48,7 +54,7 @@ def graph_tensors(ds):
     obs = g.observed
     oi = {o: k for k, o in enumerate(obs)}
     T = encode.embed([ds["labels"][o] for o in obs])
-    W, _ = g.estimate_weights(X, oi)
+    W, score = g.estimate_weights(X, oi)
     nidx = {n: i for i, n in enumerate(g.nodes)}
     lat = set(g.latents)
     NREL = 9
@@ -76,9 +82,27 @@ def graph_tensors(ds):
               for n in g.nodes if g.parents(n)]
     obs_i = {o: k for k, o in enumerate(obs)}
     mb_obs = [[obs_i[x] for x in g.mb_observed(o)] for o in obs]     # observed MB-closure per item
+    # constraint tensors (all on the GIVEN graph + data, no label leakage)
+    zp = g.independent_pairs()
+    zp_a = torch.tensor([nidx[a] for a, b in zp], dtype=torch.long)
+    zp_b = torch.tensor([nidx[b] for a, b in zp], dtype=torch.long)
+    vst = [(nidx[p1], nidx[p2], nidx[c]) for p1, p2, c in g.v_structures()]
+    obs_set = set(obs)
+    tp = [(a, b) for a, b in g.trek_pairs() if a in obs_set and b in obs_set]
+    tp_a = torch.tensor([nidx[a] for a, b in tp], dtype=torch.long)
+    tp_b = torch.tensor([nidx[b] for a, b in tp], dtype=torch.long)
+    tp_floor = torch.tensor([0.5 * abs(float(Cr[obs_i[a], obs_i[b]])) for a, b in tp],
+                            dtype=torch.float32)
+    _, Ppc = optimize.partial_residual_corr(g, X, oi, score)
+    Ppc = optimize.shrink_corr(Ppc, X.shape[0])
+    Wmat = torch.zeros(len(g.nodes), len(g.nodes))
+    for a, b in g.edges:
+        Wmat[nidx[b], nidx[a]] = float(W.get((a, b), 0.0))
     return dict(name=ds["name"], g=g, T=torch.tensor(T, dtype=torch.float32), rels=rels,
                 obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa,
-                Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32), mb_obs=mb_obs)
+                Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32), mb_obs=mb_obs,
+                zp=(zp_a, zp_b), vst=vst, tp=(tp_a, tp_b, tp_floor),
+                Ppc=torch.tensor(Ppc, dtype=torch.float32), Wmat=Wmat)
 
 
 class CompletionGNN(nn.Module):
@@ -163,19 +187,104 @@ def train():
         target = gt["T"][mask].to(DEVICE)
         loss = (1 - F.cosine_similarity(out[pos], target, dim=1)).mean()
         loss = loss + 0.1 * gen_consistency(out, gt)
-        # Markov-blanket locality (aux): the prediction for one sampled masked item should not change
-        # when every label OUTSIDE its observed MB-closure is hidden too
-        k = int(mask[int(rng.integers(len(mask)))])
-        outside = [j for j in range(n_obs) if j not in set(gt["mb_obs"][k])]
-        out_mb = masked_forward(model, gt, sorted(set(mask) | set(outside)))
-        pk = gt["obs_pos"][k].to(DEVICE)
-        loss = loss + 0.1 * (1 - F.cosine_similarity(out[pk], out_mb[pk], dim=0))
+        On = F.normalize(out, dim=1)
+        if LAM_INDEP > 0 and len(gt["zp"][0]):                       # d-separated pairs decorrelate
+            za, zb = gt["zp"][0].to(DEVICE), gt["zp"][1].to(DEVICE)
+            loss = loss + LAM_INDEP * (((On[za] * On[zb]).sum(1)) ** 2).mean()
+        if LAM_RES > 0:                                              # residual cos ~ shrunk partial corr
+            gen_all = gt["Wmat"].to(DEVICE) @ out
+            op = gt["obs_pos"].to(DEVICE)
+            Rn = F.normalize(out[op] - gen_all[op], dim=1)
+            Pt = gt["Ppc"].to(DEVICE)
+            off = ~torch.eye(len(op), dtype=torch.bool, device=DEVICE)
+            loss = loss + LAM_RES * (((Rn @ Rn.T) - Pt)[off] ** 2).mean()
+        if LAM_COLL > 0 and gt["vst"]:                               # explaining away at v-structures
+            cl = 0.0
+            for i1, i2, ic in gt["vst"]:
+                u1 = On[i1] - (On[i1] @ On[ic]) * On[ic]
+                u2 = On[i2] - (On[i2] @ On[ic]) * On[ic]
+                cl = cl + torch.relu((u1 @ u2) / (u1.norm() * u2.norm() + 1e-9)) ** 2
+            loss = loss + LAM_COLL * cl / len(gt["vst"])
+        if LAM_DEP > 0 and len(gt["tp"][0]):                         # faithfulness dependence floor
+            ta, tb = gt["tp"][0].to(DEVICE), gt["tp"][1].to(DEVICE)
+            fl = gt["tp"][2].to(DEVICE)
+            loss = loss + LAM_DEP * (torch.relu(fl - (On[ta] * On[tb]).sum(1).abs()) ** 2).mean()
+        if LAM_MB > 0:                                               # Markov-blanket locality consistency
+            k = int(mask[int(rng.integers(len(mask)))])
+            outside = [j for j in range(n_obs) if j not in set(gt["mb_obs"][k])]
+            out_mb = masked_forward(model, gt, sorted(set(mask) | set(outside)))
+            pk = gt["obs_pos"][k].to(DEVICE)
+            loss = loss + LAM_MB * (1 - F.cosine_similarity(out[pk], out_mb[pk], dim=0))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
         if step % 200 == 0 or step == STEPS - 1:
             print(f"[{ts()}]   step {step}/{STEPS} loss={float(loss):.4f} ({gt['name']})", flush=True)
     os.makedirs(os.path.dirname(CKPT), exist_ok=True)
     torch.save({"state": model.state_dict(), "d": d, "hid": HID, "layers": LAYERS}, CKPT)
     print(f"[{ts()}] saved {CKPT}", flush=True)
+
+
+def family_subds(ds, root):
+    """Sub-testbed induced by one root latent's family: the root, every latent below it, and all their
+    observed descendants. Brings an unseen big graph back into the size range the operator was trained
+    on — Markov-blanket-style LOCAL INFERENCE (decomposition at eval time, not a training loss)."""
+    import graph as G
+    g = ds["graph"]
+    lats = [L for L in g.latents if L == root or root in g.ancestors(L)]
+    obs = [o for o in g.observed if set(g.ancestors(o)) & set(lats)]
+    keep = set(lats) | set(obs)
+    edges = [(a, b) for a, b in g.edges if a in keep and b in keep]
+    oi_full = {o: k for k, o in enumerate(g.observed)}
+    X = ds["X"][:, [oi_full[o] for o in obs]]
+    sub = dict(ds)
+    sub["graph"] = G.Graph(lats, obs, edges)
+    sub["X"] = X
+    return sub
+
+
+def evaluate_local(group="heldout", folds=5):
+    """Zero-shot eval with per-family local inference: predictions for each masked item come from the
+    forward pass on its root-family subgraph only. Same folds/metrics as evaluate()."""
+    ck = torch.load(CKPT, map_location=DEVICE)
+    model = CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(DEVICE)
+    model.load_state_dict(ck["state"]); model.eval()
+    names = pool.HELDOUT if group == "heldout" else (pool.DEV if group == "dev" else [group])
+    out = {}
+    for n in names:
+        ds = ALL_LOADERS[n]()
+        g = ds["graph"]
+        obs_full = g.observed
+        roots = [L for L in g.latents if not g.parents(L)]
+        fams = []
+        for r in roots:
+            sub = family_subds(ds, r)
+            fams.append((set(sub["graph"].observed), sub, graph_tensors(sub)))
+        T = encode.embed([ds["labels"][o] for o in obs_full])
+        Tn = metrics.norm_rows(T)
+        rng = np.random.default_rng(0)
+        perm = rng.permutation(len(obs_full))
+        cs, ms = [], []
+        for f in range(folds):
+            mask_full = sorted(int(i) for i in perm[f::folds])
+            masked_names = {obs_full[i] for i in mask_full}
+            pred = {}
+            for fam_obs, sub, gt in fams:
+                fam_masked = [k for k, o in enumerate(sub["graph"].observed) if o in masked_names]
+                if not fam_masked:
+                    continue
+                with torch.no_grad():
+                    o_ = masked_forward(model, gt, fam_masked)
+                P_ = o_[gt["obs_pos"][fam_masked].to(DEVICE)].cpu().numpy().astype(np.float64)
+                for r_, k in enumerate(fam_masked):
+                    pred[sub["graph"].observed[k]] = P_[r_]
+            P = np.stack([pred[obs_full[i]] for i in mask_full])
+            cs.append(float(np.mean((metrics.norm_rows(P) * Tn[mask_full]).sum(1))))
+            ms.append(metrics.match_acc(P, mask_full, T))
+        out[n] = {"cos": float(np.mean(cs)), "match": float(np.mean(ms))}
+        print(f"[{ts()}] gnn-local {n:10s} cos={out[n]['cos']:.3f} match={out[n]['match']:.3f}",
+              flush=True)
+    dst = os.environ.get("GNN_EVAL_OUT", os.path.join(HERE, "outputs", f"gnn_local_{group}.json"))
+    json.dump(out, open(dst, "w"), indent=1)
+    return out
 
 
 def evaluate(group="heldout", folds=5):
@@ -201,7 +310,8 @@ def evaluate(group="heldout", folds=5):
             ms.append(metrics.match_acc(P, mask, T))
         out[n] = {"cos": float(np.mean(cs)), "match": float(np.mean(ms))}
         print(f"[{ts()}] gnn {n:10s} cos={out[n]['cos']:.3f} match={out[n]['match']:.3f}", flush=True)
-    json.dump(out, open(os.path.join(HERE, "outputs", f"gnn_eval_{group}.json"), "w"), indent=1)
+    dst = os.environ.get("GNN_EVAL_OUT", os.path.join(HERE, "outputs", f"gnn_eval_{group}.json"))
+    json.dump(out, open(dst, "w"), indent=1)
     return out
 
 
@@ -209,5 +319,7 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "train"
     if cmd == "train":
         train()
+    elif cmd == "eval_local":
+        evaluate_local(sys.argv[2] if len(sys.argv) > 2 else "heldout")
     else:
         evaluate(sys.argv[2] if len(sys.argv) > 2 else "heldout")

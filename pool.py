@@ -269,9 +269,103 @@ def hs():
     return dict(name="hs", graph=g, X=z(R), labels=dict(HS_DESC), latent_gt=gt)
 
 
-LOADERS = {"hexaco": hexaco, "sixteenpf": sixteenpf, "riasec": riasec, "hsq": hsq, "kims": kims,
-           "sd3": sd3, "gcbs": gcbs, "rse": rse, "mach": mach, "hs": hs}
+# ---------------------------------------------------------------- pool round 2 (2026-07-14 evening):
+# More questionnaires with verbatim item texts. Skipped for cause: NPI (forced-choice dual
+# statements = ambiguous labels), RWAS & FPS & Grit (item texts withheld from the released codebook),
+# EQSQ (20 filler items per scale, official scoring key not in the release -> keying check FAILED
+# |r|win .138 < cross .152; kept out rather than importing an unverifiable external key).
+NEW2 = os.path.join(POOL, "new")
 
-# LODO roles (testbeds.py's tlvd/himi/bigfive are DEV: they already shaped the v1 design)
-DEV = ["tlvd", "himi", "bigfive", "hs", "rse", "mach", "gcbs"]
-HELDOUT = ["hexaco", "sixteenpf", "riasec", "hsq", "kims", "sd3"]
+
+def cfcs():
+    d = os.path.join(NEW2, "CFCS", "CFCS")
+    items = {f"Q{k}": v for k, v in
+             _codebook_items(os.path.join(d, "codebook.txt"), r"^Q(\d+)\.\s*(.+)$").items()}
+    construct_of = {q: "consideration of future consequences" for q in items}
+    gt = {"consideration of future consequences":
+          "the construct: consideration of future consequences (weighing distant outcomes of current"
+          " behavior against immediate concerns)"}
+    return _pack("cfcs", construct_of, items, os.path.join(d, "data.csv"), "\t", gt)
+
+
+def eqsq():
+    d = os.path.join(NEW2, "EQSQ", "EQSQ")
+    items = _codebook_items(os.path.join(d, "codebook.txt"), r"^([ES]\d+)\.\s*(.+)$")
+    names = {"E": "empathizing", "S": "systemizing"}
+    construct_of = {c: names[c[0]] for c in items}
+    gt = {"empathizing": "the cognitive style: empathizing (identifying and responding to others'"
+                         " mental states and emotions)",
+          "systemizing": "the cognitive style: systemizing (analyzing and constructing rule-based"
+                         " systems)"}
+    return _pack("eqsq", construct_of, items, os.path.join(d, "data.csv"), "\t", gt)
+
+
+def npas():
+    d = os.path.join(NEW2, "NPAS", "NPAS-data-16December2018")
+    items = {f"Q{k}": v for k, v in
+             _codebook_items(os.path.join(d, "codebook.txt"), r"^Q(\d+)\t(.+)$").items()}
+    construct_of = {q: "nerdiness" for q in items}
+    gt = {"nerdiness": "the personality characteristic: nerdiness (intellectual, academic and"
+                       " enthusiast-hobby orientation)"}
+    return _pack("npas", construct_of, items, os.path.join(d, "data.csv"), "\t", gt)
+
+
+def scs():
+    d = os.path.join(NEW2, "SCS", "SCS")
+    items = {f"Q{k}": v for k, v in
+             _codebook_items(os.path.join(d, "codebook.txt"), r"^Q(\d+)\.\s*(.+)$").items()}
+    construct_of = {q: "sexual compulsivity" for q in items}
+    gt = {"sexual compulsivity": "the construct: sexual compulsivity"}
+    return _pack("scs", construct_of, items, os.path.join(d, "data.csv"), ",", gt)
+
+
+def tma():
+    d = os.path.join(NEW2, "TMA", "TMA")
+    items = {f"Q{k}": v for k, v in
+             _codebook_items(os.path.join(d, "codebook.txt"), r"^Q(\d+)\.\s*(.+)$").items()}
+    construct_of = {q: "manifest anxiety" for q in items}
+    gt = {"manifest anxiety": "the construct: manifest anxiety (chronic anxiety symptoms, worry and"
+                              " physiological tension)"}
+    return _pack("tma", construct_of, items, os.path.join(d, "data.csv"), ",", gt)
+
+
+DD_FACTOR = {"HSNS": "hypersensitive narcissism", "DDP": "psychopathy", "DDN": "narcissism",
+             "DDM": "machiavellianism"}
+
+
+def darktriad():
+    d = os.path.join(NEW2, "HSNS+DD", "HSNS+DD")
+    items = _codebook_items(os.path.join(d, "codebook.txt"), r"^((?:HSNS|DD[PNM])\d+)\t(.+)$")
+    construct_of = {c: DD_FACTOR[re.match(r"HSNS|DD[PNM]", c).group(0)] for c in items}
+    gt = {v: f"the personality trait: {v}" for v in DD_FACTOR.values()}
+    return _pack("darktriad", construct_of, items, os.path.join(d, "data.csv"), "\t", gt)
+
+
+def wpi():
+    d = os.path.join(NEW2, "WPI", "WPI")
+    t = open(os.path.join(d, "codebook.html"), encoding="cp1252").read()
+    items = {}
+    for r in re.findall(r"<tr>(.*?)</tr>", t, re.S):
+        cells = [_html.unescape(re.sub("<[^>]+>", "", c)).strip()
+                 for c in re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)]
+        if len(cells) >= 3 and re.fullmatch(r"Q\d+", cells[0]):
+            m = re.match(r'"(.+?)"', cells[2])
+            if m:
+                items[cells[0]] = _norm(m.group(1))
+    construct_of = {q: "psychoneurotic tendency" for q in items}
+    gt = {"psychoneurotic tendency": "the construct: psychoneurotic tendency (emotional instability"
+                                     " and psychosomatic symptoms)"}
+    return _pack("wpi", construct_of, items, os.path.join(d, "data.csv"), "\t", gt)
+
+
+LOADERS = {"hexaco": hexaco, "sixteenpf": sixteenpf, "riasec": riasec, "hsq": hsq, "kims": kims,
+           "sd3": sd3, "gcbs": gcbs, "rse": rse, "mach": mach, "hs": hs,
+           "cfcs": cfcs, "npas": npas, "scs": scs, "tma": tma,
+           "darktriad": darktriad, "wpi": wpi}
+
+# LODO roles, REVISED 2026-07-14 evening (user): held-out narrowed to 3 (kept for domain diversity +
+# the 3-layer graph); everything else is DEV. sixteenpf/hsq/sd3 moved dev-ward AFTER one frozen-v2
+# judged run on them (disclosed; they were never used for tuning before the move).
+DEV = ["tlvd", "himi", "bigfive", "hs", "rse", "mach", "gcbs", "sixteenpf", "hsq", "sd3",
+       "cfcs", "npas", "scs", "tma", "darktriad", "wpi"]
+HELDOUT = ["hexaco", "riasec", "kims"]

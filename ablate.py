@@ -24,6 +24,8 @@ if ROUND == "v3":
         ("v2+dep+shr", dict(V2, shrink=True, lam_dep=0.3)),
         ("v3all", dict(V2, shrink=True, lam_dep=0.3, lam_coll=0.3)),
     ]
+elif ROUND == "v3b":
+    ARMS = [("v2+shr+coll", dict(V2, shrink=True, lam_coll=0.3))]
 else:
     ARMS = [
         ("base", {}),
