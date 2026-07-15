@@ -41,6 +41,11 @@ LAM_RES = float(os.environ.get("GNN_LAM_RES", 0.0))      # residual (out - gen) 
 LAM_COLL = float(os.environ.get("GNN_LAM_COLL", 0.0))    # explaining away at v-structures
 LAM_DEP = float(os.environ.get("GNN_LAM_DEP", 0.0))      # faithfulness floor on trek pairs
 LAM_MB = float(os.environ.get("GNN_LAM_MB", 0.0))        # Markov-blanket locality consistency
+LAM_JAC = float(os.environ.get("GNN_LAM_JAC", 0.0))      # Jacobian locality: d(pred_i)/d(label_j) ~ 0
+                                                         # for j marginally independent of i (soft MB)
+LAM_GEN = float(os.environ.get("GNN_LAM_GEN", 0.0))      # latent generation head: masked child ~
+                                                         # sign * gen(h_parent) (latents must carry
+                                                         # their children's semantics)
 
 
 def ts():
@@ -95,6 +100,10 @@ def graph_tensors(ds):
                             dtype=torch.float32)
     _, Ppc = optimize.partial_residual_corr(g, X, oi, score)
     Ppc = optimize.shrink_corr(Ppc, X.shape[0])
+    indep_of = {}
+    for a, b in zp:
+        indep_of.setdefault(a, []).append(b)
+        indep_of.setdefault(b, []).append(a)
     Wmat = torch.zeros(len(g.nodes), len(g.nodes))
     for a, b in g.edges:
         Wmat[nidx[b], nidx[a]] = float(W.get((a, b), 0.0))
@@ -102,7 +111,7 @@ def graph_tensors(ds):
                 obs_pos=obs_pos, is_lat=is_lat, n=len(g.nodes), gen_pa=gen_pa,
                 Craw=torch.tensor(np.clip(Cr, 0, None), dtype=torch.float32), mb_obs=mb_obs,
                 zp=(zp_a, zp_b), vst=vst, tp=(tp_a, tp_b, tp_floor),
-                Ppc=torch.tensor(Ppc, dtype=torch.float32), Wmat=Wmat)
+                Ppc=torch.tensor(Ppc, dtype=torch.float32), Wmat=Wmat, indep_of=indep_of)
 
 
 class CompletionGNN(nn.Module):
@@ -117,14 +126,23 @@ class CompletionGNN(nn.Module):
                                                 nn.Linear(hid, hid)) for _ in range(layers)])
         self.ln = nn.ModuleList([nn.LayerNorm(hid) for _ in range(layers)])
         self.head = nn.Linear(hid, d)
+        # latent GENERATION head: decodes a LATENT node's hidden state into the embedding-space
+        # direction its children are generated from. Trained so a masked child is reconstructable
+        # from sign * gen(h_parent) ALONE -> forces the latent pathway to carry child semantics
+        # (without it the rawcorr input feature lets predictions bypass latents entirely).
+        self.gen = nn.Linear(hid, d)
 
-    def forward(self, gt, node_emb, labeled_mask, corr_emb):
+    def forward(self, gt, node_emb, labeled_mask, corr_emb, h_delta=None, return_hidden=False):
         """node_emb: [n, d] label embeddings with zeros for unlabeled; labeled_mask: [n] float;
         corr_emb: [n, d] rawcorr-weighted mean of the VISIBLE label embeddings (the strong no-graph
-        baseline, provided as an input feature so the network learns the structure delta on top)."""
+        baseline, provided as an input feature so the network learns the structure delta on top).
+        h_delta: optional [n, hid] perturbation added after the input layer (Jacobian read-off);
+        return_hidden: also return the final hidden states (latent generation head reads them)."""
         x = torch.cat([node_emb, corr_emb, labeled_mask[:, None],
                        gt["is_lat"].to(node_emb.device)[:, None]], 1)
         h = self.inp(x)
+        if h_delta is not None:
+            h = h + h_delta
         for L in range(len(self.upd)):
             agg = torch.zeros_like(h)
             cnt = torch.zeros(h.shape[0], 1, device=h.device)
@@ -137,11 +155,13 @@ class CompletionGNN(nn.Module):
                 cnt = cnt.index_add(0, dst, torch.ones(len(dst), 1, device=h.device))
             agg = agg / cnt.clamp(min=1.0)
             h = self.ln[L](h + self.upd[L](torch.cat([h, agg], 1)))
-        return F.normalize(self.head(h), dim=1)
+        out = F.normalize(self.head(h), dim=1)
+        if return_hidden:
+            return out, h
+        return out
 
 
-def masked_forward(model, gt, mask_obs_idx):
-    """mask_obs_idx: indices INTO gt.obs_pos of observed nodes whose labels are hidden."""
+def masked_inputs(gt, mask_obs_idx):
     n, d = gt["n"], gt["T"].shape[1]
     node_emb = torch.zeros(n, d, device=DEVICE)
     labeled = torch.zeros(n, device=DEVICE)
@@ -154,7 +174,67 @@ def masked_forward(model, gt, mask_obs_idx):
     Wc = gt["Craw"][:, keep].to(DEVICE)                              # [n_obs, n_keep]
     Wc = Wc / Wc.sum(1, keepdim=True).clamp(min=1e-9)
     corr_emb[gt["obs_pos"].to(DEVICE)] = Wc @ gt["T"][keep].to(DEVICE)
+    return node_emb, labeled, corr_emb
+
+
+def masked_forward(model, gt, mask_obs_idx):
+    """mask_obs_idx: indices INTO gt.obs_pos of observed nodes whose labels are hidden."""
+    node_emb, labeled, corr_emb = masked_inputs(gt, mask_obs_idx)
     return model(gt, node_emb, labeled, corr_emb)
+
+
+def genhead_readoff(model, gt, mask_obs_idx, lat_names):
+    """Latent translation via the trained GENERATION head: u_L = gen(h_L) (the direction this
+    latent generates its children from). Requires a checkpoint trained with GNN_LAM_GEN>0."""
+    g = gt["g"]
+    nidx = {n_: i for i, n_ in enumerate(g.nodes)}
+    node_emb, labeled, corr_emb = masked_inputs(gt, mask_obs_idx)
+    with torch.no_grad():
+        _, hid = model(gt, node_emb, labeled, corr_emb, return_hidden=True)
+        U = model.gen(hid[torch.tensor([nidx[L] for L in lat_names], device=DEVICE)])
+    return U.cpu().numpy().astype(np.float64)
+
+
+def jacobian_readoff(model, gt, mask_obs_idx, lat_names):
+    """JACOBIAN READ-OFF (derivative-side latent translation): a latent's meaning is the input
+    direction whose perturbation most increases its VISIBLE observed descendants' alignment with
+    their own labels, sign-weighted by the data:  v_L = d/d(delta_L) sum_c sign_c (out_c . a_c).
+    Uses only visible labels (no leakage). Returns [n_lat, d] numpy."""
+    import torch
+    g = gt["g"]
+    nidx = {n_: i for i, n_ in enumerate(g.nodes)}
+    obs_i = {o: k for k, o in enumerate(g.observed)}
+    node_emb, labeled, corr_emb = masked_inputs(gt, mask_obs_idx)
+    delta = torch.zeros(gt["n"], model.head.in_features, device=DEVICE, requires_grad=True)
+    out = model(gt, node_emb, labeled, corr_emb, h_delta=delta)
+    Tn = torch.nn.functional.normalize(gt["T"], dim=1).to(DEVICE)
+    masked = set(mask_obs_idx)
+    vs = []
+    for L in lat_names:
+        terms = []
+        for c in g.observed_descendants(L):
+            k = obs_i[c]
+            if k in masked:
+                continue                                             # visible labels only
+            # path sign = product of edge-weight signs climbing the (tree) parent chain c -> L
+            sgn, node = 1.0, c
+            while node != L:
+                ps = g.parents(node)
+                if not ps:
+                    break
+                p = ps[0]
+                w = float(gt["Wmat"][nidx[node], nidx[p]])
+                sgn *= 1.0 if w >= 0 else -1.0
+                node = p
+            terms.append(sgn * (out[nidx[c]] @ Tn[k]))
+        if not terms:
+            vs.append(np.zeros(gt["T"].shape[1]))
+            continue
+        score = torch.stack(terms).sum()
+        ghid = torch.autograd.grad(score, delta, retain_graph=True)[0][nidx[L]]     # [hid]
+        gvec = model.head.weight @ ghid                  # push hidden sensitivity into embedding space
+        vs.append(gvec.detach().cpu().numpy().astype(np.float64))
+    return np.stack(vs)
 
 
 def gen_consistency(out, gt):
@@ -182,11 +262,32 @@ def train():
         n_obs = len(gt["obs_pos"])
         k = max(1, int(n_obs * rng.uniform(0.1, 0.45)))
         mask = rng.choice(n_obs, k, replace=False).tolist()
-        out = masked_forward(model, gt, mask)
+        if LAM_GEN > 0:
+            ne_, lb_, ce_ = masked_inputs(gt, mask)
+            out, hid = model(gt, ne_, lb_, ce_, return_hidden=True)
+        else:
+            out = masked_forward(model, gt, mask)
         pos = gt["obs_pos"][mask].to(DEVICE)
         target = gt["T"][mask].to(DEVICE)
         loss = (1 - F.cosine_similarity(out[pos], target, dim=1)).mean()
         loss = loss + 0.1 * gen_consistency(out, gt)
+        if LAM_GEN > 0:                                              # latent generation head
+            g_ = gt["g"]
+            nidx = {n_: i2 for i2, n_ in enumerate(g_.nodes)}
+            preds, tgts = [], []
+            for k in mask:
+                c = g_.observed[k]
+                ps = [p for p in g_.parents(c) if g_.is_latent(p)]
+                if not ps:
+                    continue
+                p = ps[0]
+                w = float(gt["Wmat"][nidx[c], nidx[p]])
+                sgn = 1.0 if w >= 0 else -1.0
+                preds.append(sgn * model.gen(hid[nidx[p]]))
+                tgts.append(gt["T"][k].to(DEVICE))
+            if preds:
+                Pd, Tg = torch.stack(preds), torch.stack(tgts)
+                loss = loss + LAM_GEN * (1 - F.cosine_similarity(Pd, Tg, dim=1)).mean()
         On = F.normalize(out, dim=1)
         if LAM_INDEP > 0 and len(gt["zp"][0]):                       # d-separated pairs decorrelate
             za, zb = gt["zp"][0].to(DEVICE), gt["zp"][1].to(DEVICE)
@@ -215,6 +316,24 @@ def train():
             out_mb = masked_forward(model, gt, sorted(set(mask) | set(outside)))
             pk = gt["obs_pos"][k].to(DEVICE)
             loss = loss + LAM_MB * (1 - F.cosine_similarity(out[pk], out_mb[pk], dim=0))
+        if LAM_JAC > 0:                                              # Jacobian locality (soft MB):
+            # for one sampled masked target i, the gradient of its prediction wrt the INPUT labels of
+            # nodes marginally independent of i should vanish (double backprop; probe direction random)
+            k = int(mask[int(rng.integers(len(mask)))])
+            g_ = gt["g"]
+            nidx = {n_: i2 for i2, n_ in enumerate(g_.nodes)}
+            tgt_name = g_.observed[k]
+            indep = gt["indep_of"].get(tgt_name, [])
+            if indep:
+                node_emb2, labeled2, corr_emb2 = masked_inputs(gt, mask)
+                node_emb2 = node_emb2.detach().requires_grad_(True)
+                out2 = model(gt, node_emb2, labeled2, corr_emb2)
+                probe = torch.randn(out2.shape[1], device=DEVICE)
+                probe = probe / probe.norm()
+                s = out2[gt["obs_pos"][k].to(DEVICE)] @ probe
+                Jrow = torch.autograd.grad(s, node_emb2, create_graph=True)[0]
+                ipos = torch.tensor([nidx[n_] for n_ in indep], dtype=torch.long, device=DEVICE)
+                loss = loss + LAM_JAC * (Jrow[ipos] ** 2).sum(1).mean()
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
         if step % 200 == 0 or step == STEPS - 1:
             print(f"[{ts()}]   step {step}/{STEPS} loss={float(loss):.4f} ({gt['name']})", flush=True)

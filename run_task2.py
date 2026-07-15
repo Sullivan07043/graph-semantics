@@ -23,6 +23,8 @@ SHRINK = os.environ.get("SHRINK", "0") == "1"
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # decode the GNN's latent-node outputs too
+GNN_JAC = os.environ.get("GNN_JAC", "0") == "1"          # Jacobian read-off latent translation
+GNN_GEN = os.environ.get("GNN_GEN", "0") == "1"          # generation-head read-off (needs gen-trained ckpt)
 
 
 def ts():
@@ -67,8 +69,8 @@ def run_dataset(ds, C, cwords, records):
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     lat_names = [L for L in g.latents if L in gt]
     core_accs, qual = [], []
-    gnn_ctx, gnn_accs = None, []
-    if GNN_ARM:
+    gnn_ctx, gnn_accs, jac_accs, gen_accs = None, [], [], []
+    if GNN_ARM or GNN_JAC or GNN_GEN:
         import torch, gnn as gnn_mod
         ck = torch.load(gnn_mod.CKPT, map_location=gnn_mod.DEVICE)
         gmodel = gnn_mod.CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(gnn_mod.DEVICE)
@@ -100,17 +102,40 @@ def run_dataset(ds, C, cwords, records):
         if gnn_ctx is not None:
             import torch
             gnn_mod, gmodel, gt_, lat_idx = gnn_ctx
-            with torch.no_grad():
-                o = gnn_mod.masked_forward(gmodel, gt_, sorted(masked))
-            Ug = o[torch.tensor(lat_idx, device=gnn_mod.DEVICE)].cpu().numpy().astype(np.float64)
-            gwords = metrics.decode_words(Ug, C, cwords, alpha)
-            gacc, gverd = metrics.judge_latents(gwords, [gt[L] for L in lat_names])
-            if gacc is not None:
-                gnn_accs.append(gacc)
-            for L, w_, ok in zip(lat_names, gwords, gverd or [None] * len(lat_names)):
-                records.append({"task": 2, "dataset": ds["name"], "fold": fno, "arm": "gnn",
-                                "latent": L, "gt": gt[L], "decoded_words": w_,
-                                "judge": (bool(ok) if ok is not None else None)})
+            if GNN_ARM:
+                with torch.no_grad():
+                    o = gnn_mod.masked_forward(gmodel, gt_, sorted(masked))
+                Ug = o[torch.tensor(lat_idx, device=gnn_mod.DEVICE)].cpu().numpy().astype(np.float64)
+                gwords = metrics.decode_words(Ug, C, cwords, alpha)
+                gacc, gverd = metrics.judge_latents(gwords, [gt[L] for L in lat_names])
+                if gacc is not None:
+                    gnn_accs.append(gacc)
+                for L, w_, ok in zip(lat_names, gwords, gverd or [None] * len(lat_names)):
+                    records.append({"task": 2, "dataset": ds["name"], "fold": fno, "arm": "gnn",
+                                    "latent": L, "gt": gt[L], "decoded_words": w_,
+                                    "judge": (bool(ok) if ok is not None else None)})
+            if GNN_JAC:
+                Uj = gnn_mod.jacobian_readoff(gmodel, gt_, sorted(masked), lat_names)
+                jwords = metrics.decode_words(Uj, C, cwords, alpha)
+                jacc_, jverd = metrics.judge_latents(jwords, [gt[L] for L in lat_names])
+                if jacc_ is not None:
+                    jac_accs.append(jacc_)
+                for L, w_, ok in zip(lat_names, jwords, jverd or [None] * len(lat_names)):
+                    records.append({"task": 2, "dataset": ds["name"], "fold": fno,
+                                    "arm": "gnn_jacread", "latent": L, "gt": gt[L],
+                                    "decoded_words": w_,
+                                    "judge": (bool(ok) if ok is not None else None)})
+            if GNN_GEN:
+                Ug2 = gnn_mod.genhead_readoff(gmodel, gt_, sorted(masked), lat_names)
+                w2 = metrics.decode_words(Ug2, C, cwords, alpha)
+                a2, v2 = metrics.judge_latents(w2, [gt[L] for L in lat_names])
+                if a2 is not None:
+                    gen_accs.append(a2)
+                for L, w_, ok in zip(lat_names, w2, v2 or [None] * len(lat_names)):
+                    records.append({"task": 2, "dataset": ds["name"], "fold": fno,
+                                    "arm": "gnn_genhead", "latent": L, "gt": gt[L],
+                                    "decoded_words": w_,
+                                    "judge": (bool(ok) if ok is not None else None)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
     # LLM-naming baseline (full labels; single call per latent), judged by the same judge
@@ -136,13 +161,19 @@ def run_dataset(ds, C, cwords, records):
           f"{np.mean(core_accs):.3f}" if core_accs else "  core: (judge off)", flush=True)
     if gnn_accs:
         print(f"  gnn (trained completion operator): {np.mean(gnn_accs):.3f}", flush=True)
+    if jac_accs:
+        print(f"  gnn jacobian read-off            : {np.mean(jac_accs):.3f}", flush=True)
+    if gen_accs:
+        print(f"  gnn generation-head read-off     : {np.mean(gen_accs):.3f}", flush=True)
     print(f"  LLM-naming baseline              : "
           f"{base_acc:.3f}" if base_acc is not None else "  LLM-naming baseline: (skipped)", flush=True)
     for L, w_, ok in qual:
         print(f"    {L} (gt: {ds['latent_gt'][L][:50]}...) <- {', '.join(w_)}"
               f"  [{'OK' if ok else 'X'}]" if ok is not None else "", flush=True)
     return {"core": (float(np.mean(core_accs)) if core_accs else None), "llm_name": base_acc,
-            "gnn": (float(np.mean(gnn_accs)) if gnn_accs else None)}
+            "gnn": (float(np.mean(gnn_accs)) if gnn_accs else None),
+            "gnn_jacread": (float(np.mean(jac_accs)) if jac_accs else None),
+            "gnn_genhead": (float(np.mean(gen_accs)) if gen_accs else None)}
 
 
 def main():
