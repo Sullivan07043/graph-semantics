@@ -191,18 +191,26 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
             dep_terms = (da, db, floor)
     colls = [(node_idx[p1], node_idx[p2], node_idx[c]) for p1, p2, c in g.v_structures()] \
         if lam_coll > 0 else []
+    neg_parents = []
     if neg_op is not None:
         neg_op = neg_op.to(device)
+        neg_parents = sorted({p for (p, n), w in W.items() if w < 0})
     opt = torch.optim.Adam(params, lr=lr)
     for step in range(steps):
         opt.zero_grad()
         loss = 0.0
+        # one batched f_neg forward per step for every parent with a negative out-edge (the naive
+        # per-edge call was 100x slower: n_edges x steps MLP calls, recomputing shared parents)
+        neg_cache = {}
+        if neg_parents:
+            NP = neg_op(torch.stack([emb(p) for p in neg_parents]))
+            neg_cache = {p: NP[i] for i, p in enumerate(neg_parents)}
         for n in gen_nodes:
             tot = None
             for p in g.parents(n):
                 w_e = wt((p, n))
-                if neg_op is not None and float(W.get((p, n), 0.0)) < 0:
-                    t = torch.abs(w_e) * neg_op(emb(p))
+                if p in neg_cache and float(W.get((p, n), 0.0)) < 0:
+                    t = torch.abs(w_e) * neg_cache[p]
                 else:
                     t = w_e * emb(p)
                 tot = t if tot is None else tot + t
