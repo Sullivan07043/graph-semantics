@@ -22,6 +22,7 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))
+GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # decode the GNN's latent-node outputs too
 
 
 def ts():
@@ -66,6 +67,15 @@ def run_dataset(ds, C, cwords, records):
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     lat_names = [L for L in g.latents if L in gt]
     core_accs, qual = [], []
+    gnn_ctx, gnn_accs = None, []
+    if GNN_ARM:
+        import torch, gnn as gnn_mod
+        ck = torch.load(gnn_mod.CKPT, map_location=gnn_mod.DEVICE)
+        gmodel = gnn_mod.CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(gnn_mod.DEVICE)
+        gmodel.load_state_dict(ck["state"]); gmodel.eval()
+        gt_ = gnn_mod.graph_tensors(ds)
+        nidx = {n: i for i, n in enumerate(g.nodes)}
+        gnn_ctx = (gnn_mod, gmodel, gt_, [nidx[L] for L in lat_names])
     print(f"[{ts()}] {ds['name']}: Task 2 over {len(lat_names)} latents x {FOLDS} folds", flush=True)
 
     for fno, fold in enumerate(folds):
@@ -87,6 +97,20 @@ def run_dataset(ds, C, cwords, records):
                             "judge": (bool(ok) if ok is not None else None)})
         if fno == 0:
             qual = list(zip(lat_names, words, verd or []))
+        if gnn_ctx is not None:
+            import torch
+            gnn_mod, gmodel, gt_, lat_idx = gnn_ctx
+            with torch.no_grad():
+                o = gnn_mod.masked_forward(gmodel, gt_, sorted(masked))
+            Ug = o[torch.tensor(lat_idx, device=gnn_mod.DEVICE)].cpu().numpy().astype(np.float64)
+            gwords = metrics.decode_words(Ug, C, cwords, alpha)
+            gacc, gverd = metrics.judge_latents(gwords, [gt[L] for L in lat_names])
+            if gacc is not None:
+                gnn_accs.append(gacc)
+            for L, w_, ok in zip(lat_names, gwords, gverd or [None] * len(lat_names)):
+                records.append({"task": 2, "dataset": ds["name"], "fold": fno, "arm": "gnn",
+                                "latent": L, "gt": gt[L], "decoded_words": w_,
+                                "judge": (bool(ok) if ok is not None else None)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
     # LLM-naming baseline (full labels; single call per latent), judged by the same judge
@@ -110,12 +134,15 @@ def run_dataset(ds, C, cwords, records):
     print(f"\n[{ts()}] === Task 2 results: {ds['name']} (latent judge-ACC) ===", flush=True)
     print(f"  core (graph-optimized embeddings): "
           f"{np.mean(core_accs):.3f}" if core_accs else "  core: (judge off)", flush=True)
+    if gnn_accs:
+        print(f"  gnn (trained completion operator): {np.mean(gnn_accs):.3f}", flush=True)
     print(f"  LLM-naming baseline              : "
           f"{base_acc:.3f}" if base_acc is not None else "  LLM-naming baseline: (skipped)", flush=True)
     for L, w_, ok in qual:
         print(f"    {L} (gt: {ds['latent_gt'][L][:50]}...) <- {', '.join(w_)}"
               f"  [{'OK' if ok else 'X'}]" if ok is not None else "", flush=True)
-    return {"core": (float(np.mean(core_accs)) if core_accs else None), "llm_name": base_acc}
+    return {"core": (float(np.mean(core_accs)) if core_accs else None), "llm_name": base_acc,
+            "gnn": (float(np.mean(gnn_accs)) if gnn_accs else None)}
 
 
 def main():
