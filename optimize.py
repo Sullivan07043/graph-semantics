@@ -103,7 +103,7 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                         seed=0, device="cpu", free_w=False, als_rounds=5,
                         residual=0.0, lam_res=0.0, partial_corr=None,
                         lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-                        neg_op=None, verbose=False):
+                        neg_op=None, bridge=None, verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
@@ -116,6 +116,12 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     contribution becomes |w| * neg_op(e_p) instead of w * e_p in the Adam stage (a reverse item is
     the semantic negation of its factor, not the vector negation; the linear ALS init is a declared
     approximation corrected here). Gradients flow through the frozen operator to the parent.
+    bridge: UNIFIED BRIDGE CONSTRAINT (pipeline_v3; the explicit semantic-dependence monotonicity
+    axiom). dict(obs=list, dep_marg=[m,m] magnitudes, lam_upper=float, kappa=float, q=float):
+    trek-connected OBSERVED pairs whose marginal dependence is in the top (1-q) quantile get a
+    lower bound hinge(kappa*dep - |cos|)^2 — the UPPER tail; the lower tail stays lam_zero on
+    independent pairs; the conditional tail rides through partial_corr (whose magnitudes the caller
+    may replace with dcor/MI, sign from Pearson).
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
     import torch
     torch.manual_seed(seed)
@@ -195,6 +201,22 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     if neg_op is not None:
         neg_op = neg_op.to(device)
         neg_parents = sorted({p for (p, n), w in W.items() if w < 0})
+    # unified bridge: UPPER tail on strongly-dependent trek-connected observed pairs
+    br_terms = None
+    if bridge is not None and bridge.get("lam_upper", 0) > 0:
+        bi = {n: k for k, n in enumerate(bridge["obs"])}
+        Dm = np.asarray(bridge["dep_marg"])
+        tp = [(a, b) for a, b in g.trek_pairs() if a in bi and b in bi]
+        if tp:
+            vals = np.array([Dm[bi[a], bi[b]] for a, b in tp])
+            thr = np.quantile(vals, bridge.get("q", 0.7))
+            keep = [(a, b, v) for (a, b), v in zip(tp, vals) if v >= thr]
+            if keep:
+                ba = torch.tensor([node_idx[a] for a, b, v in keep], dtype=torch.long, device=device)
+                bb = torch.tensor([node_idx[b] for a, b, v in keep], dtype=torch.long, device=device)
+                bfloor = torch.tensor([bridge.get("kappa", 0.5) * float(v) for a, b, v in keep],
+                                      dtype=torch.float32, device=device)
+                br_terms = (ba, bb, bfloor, float(bridge["lam_upper"]))
     opt = torch.optim.Adam(params, lr=lr)
     for step in range(steps):
         opt.zero_grad()
@@ -225,7 +247,8 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                 Rm = torch.stack([Rv[n] for n in pc_nodes])
                 Rm = torch.nn.functional.normalize(Rm, dim=1)
                 loss = loss + lam_res * (((Rm @ Rm.T) - Pt)[offdiag] ** 2).mean()
-        need_M = (len(zp_pairs) and lam_zero > 0) or dep_terms is not None or colls
+        need_M = (len(zp_pairs) and lam_zero > 0) or dep_terms is not None or colls \
+            or br_terms is not None
         if need_M:
             M = torch.stack([emb(n) for n in g.nodes])
             Mn = torch.nn.functional.normalize(M, dim=1)
@@ -235,6 +258,10 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
             da, db, floor = dep_terms
             cs = (Mn[da] * Mn[db]).sum(1).abs()
             loss = loss + lam_dep * (torch.relu(floor - cs) ** 2).mean()
+        if br_terms is not None:                                     # bridge UPPER tail
+            ba, bb, bfloor, lam_up = br_terms
+            cs = (Mn[ba] * Mn[bb]).sum(1).abs()
+            loss = loss + lam_up * (torch.relu(bfloor - cs) ** 2).mean()
         if colls:                                                    # explaining away at v-structures
             cl = 0.0
             for i1, i2, ic in colls:
