@@ -75,13 +75,15 @@ def wordnet_pairs():
     return sorted(syn), sorted(ant)
 
 
-def dev_gt_pairs(neg):
+def dev_gt_pairs(neg, exclude=()):
     """(x=embed(latent GT text), cond, y=child label emb): teaches CONCRETIZATION — abstract
     construct name -> concrete item phrasing (meeting-note pt.3 sanctions dev latent-GT use;
     held-out untouched). Negative children get sign=-1 so the f_neg base handles polarity."""
     from run_task1 import ALL_LOADERS
     xs, cs, ys = [], [], []
     for name in pool.DEV:
+        if name in exclude:
+            continue
         ds = ALL_LOADERS[name]()
         g, X, labels, gt = ds["graph"], ds["X"], ds["labels"], ds["latent_gt"]
         oi = {o: k for k, o in enumerate(g.observed)}
@@ -143,7 +145,8 @@ def train():
     xs_s, cs_s, ys_s = pairs_to_xy(syn, +1.0)
     xs_a, cs_a, ys_a = pairs_to_xy(ant, -1.0)
     xs_d, cs_d, ys_d = dev_gen_pairs(neg)
-    xs_g, cs_g, ys_g = dev_gt_pairs(neg)
+    holdout_ds = tuple(x for x in os.environ.get("GENPHI_HOLDOUT", "").split(",") if x)
+    xs_g, cs_g, ys_g = dev_gt_pairs(neg, exclude=holdout_ds)
     print(f"[{time.strftime('%H:%M:%S')}] pairs: syn={len(xs_s)} ant={len(xs_a)} dev={len(xs_d)} "
           f"gt-concretize={len(xs_g)}", flush=True)
     rng = np.random.default_rng(0)

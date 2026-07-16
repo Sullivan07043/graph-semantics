@@ -33,6 +33,12 @@ NEG_OP = None
 if NEGOP:
     import negop
     NEG_OP = negop.load()
+GENPHI = os.environ.get("GENPHI", "0") == "1"
+GEN_OP = None
+if GENPHI:
+    sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
+    import genphi as _genphi
+    GEN_OP = _genphi.load()
 
 
 def ts():
@@ -101,7 +107,7 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])

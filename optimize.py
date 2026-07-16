@@ -103,7 +103,7 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                         seed=0, device="cpu", free_w=False, als_rounds=5,
                         residual=0.0, lam_res=0.0, partial_corr=None,
                         lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-                        neg_op=None, bridge=None, verbose=False):
+                        neg_op=None, bridge=None, gen_op=None, verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
@@ -198,6 +198,19 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     colls = [(node_idx[p1], node_idx[p2], node_idx[c]) for p1, p2, c in g.v_structures()] \
         if lam_coll > 0 else []
     neg_parents = []
+    if gen_op is not None:                                # g_phi supersedes the neg_op special case
+        gen_op = gen_op.to(device)
+        neg_op = None
+        ge = [(p, n, float(W.get((p, n), 0.0))) for n in gen_nodes for p in g.parents(n)]
+        ge_par = [p for p, n, w in ge]
+        lat = set(g.latents)
+        ge_cond = torch.tensor([[1.0 if w >= 0 else -1.0, abs(w),
+                                 1.0 if (p in lat and n in lat) else 0.0] for p, n, w in ge],
+                               dtype=torch.float32, device=device)
+        ge_absw = torch.tensor([abs(w) for p, n, w in ge], dtype=torch.float32, device=device)
+        ge_child = {}
+        for r, (p, n, w) in enumerate(ge):
+            ge_child.setdefault(n, []).append(r)
     if neg_op is not None:
         neg_op = neg_op.to(device)
         neg_parents = sorted({p for (p, n), w in W.items() if w < 0})
@@ -227,15 +240,22 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
         if neg_parents:
             NP = neg_op(torch.stack([emb(p) for p in neg_parents]))
             neg_cache = {p: NP[i] for i, p in enumerate(neg_parents)}
+        gout = None
+        if gen_op is not None:                            # one batched g_phi forward per step
+            Xp = torch.stack([emb(p) for p in ge_par])
+            gout = ge_absw[:, None] * gen_op(Xp, ge_cond)
         for n in gen_nodes:
-            tot = None
-            for p in g.parents(n):
-                w_e = wt((p, n))
-                if p in neg_cache and float(W.get((p, n), 0.0)) < 0:
-                    t = torch.abs(w_e) * neg_cache[p]
-                else:
-                    t = w_e * emb(p)
-                tot = t if tot is None else tot + t
+            if gout is not None:
+                tot = gout[ge_child[n]].sum(0)
+            else:
+                tot = None
+                for p in g.parents(n):
+                    w_e = wt((p, n))
+                    if p in neg_cache and float(W.get((p, n), 0.0)) < 0:
+                        t = torch.abs(w_e) * neg_cache[p]
+                    else:
+                        t = w_e * emb(p)
+                    tot = t if tot is None else tot + t
             if use_res:
                 tot = tot + Rv[n]
             tgt = At[n] if n in At else E[n]
