@@ -95,7 +95,7 @@ def run(name, C, cwords, neg):
                 for r, i in enumerate(masked):
                     records.append({"dataset": name, "fold": fno, "arm": arm, "var": obs[i],
                                     "true_label": labels[obs[i]], "decoded_words": words[r],
-                                    "judge": (bool(verd[r]) if verd else None)})
+                                    "judge": (bool(verd[r]) if verd and verd[r] is not None else None)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done ({name})", flush=True)
     line = " | ".join(f"{a}: j={np.mean(v['judge']):.3f} m={np.mean(v['match']):.3f}"
                       if v["judge"] else f"{a}: m={np.mean(v['match']):.3f}"

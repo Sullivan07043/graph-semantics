@@ -105,7 +105,7 @@ def judge_batch(items, mode):
                 try:
                     v = _chat(q + " Answer yes or no only.").strip().lower().startswith("y")
                 except Exception:
-                    v = False
+                    v = None                              # API failure = MISSING, never "wrong"
                 _CACHE[_k(mode, *items[i])] = v
                 out[i] = v
     return out

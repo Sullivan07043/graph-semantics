@@ -75,6 +75,34 @@ def wordnet_pairs():
     return sorted(syn), sorted(ant)
 
 
+def dev_gt_pairs(neg):
+    """(x=embed(latent GT text), cond, y=child label emb): teaches CONCRETIZATION — abstract
+    construct name -> concrete item phrasing (meeting-note pt.3 sanctions dev latent-GT use;
+    held-out untouched). Negative children get sign=-1 so the f_neg base handles polarity."""
+    from run_task1 import ALL_LOADERS
+    xs, cs, ys = [], [], []
+    for name in pool.DEV:
+        ds = ALL_LOADERS[name]()
+        g, X, labels, gt = ds["graph"], ds["X"], ds["labels"], ds["latent_gt"]
+        oi = {o: k for k, o in enumerate(g.observed)}
+        W, _ = g.estimate_weights(X, oi)
+        T = encode.embed([labels[o] for o in g.observed])
+        lat = [L for L in g.latents if L in gt]
+        if not lat:
+            continue
+        G = encode.embed([gt[L] for L in lat]).astype(np.float32)
+        for gi, L in enumerate(lat):
+            for c in g.children(L):
+                if g.is_latent(c):
+                    continue
+                w = W.get((L, c), 0.0)
+                if abs(w) < 0.05:
+                    continue
+                xs.append(G[gi]); cs.append([1.0 if w >= 0 else -1.0, abs(w), 0.0])
+                ys.append(T[oi[c]])
+    return np.array(xs, np.float32), np.array(cs, np.float32), np.array(ys, np.float32)
+
+
 def dev_gen_pairs(neg):
     """(x=leave-one-out pole vector, cond, y=child label emb) from the dev pool."""
     from run_task1 import ALL_LOADERS
@@ -115,8 +143,9 @@ def train():
     xs_s, cs_s, ys_s = pairs_to_xy(syn, +1.0)
     xs_a, cs_a, ys_a = pairs_to_xy(ant, -1.0)
     xs_d, cs_d, ys_d = dev_gen_pairs(neg)
-    print(f"[{time.strftime('%H:%M:%S')}] pairs: syn={len(xs_s)} ant={len(xs_a)} dev={len(xs_d)}",
-          flush=True)
+    xs_g, cs_g, ys_g = dev_gt_pairs(neg)
+    print(f"[{time.strftime('%H:%M:%S')}] pairs: syn={len(xs_s)} ant={len(xs_a)} dev={len(xs_d)} "
+          f"gt-concretize={len(xs_g)}", flush=True)
     rng = np.random.default_rng(0)
     val = rng.permutation(len(xs_d))[:max(1, len(xs_d) // 10)]
     trn = np.setdiff1d(np.arange(len(xs_d)), val)
@@ -127,11 +156,11 @@ def train():
     for step in range(STEPS):
         loss = 0.0
         for X_, C_, Y_, k in [(xs_s, cs_s, ys_s, 256), (xs_a, cs_a, ys_a, 128),
-                              (xs_d[trn], cs_d[trn], ys_d[trn], 256)]:
+                              (xs_d[trn], cs_d[trn], ys_d[trn], 256), (xs_g, cs_g, ys_g, 256)]:
             idx = torch.randint(len(X_), (min(k, len(X_)),), generator=g).numpy()
             out = m(T(X_[idx]), T(C_[idx]))
             loss = loss + (1 - F.cosine_similarity(out, T(Y_[idx]), dim=1)).mean()
-        loss = loss + 0.1 * (m.out.weight.norm() + m.out.bias.norm())
+        loss = loss + 0.03 * (m.out.weight.norm() + m.out.bias.norm())
         opt.zero_grad(); loss.backward(); opt.step()
         if step % 500 == 0 or step == STEPS - 1:
             with torch.no_grad():

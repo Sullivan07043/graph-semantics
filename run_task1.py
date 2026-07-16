@@ -120,7 +120,7 @@ def run_dataset(ds, C, cwords, records):
                 records.append({"task": 1, "dataset": ds["name"], "fold": fno, "arm": a,
                                 "var": obs[i], "true_label": labels[obs[i]],
                                 "decoded_words": (words[r] if words else None),
-                                "judge": (bool(verd[r]) if verd else None)})
+                                "judge": (bool(verd[r]) if verd and verd[r] is not None else None)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
     print(f"\n[{ts()}] === Task 1 results: {ds['name']} ===   judge   match(chance~{1/len(folds[0]):.2f})   exact",

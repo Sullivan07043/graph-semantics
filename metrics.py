@@ -56,11 +56,13 @@ def judge_completion(words_list, true_texts):
     if not judge.available():
         return None, None
     v = judge.judge_batch([(w, t) for w, t in zip(words_list, true_texts)], "completion")
-    return (float(np.mean(v)), v) if v else (None, None)
+    ok = [x for x in (v or []) if x is not None]
+    return (float(np.mean(ok)), v) if ok else (None, None)
 
 
 def judge_latents(words_list, gt_texts):
     if not judge.available():
         return None, None
     v = judge.judge_batch([(w, t) for w, t in zip(words_list, gt_texts)], "latent")
-    return (float(np.mean(v)), v) if v else (None, None)
+    ok = [x for x in (v or []) if x is not None]
+    return (float(np.mean(ok)), v) if ok else (None, None)
