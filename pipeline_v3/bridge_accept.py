@@ -16,6 +16,9 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+import torch
+torch.set_num_threads(int(os.environ.get("TORCH_THREADS", "6")))   # 6 parallel procs on one box:
+                                                                   # unbounded OpenMP threads spin-starve
 import encode, metrics, optimize, negop
 import judge as judge_mod
 from run_task1 import ALL_LOADERS
@@ -78,6 +81,7 @@ def run(name, C, cwords, neg):
                     records.append({"dataset": name, "fold": fno, "arm": arm, "var": obs[i],
                                     "true_label": labels[obs[i]], "decoded_words": words[r],
                                     "judge": (bool(verd[r]) if verd else None)})
+        print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done ({name})", flush=True)
     line = " | ".join(f"{a}: j={np.mean(v['judge']):.3f} m={np.mean(v['match']):.3f}"
                       if v["judge"] else f"{a}: m={np.mean(v['match']):.3f}"
                       for a, v in res.items())

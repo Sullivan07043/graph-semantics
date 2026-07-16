@@ -32,7 +32,8 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"            # graph-zero blend for CI anchors
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))          # faithfulness dependence floor
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))        # explaining-away at v-structures
-NEGOP = os.environ.get("NEGOP", "0") == "1"          # semantic negation operator on negative edges
+NEGOP = os.environ.get("NEGOP", "0") == "1"
+BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
 
 
@@ -58,6 +59,12 @@ def run_dataset(ds, C, cwords, records):
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
+    br = None
+    if BRIDGE:
+        sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
+        import dependence as _dep
+        br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
+                  lam_upper=0.3, kappa=0.5, q=0.7)
     dep = (obs, Craw) if LAM_DEP > 0 else None
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
@@ -93,7 +100,7 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch

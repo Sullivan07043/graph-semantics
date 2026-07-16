@@ -22,7 +22,8 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))
-NEGOP = os.environ.get("NEGOP", "0") == "1"          # semantic negation operator on negative edges
+NEGOP = os.environ.get("NEGOP", "0") == "1"
+BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # decode the GNN's latent-node outputs too
 GNN_JAC = os.environ.get("GNN_JAC", "0") == "1"          # Jacobian read-off latent translation
 GNN_GEN = os.environ.get("GNN_GEN", "0") == "1"          # generation-head read-off (needs gen-trained ckpt)
@@ -70,6 +71,12 @@ def run_dataset(ds, C, cwords, records):
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
+    br = None
+    if BRIDGE:
+        sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
+        import dependence as _dep
+        br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
+                  lam_upper=0.3, kappa=0.5, q=0.7)
     dep = ([o for o in obs], Craw) if LAM_DEP > 0 else None
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
@@ -94,7 +101,7 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])
