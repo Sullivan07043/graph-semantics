@@ -22,7 +22,7 @@ import pool, optimize
 from run_task1 import ALL_LOADERS
 
 OUT = os.path.join(ROOT, "outputs", "dependence")
-SUB = int(os.environ.get("DEP_SUBSAMPLE", 2000))         # samples used for dcor/MI (n^2 memory)
+SUB = int(os.environ.get("DEP_SUBSAMPLE", 5000))         # samples used for dcor/MI (n^2 memory)
 
 
 def ts():

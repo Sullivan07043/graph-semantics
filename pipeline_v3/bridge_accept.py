@@ -27,7 +27,13 @@ import dependence
 
 FOLDS = 5
 LAM_UPPER, KAPPA, Q = 0.3, 0.5, 0.7
-ARMS = ["base", "bridge_pearson", "bridge_dcor", "bridge_mi"]
+ROUND = os.environ.get("BR_ROUND", "v1")
+if ROUND == "factorial":
+    # corrected design (2026-07-15 night): isolate tail vs anchor; tail arms keep the frozen
+    # signed-Pearson anchor; the anchor arm keeps the tail OFF. MI recomputed full-sample upstream.
+    ARMS = ["base", "tail_pearson", "tail_mi", "anchor_mi"]
+else:
+    ARMS = ["base", "bridge_pearson", "bridge_dcor", "bridge_mi"]
 
 
 def ts():
@@ -57,10 +63,19 @@ def run(name, C, cwords, neg):
         for arm in ARMS:
             if arm == "base":
                 pc, bridge = (pc_names, pc_signed), None
+            elif arm.startswith("tail_"):
+                meas = arm.split("_")[1]
+                pc = (pc_names, pc_signed)                            # anchor FIXED for tail arms
+                bridge = dict(obs=obs, dep_marg=dep[meas]["marginal"],
+                              lam_upper=LAM_UPPER, kappa=KAPPA, q=Q)
+            elif arm == "anchor_mi":
+                hyb = np.sign(pc_signed) * dep["mi"]["conditional"]
+                np.fill_diagonal(hyb, 0.0)
+                pc, bridge = (pc_names, hyb), None                    # tail OFF for anchor arm
             else:
                 meas = arm.split("_")[1]
                 if meas == "pearson":
-                    pc = (pc_names, pc_signed)                        # anchor unchanged
+                    pc = (pc_names, pc_signed)
                 else:
                     hyb = np.sign(pc_signed) * dep[meas]["conditional"]
                     np.fill_diagonal(hyb, 0.0)
