@@ -25,6 +25,7 @@ FOLDS = 5
 MAX_PAIRS = 15
 SWAP_LAYER = int(os.environ.get("SWAP_LAYER", 2))
 GNN_CKPT = os.environ.get("GNN_CKPT", os.path.join(HERE, "outputs", "gnn_latsup.pt"))
+_NEG = None
 DATASETS = os.environ.get("DATASETS", "himi,bigfive,gcbs,sd3,hexaco,riasec,kims").split(",")
 
 
@@ -95,8 +96,10 @@ def run_dataset(name):
         visible_set = set(range(len(obs))) - mset
         vis_emb = {obs[i]: T[i] for i in visible_set}
         refs = family_refs(g, T, obs_i, visible_set, W)
+        import negop as _negop
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], seed=fno,
-                                           residual=1.0, lam_res=1.0, partial_corr=pc)
+                                           residual=1.0, lam_res=1.0, partial_corr=pc,
+                                           neg_op=_NEG)
         ne, lb, ce = gnn_mod.masked_inputs(gt_, masked)
         with torch.no_grad():
             out0 = m(gt_, ne, lb, ce).cpu().numpy().astype(np.float64)
@@ -128,17 +131,32 @@ def run_dataset(name):
                          "n": len(A_succ)},
            "gnn": {"swap_success": float(np.mean(B_succ)) if B_succ else None,
                    "base_ok": float(np.mean(B_base)) if B_base else None, "n": len(B_succ)}}
-    print(f"[{ts()}] {name:10s} graph-opt swap={res['graph_opt']['swap_success']:.3f} "
-          f"(base {res['graph_opt']['base_ok']:.3f}, n={res['graph_opt']['n']}) | "
-          f"gnn swap={res['gnn']['swap_success']:.3f} (base {res['gnn']['base_ok']:.3f})", flush=True)
+    def _f(v):
+        return f"{v:.3f}" if v is not None else "n/a"
+    print(f"[{ts()}] {name:10s} graph-opt swap={_f(res['graph_opt']['swap_success'])} "
+          f"(base {_f(res['graph_opt']['base_ok'])}, n={res['graph_opt']['n']}) | "
+          f"gnn swap={_f(res['gnn']['swap_success'])} (base {_f(res['gnn']['base_ok'])})", flush=True)
     return res
 
 
+def _init_neg():
+    global _NEG
+    import negop
+    _NEG = negop.load()
+
+
 def main():
+    _init_neg()
+    path = os.path.join(HERE, "outputs", "intervene.json")
     out = {}
+    if os.path.exists(path) and os.environ.get("RESUME"):
+        out = json.load(open(path))
     for name in DATASETS:
-        out[name] = run_dataset(name.strip())
-    json.dump(out, open(os.path.join(HERE, "outputs", "intervene.json"), "w"), indent=1)
+        name = name.strip()
+        if name in out:
+            continue
+        out[name] = run_dataset(name)
+        json.dump(out, open(path, "w"), indent=1)
     print("[saved outputs/intervene.json]", flush=True)
 
 

@@ -13,6 +13,33 @@ import urllib.request
 _CACHE = {}
 MODEL = os.environ.get("JUDGE_MODEL", "gpt-4o-mini")
 
+# Disk-backed cache (added 2026-07-16 after the L2 eval re-judged identical baseline decodes 3x).
+# Keyed by (model, mode, recovered, target); JUDGE_CACHE=0 disables. Verdicts only (True/False),
+# never None — missing stays missing so failed calls are retried.
+_CACHE_PATH = os.environ.get("JUDGE_CACHE_PATH",
+                             os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          "outputs", "judge_cache.jsonl"))
+_DISK = os.environ.get("JUDGE_CACHE", "1") == "1"
+if _DISK and os.path.exists(_CACHE_PATH):
+    try:
+        for _line in open(_CACHE_PATH):
+            _r = json.loads(_line)
+            if _r.get("model") == MODEL:
+                _CACHE[(_r["mode"], _r["rec"], _r["tgt"])] = _r["v"]
+    except Exception:
+        pass
+
+
+def _persist(mode, rec_s, tgt, v):
+    if not _DISK or v is None:
+        return
+    try:
+        with open(_CACHE_PATH, "a") as f:
+            f.write(json.dumps({"model": MODEL, "mode": mode, "rec": rec_s,
+                                "tgt": str(tgt), "v": bool(v)}, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
 
 def available():
     return bool(os.environ.get("OPENAI_API_KEY"))
@@ -88,7 +115,9 @@ def judge_batch(items, mode):
             assert len(arr) == len(todo)
             for r, i in enumerate(todo):
                 v = str(arr[r]).strip().lower().startswith("y")
-                _CACHE[_k(mode, *items[i])] = v
+                k = _k(mode, *items[i])
+                _CACHE[k] = v
+                _persist(*k, v)
                 out[i] = v
         except Exception as e:
             print(f"  [judge batch failed ({e}); per-item fallback]", flush=True)
@@ -106,6 +135,8 @@ def judge_batch(items, mode):
                     v = _chat(q + " Answer yes or no only.").strip().lower().startswith("y")
                 except Exception:
                     v = None                              # API failure = MISSING, never "wrong"
-                _CACHE[_k(mode, *items[i])] = v
+                k = _k(mode, *items[i])
+                _CACHE[k] = v
+                _persist(*k, v)
                 out[i] = v
     return out
