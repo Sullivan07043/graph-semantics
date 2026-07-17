@@ -45,21 +45,67 @@ Constraint set (all read off the given graph + data): signed generation equation
 on negative edges), residual alignment to data partial correlations, independence decorrelation,
 Pearson similarity lower bound on strongly dependent pairs, unit norm.
 
-## Results snapshot (mask-20%, 5 folds, judge = gpt-5.5; 13 datasets)
+## Metrics — what each number means
 
-Task 1 judge / match, means:
+- **judge-ACC (primary).** The masked variable's solved embedding is decoded into ~6 dictionary
+  words; gpt-5.5 judges whether the words' DOMINANT meaning correctly describes the true
+  variable (synonyms count; a few spurious words don't disqualify). Measures semantic
+  correctness. API failures are recorded as missing, never as wrong.
+- **match-ACC.** LLM-free identity test. Within a fold, m variables are masked and the method
+  produces m predicted embeddings. Build the m×m cosine matrix between predictions and the m
+  TRUE label embeddings, solve the optimal one-to-one assignment (Hungarian, maximizing total
+  similarity); match-ACC = fraction of variables assigned to their OWN label. Chance ≈ 1/m.
+  Measures whether each prediction can be told apart as ITS specific item — not whether its
+  meaning is right, which is why raw-correlation scores high match (it copies a nearby
+  neighbour's position) while losing judge (the copied meaning is often wrong).
+- **exact.** Stricter variant: the prediction's nearest neighbour among ALL the dataset's label
+  embeddings must be exactly itself (reported in records; near zero for all methods on large
+  scales).
 
-| | frozen space + 400-step solver | + WeightNet (L2) | + LoRA space (L3) — **main** |
-|---|---|---|---|
-| dev (10) | .643 / .793 | .696 / .784 | **.722** / .783 |
-| held-out (3) | .680 / .569 | .697 / .619 | .698 / **.642** |
-| all (13) | .652 / .741 | .696 / .746 | **.717** / **.751** |
+## Results (mask-20%, 5 folds, judge = gpt-5.5; every cell judge / match)
 
-Task 2 (latent translation, judge): .916 → .909 → **.930**. Fold-aligned LLM-naming baseline: .695.
+Task 1 — complete masked observed variables. ⭐ = held-out. Columns left to right: no-graph
+baselines, then the method evolution (frozen solver → +L2 WeightNet → +L3 LoRA space = main).
 
-Swap intervention (exchange two latents' embeddings → masked children must switch families):
-geometric .789, judged .741 for the structured optimization vs .391 / .206 for a trained GNN —
-the latents are causally load-bearing, not decorative. (`experiments/intervene*.py`)
+| dataset | uniform | rawcorr | frozen+400 | +WeightNet | **LoRA+WeightNet (main)** |
+|---|---|---|---|---|---|
+| tlvd | .500 / .600 | .500 / 1.00 | .600 / 1.00 | .500 / 1.00 | .500 / 1.00 |
+| himi | .483 / .567 | .550 / .767 | .717 / .800 | .817 / 1.00 | .717 / .900 |
+| bigfive | .060 / .140 | .720 / .780 | .720 / .620 | .780 / .640 | **.900** / .720 |
+| hs | .120 / .160 | .160 / .720 | .660 / .840 | .660 / .740 | **.760** / .660 |
+| rse | 1.00 / .800 | 1.00 / 1.00 | .700 / 1.00 | .800 / 1.00 | **1.00** / .800 |
+| mach | .550 / .250 | .500 / .600 | .450 / .600 | .450 / .450 | .350 / .650 |
+| gcbs | .867 / .400 | .733 / .867 | .733 / 1.00 | .733 / .867 | .733 / 1.00 |
+| 16PF | .192 / .019 | .673 / .648 | .622 / .592 | .679 / .617 | .672 / **.678** |
+| hsq | .848 / .133 | .681 / .943 | .638 / .629 | **.843** / .752 | .810 / .724 |
+| sd3 | .447 / .200 | .627 / .920 | .593 / .853 | .700 / .773 | **.780** / .700 |
+| hexaco ⭐ | .196 / .029 | .733 / .700 | .779 / .375 | .725 / .525 | .762 / .496 |
+| riasec ⭐ | .144 / .062 | .458 / 1.00 | .516 / .756 | .493 / .707 | .431 / .756 |
+| kims ⭐ | .354 / .154 | .593 / .850 | .746 / .575 | .871 / .625 | **.900** / .675 |
+| dev (10) | .507 / .327 | .614 / .824 | .643 / .793 | .696 / .784 | **.722** / .783 |
+| held-out (3) | .231 / .082 | .595 / .850 | .680 / .569 | .697 / .619 | .698 / **.642** |
+| all (13) | .443 / .270 | .610 / .830 | .652 / .741 | .696 / .746 | **.717** / **.751** |
+
+(uniform judge is inflated on narrow single-domain scales — rse/hsq/gcbs — where the mean of all
+visible labels already sounds topical; its near-zero match exposes it.)
+
+Task 2 — translate latent variables (judge-ACC; LLM-naming is fold-aligned: it names each latent
+from the fold's VISIBLE children only, max 6):
+
+| dataset | LLM-naming | frozen+400 | +WeightNet | **LoRA+WeightNet (main)** |
+|---|---|---|---|---|
+| himi | .733 | .833 | .867 | **.867** |
+| bigfive | .800 | 1.00 | 1.00 | 1.00 |
+| gcbs | .280 | 1.00 | 1.00 | 1.00 |
+| sd3 | .667 | 1.00 | .933 | 1.00 |
+| hexaco ⭐ | .887 | .927 | .913 | **.947** |
+| riasec ⭐ | 1.00 | 1.00 | 1.00 | 1.00 |
+| kims ⭐ | .500 | .650 | .650 | **.700** |
+| mean | .695 | .916 | .909 | **.930** |
+
+Swap intervention (exchange two latents' embeddings → masked children's recovered meanings must
+switch families): geometric .789, judged .741 for the structured optimization vs .391 / .206 for
+a trained GNN — the latents are causally load-bearing, not decorative. (`experiments/intervene*.py`)
 
 ## Pending fixes (known, prioritized)
 
@@ -87,9 +133,8 @@ enter any training; API spend only on final candidates (judge verdicts disk-cach
 - **Held-out** (never used for any design or training decision): hexaco, riasec, kims.
 - Within each dataset: 5-fold masking over observed labels — every variable is masked exactly
   once; the data matrix X stays visible. Both tasks share the folds.
-- Metrics: judge-ACC (primary; gpt-5.5 dominant-meaning prompt; API failures recorded as missing,
-  never wrong), matching-ACC (Hungarian, LLM-free), exact top-1. Dev iteration uses the free
-  geometric metrics; the judge is spent on final candidates only.
+- Metrics: defined in the "Metrics" section above. Dev iteration uses the free geometric
+  metrics; the judge is spent on final candidates only.
 - Baselines: uniform, raw correlation (no graph), fold-aligned LLM-naming (Task 2; single-agent
   version of TLVD's naming stage, sees only the fold's visible children).
 
