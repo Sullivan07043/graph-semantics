@@ -115,9 +115,13 @@ a trained GNN — the latents are causally load-bearing, not decorative. (`exper
    instability: same config judges anywhere in .229--.431 across processes — the circumplex
    leaves large weakly-determined directions. Fix direction: a circumplex-specific structural
    prior (e.g. Prediger's two dimensions) to break the symmetry; needs advisor discussion.
-2. **K=60 unroll budget binds on the deepest graphs** (hexaco/tlvd judge below the frozen-space
-   column). Retrain WeightNet with larger K via truncated backpropagation; verification is
-   API-free (match/embedding metrics). Evidence: mult=1 control loses .05 overall vs 400 steps.
+2. **K unroll budget: tested and CLOSED (2026-07-17).** Retraining WeightNet in the LoRA space
+   at K=200 improved the training-level embedding loss (.1393 vs .1442) but degraded official
+   match across the board (all-13 .714 vs .751) — the outer cosine objective overfits at the
+   expense of sibling separability; rejected at the free screen, no judge spent. Inference-time
+   K=200 with the adopted weights trades dev (−.018) for held-out (+.029) within cross-process
+   noise — the main line stays at K=60. Lesson: embedding-cosine validation loss is not a
+   sufficient proxy for decode-level metrics.
 3. **himi regression under L3: diagnosed as judge noise (2026-07-17).** Only 2 borderline items
    flipped and their decoded words are essentially unchanged between L2 and L3; the underlying
    weakness is decode-dictionary coverage of cognitive-task vocabulary (same family as the tlvd
