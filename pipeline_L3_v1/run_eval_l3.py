@@ -57,7 +57,7 @@ ARM = os.environ.get("L2_ARM", "frozen")
 if ARM == "mlp":
     import optimize                                                   # noqa: E402
     from pipeline_v4 import core, l2_modules as LM                    # noqa: E402
-    _MODULE = LM.load(os.path.join(HERE, "outputs", "l2_mlp.pt"))
+    _MODULE = LM.load(os.environ.get("L2_CKPT", os.path.join(HERE, "outputs", "l2_mlp.pt")))
     K = int(os.environ.get("K", 60))
 
     def _l2_solve(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0.1,
@@ -70,7 +70,6 @@ if ARM == "mlp":
             g, W, labeled_emb, d, weight_module=_MODULE, K=K, inner_lr=2e-2,
             lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
             residual=residual, lam_res=lam_res, partial_corr=partial_corr,
-            lam_dep=lam_dep, dep_corr=dep_corr, dep_kappa=dep_kappa, lam_coll=lam_coll,
             neg_op=neg_op, bridge=bridge, train=False, feats=feats)
         return emb
 

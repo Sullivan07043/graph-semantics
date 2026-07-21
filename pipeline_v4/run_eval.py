@@ -41,7 +41,6 @@ def _l2_solve(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0
         g, W, labeled_emb, d, weight_module=_MODULE, K=K, inner_lr=INNER_LR,
         lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
         residual=residual, lam_res=lam_res, partial_corr=partial_corr,
-        lam_dep=lam_dep, dep_corr=dep_corr, dep_kappa=dep_kappa, lam_coll=lam_coll,
         neg_op=neg_op, bridge=bridge, train=False, feats=feats)
     return emb
 
