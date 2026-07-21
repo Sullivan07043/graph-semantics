@@ -61,9 +61,14 @@ def run_dataset(ds, C, cwords, records):
     Tn = metrics.norm_rows(T)
     alpha = metrics.pick_alpha(T, C)
     W, score = g.estimate_weights(X, oi)
-    pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
+    # Whole-item semantics use original-column correlation.  Parent-residual relations are
+    # estimated separately with leave-pair-out factor proxies to avoid PC1 part-whole leakage.
+    item_corr = optimize.marginal_corr(g, X, oi)
+    pc = optimize.partial_residual_corr(g, X, oi, score)
+    residual_pair_info = optimize.leave_pair_out_residual_pairs(g, X, oi)
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
+    independent_info = g.reconcile_independent_pairs(X, oi, score)
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
     br = None
     if BRIDGE:
@@ -83,9 +88,11 @@ def run_dataset(ds, C, cwords, records):
         gmodel = gnn_mod.CompletionGNN(ck["d"], ck["hid"], ck["layers"]).to(gnn_mod.DEVICE)
         gmodel.load_state_dict(ck["state"], strict=False); gmodel.eval()
         gnn_ctx = (gnn_mod, gmodel, gnn_mod.graph_tensors(ds))
-    arms = {a: {"judge": [], "match": [], "exact": []} for a in arm_names}
+    arms = {a: {"judge": [], "match": [], "exact": [], "cosine": []} for a in arm_names}
     print(f"[{ts()}] {ds['name']}: {X.shape[0]}x{len(obs)} | graph: {len(g.latents)} latents, "
-          f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha={alpha:.2e}", flush=True)
+          f"{len(g.edges)} edges | independent raw={independent_info['raw_count']} "
+          f"retained={independent_info['retained_count']} "
+          f"conflicts={independent_info['conflict_count']} | alpha={alpha:.2e}", flush=True)
 
     for fno, fold in enumerate(folds):
         masked = sorted(int(i) for i in fold)
@@ -106,7 +113,11 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP,
+                                           n_samples=X.shape[0],
+                                           independent_info=independent_info,
+                                           item_corr=item_corr,
+                                           residual_pair_info=residual_pair_info)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch
@@ -117,6 +128,7 @@ def run_dataset(ds, C, cwords, records):
         for a, P in preds.items():
             arms[a]["exact"].append(metrics.exact_acc(P, masked, Tn))
             arms[a]["match"].append(metrics.match_acc(P, masked, T))
+            arms[a]["cosine"].append(metrics.true_cosine(P, masked, T))
             words = metrics.decode_words(P, C, cwords, alpha) if judge_mod.available() else None
             jacc, verd = (metrics.judge_completion(words, [labels[obs[i]] for i in masked])
                           if words else (None, None))
@@ -129,11 +141,13 @@ def run_dataset(ds, C, cwords, records):
                                 "judge": (bool(verd[r]) if verd and verd[r] is not None else None)})
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
-    print(f"\n[{ts()}] === Task 1 results: {ds['name']} ===   judge   match(chance~{1/len(folds[0]):.2f})   exact",
+    print(f"\n[{ts()}] === Task 1 results: {ds['name']} ===   judge   "
+          f"match(chance~{1/len(folds[0]):.2f})   exact   true-cos",
           flush=True)
     for a in arm_names:
         j = f"{np.mean(arms[a]['judge']):.3f}" if arms[a]["judge"] else "  -  "
-        print(f"  {a:10s}: {j}   {np.mean(arms[a]['match']):.3f}            {np.mean(arms[a]['exact']):.3f}",
+        print(f"  {a:10s}: {j}   {np.mean(arms[a]['match']):.3f}            "
+              f"{np.mean(arms[a]['exact']):.3f}   {np.mean(arms[a]['cosine']):.3f}",
               flush=True)
     return {a: {k: (float(np.mean(v)) if v else None) for k, v in arms[a].items()} for a in arms}
 

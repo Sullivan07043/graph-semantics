@@ -1,43 +1,54 @@
-"""Re-encode the 521k decode dictionary through the L3 LoRA encoder.
-The optimization space and the decode space must be the SAME space (version consistency);
-output: outputs/concept_bank_l3.npz (emb + names + the lora checkpoint's mtime as version tag).
-"""
+"""Re-encode the full decode dictionary with the final, versioned L3 checkpoint."""
 import os
 import sys
 import time
+
 import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
-import encode                                                         # noqa: E402
-from pipeline_L3_v1 import lora                                       # noqa: E402
+import encode
+from pipeline_L3_v1 import lora
+from pipeline_v4 import release
 
-DEVICE = os.environ.get("DEVICE", "cuda")
-CKPT = os.path.join(HERE, "outputs", "l3_lora.pt")
-OUT = os.path.join(HERE, "outputs", "concept_bank_l3.npz")
+DEVICE = os.environ.get("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+CKPT = os.environ.get(
+    "L3_CKPT", os.path.join(HERE, "outputs", release.L3_CHECKPOINT_NAME))
+OUT = os.environ.get(
+    "L3_DICT", os.path.join(HERE, "outputs", release.L3_DICTIONARY_NAME))
 
 
 def main():
-    C, words = encode.load_dictionary()
+    frozen, words = encode.load_dictionary()
     st = lora.load_st(DEVICE)
     lora.inject(st)
     lora.load_lora(st, CKPT)
     st.eval()
-    out = np.zeros_like(C)
-    t0 = time.time()
+    out = np.zeros_like(frozen)
+    started = time.time()
     with torch.no_grad():
         for i in range(0, len(words), 2048):
-            out[i:i + 2048] = lora.encode_grad(st, words[i:i + 2048], DEVICE).cpu().numpy()
+            out[i:i + 2048] = lora.encode_grad(
+                st, words[i:i + 2048], DEVICE).cpu().numpy()
             if (i // 2048) % 32 == 0:
                 print(f"[{time.strftime('%H:%M:%S')}] {i}/{len(words)} "
-                      f"({(time.time()-t0)/60:.1f} min)", flush=True)
-    shift = 1 - (out * C).sum(1)
-    print(f"dictionary shift vs frozen: mean {shift.mean():.5f}, p99 {np.quantile(shift, .99):.5f}, "
-          f"max {shift.max():.5f}", flush=True)
-    np.savez(OUT, emb=out.astype(np.float32), names=np.array(words, dtype=object),
-             lora_version=os.path.getmtime(CKPT))
-    print(f"[saved {OUT}]", flush=True)
+                      f"({(time.time() - started) / 60:.1f} min)", flush=True)
+    shift = 1.0 - (out * frozen).sum(1)
+    print(f"dictionary shift vs frozen: mean {shift.mean():.5f}, "
+          f"p99 {np.quantile(shift, .99):.5f}, max {shift.max():.5f}", flush=True)
+    ckpt_sha256 = lora.checkpoint_sha256(CKPT)
+    temp = OUT + ".tmp.npz"
+    np.savez(temp, emb=out.astype(np.float32), names=np.array(words, dtype=object),
+             format=np.array(lora.DICTIONARY_FORMAT),
+             version=np.array(lora.DICTIONARY_VERSION, dtype=np.int64),
+             encoder=np.array(lora.ENCODER_NAME),
+             lora_checkpoint_sha256=np.array(ckpt_sha256),
+             shift_mean=np.array(float(shift.mean())),
+             shift_p99=np.array(float(np.quantile(shift, .99))),
+             shift_max=np.array(float(shift.max())))
+    os.replace(temp, OUT)
+    print(f"[saved {OUT}; l3={ckpt_sha256[:12]}]", flush=True)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,11 @@ labels (short texts) for a SUBSET of the observed variables. The tasks:
 derived from the given graph.** Decoding embeddings to natural language uses an existing method (SpLiCE onto
 a fixed dictionary) and is treated as downstream, not the research core.
 
-## Current main line (adopted 2026-07-16)
+## Current main line — v4.1 (formalized 2026-07-21)
+
+The release contract is [release_v4_1.json](release_v4_1.json); implementation formulas,
+mechanism tests, API-free results, and unresolved limits are recorded in
+[fix_todo.md](fix_todo.md) and summarized in [RELEASE_v4.1.md](RELEASE_v4.1.md).
 
 ```
 labels --> e5-large-v2 + L3 LoRA  --> joint embedding optimization --> SpLiCE decode --> judge
@@ -29,21 +33,24 @@ and mechanism controls:
 1. **L1 — `f_neg` semantic negation operator** (`negop.py`). A reverse-keyed item means the
    semantic opposite of its factor, which is NOT the negated vector (−u has cos −.6 to true
    reverse labels). Trained on WordNet antonym pairs + dev factor pole pairs.
-2. **L2 — WeightNet learned solver** (`pipeline_v4/`). A 12-feature node-context MLP outputs
-   per-node multipliers for each constraint term; the solve is unrolled K=60 differentiable
-   functional-Adam steps and the weights are trained end-to-end on masked-label recovery
+2. **L2 — WeightNet learned solver** (`pipeline_v4/`). A 22-feature node-context MLP outputs
+   per-node multipliers for six constraint terms; inference uses K=120 differentiable
+   functional-Adam steps, while training uses 2×60 truncated BPTT on masked-label recovery
    (16 dev sets, folds 0-3 train / fold 4 validate). Controls: mult=1 (same dynamics, no
-   learning) and 5-scalar static weights.
+   learning) and six-scalar static weights.
 3. **L3 — LoRA-calibrated encoder space** (`pipeline_L3_v1/`). LoRA (r=8, zero-init B) in the
    q/v projections of e5's last 2 layers, trained so the space itself satisfies the bridge
    axiom: strong-dependence pairs keep high |cos| (upper tail), d-separated pairs decorrelate,
    reverse items align with `f_neg`(factor), while a 20k-word anchor loss pins general
-   semantics (drift check: 2k held-back words cos ≥ .985; full 521k dictionary re-encode shift
-   max .0199). The decode dictionary is re-encoded through the SAME LoRA (version-asserted).
+   semantics. Dev-label identity/relative-geometry losses and a checkpoint geometry guard prevent
+   Himi's same-factor/cross-factor gap from collapsing. The decode dictionary is re-encoded
+   through the SAME LoRA and is SHA-bound to that checkpoint.
 
 Constraint set (all read off the given graph + data): signed generation equations (with `f_neg`
 on negative edges), residual alignment to data partial correlations, independence decorrelation,
-Pearson similarity lower bound on strongly dependent pairs, unit norm.
+Pearson similarity lower bound on strongly dependent pairs, masked-item semantic identity, and
+unit norm. Graph-independent pairs are retained as zero constraints only when data do not
+significantly contradict them; no dataset-name special cases or new causal edges are introduced.
 
 ## Metrics — what each number means
 
@@ -61,8 +68,13 @@ Pearson similarity lower bound on strongly dependent pairs, unit norm.
 - **exact.** Stricter variant: the prediction's nearest neighbour among ALL the dataset's label
   embeddings must be exactly itself (reported in records; near zero for all methods on large
   scales).
+- **true-target cosine.** API-free cosine between a masked prediction and its own held-out target
+  embedding. It is an evaluation metric only; target label text never enters solver input.
 
 ## Results (mask-20%, 5 folds, judge = gpt-5.5; every cell judge / match)
+
+This table is the historical pre-v4.1 judge snapshot and is intentionally unchanged. The final
+v4.1 API-free 13-dataset results are reported in `fix_todo.md` and the release manifest.
 
 Task 1 — complete masked observed variables. ⭐ = held-out. Columns left to right: no-graph
 baselines, then the method evolution (frozen solver → +L2 WeightNet → +L3 LoRA space = main).
@@ -107,19 +119,18 @@ Swap intervention (exchange two latents' embeddings → masked children's recove
 switch families): geometric .789, judged .741 for the structured optimization vs .391 / .206 for
 a trained GNN — the latents are causally load-bearing, not decorative. (`experiments/intervene*.py`)
 
-## Pending fixes (known, prioritized)
+## v4.1 TODO status and remaining limits
 
-1. **riasec regression (.431 judge under the main line, was .516).** Root cause: Holland's six
-   types form a circumplex, not a hierarchy; the bridge/hierarchy constraints mis-shape it.
-   Needs a circumplex-aware constraint (or exempting circumplex graphs from the upper tail).
-2. **K=60 unroll budget binds on the deepest graphs** (hexaco/tlvd judge below the frozen-space
-   column). Retrain WeightNet with larger K via truncated backpropagation; verification is
-   API-free (match/embedding metrics). Evidence: mult=1 control loses .05 overall vs 400 steps.
-3. **himi regression under L3** (.817 → .717 judge): not yet diagnosed; suspect the anchor set
-   under-covers cognitive-task vocabulary (same family as the tlvd .500 ceiling).
-4. **mach/rse single-factor scales**: graph constraints have nothing to use; known limitation,
-   not a bug.
-5. **week6\_report**: L3 section not yet added (L2 section is in).
+1. **RIASEC:** data-gated independence removes 1081 graph/data-conflicting zero constraints
+   (1215→134 retained). This fixes forced cross-type orthogonality, but the solver still has no
+   explicit generic circumplex representation; API-free match 0.811 remains below rawcorr 1.000.
+2. **K=60:** resolved by K=120 inference and 2×60 truncated BPTT training; chunked and unchunked
+   K=120 forward values are tested identical.
+3. **Himi L3 identity:** resolved for the adopted checkpoint by dev-only identity/geometry
+   preservation; frozen/L3 same-vs-cross gap is 0.116241→0.116350 and match is 0.900.
+4. **MACH/RSE single-factor identity:** reliable signed local data signals are now used without
+   masked text. Completely exchangeable items remain information-theoretically unidentifiable.
+5. **week6\_report:** intentionally outside v4.1 scope and not created.
 
 Process rules in force: no pre-set pass/fail thresholds (adoption is the user's call on the full
 comparison table); mechanism controls required for every adoption; held-out label texts never
@@ -153,7 +164,7 @@ enter any training; API spend only on final candidates (judge verdicts disk-cach
 | HSQ | dev | 32 | 4 | humor styles (mod-4 keying) |
 | SD3 | dev | 27 | 3 | dark triad |
 | HEXACO (240 items) | **held-out** | 240 | 6+24 | **two-level** factor→facet→item |
-| RIASEC | **held-out** | 48 | 6 | Holland types (circumplex — see pending fix 1) |
+| RIASEC | **held-out** | 48 | 6 | Holland types (circumplex — see v4.1 limits) |
 | KIMS | **held-out** | 39 | 4 | keying from the codebook's scoring code |
 
 (+ cfcs, npas, scs, tma, darktriad, wpi as additional dev-training pool, loaded in `pool.py`.)
@@ -166,15 +177,16 @@ is committed.
 # main line (LoRA space + WeightNet solver); API-free unless OPENAI_API_KEY is set
 TASK=1 DATASET=heldout L2_ARM=mlp python pipeline_L3_v1/run_eval_l3.py
 
-# retrain the pieces
-python pipeline_v4/l2_train.py            # ARM=mlp|static, K, EPOCHS
-python pipeline_L3_v1/l3_train.py         # then: python pipeline_L3_v1/reencode_dict.py
+# retrain the pieces in the required order
+python pipeline_L3_v1/l3_train.py
+python pipeline_L3_v1/reencode_dict.py
+python pipeline_v4/l2_train.py            # ARM=mlp|static; main line fixes K=120
 python negop.py train
 
 # frozen-space reference runs
 python run_task1.py                       # DATASET=dev|heldout|all|<csv>
 python run_task2.py
-python pipeline_v4/run_eval.py            # L2_ARM=mult1|static|mlp on the frozen space
+python pipeline_v4/run_eval.py            # frozen reference; learned arms require explicit L2_CKPT
 
 # interventions
 python experiments/intervene.py           # geometric swap
@@ -190,8 +202,8 @@ Env knobs: `DATASET`, `FOLDS`, `NEGOP`, `BRIDGE`, `RESIDUAL`, `LAM_RES`, `GRAPHS
 - The judge and the matching metric measure different things (semantic correctness vs individual
   identity); we report both. raw-correlation wins match while losing judge: copying the most
   correlated neighbour lands on surface-similar wording that is frequently the wrong meaning.
-- The solver is deterministic within a process; across processes, float summation order differs
-  and 400 nonconvex steps amplify it in weakly-constrained directions (task metrics unaffected).
+- The solver is deterministic within a process; across processes, float summation order can
+  differ and 120 nonconvex steps can amplify it in weakly-constrained directions.
 - LoRA space WITHOUT the WeightNet solver is a net regression (match .729 vs .741) — the space
   calibration pays off only jointly with the learned solver.
 - On TLVD's graph the latent ground truth uses TLVD's own released construct descriptions; KIMS

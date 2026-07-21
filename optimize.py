@@ -20,6 +20,21 @@ import numpy as np
 
 
 # --------------------------------------------------------------------------- data-side helper
+def marginal_corr(g, X, obs_index):
+    """Pearson correlations of the original observed columns.
+
+    This is the data relation appropriate for a whole-item semantic target.  In contrast,
+    :func:`partial_residual_corr` describes what remains after removing parent scores and is
+    therefore reserved for the residual-vector channel.
+    """
+    obs = list(g.observed)
+    values = np.asarray(X)[:, [obs_index[o] for o in obs]]
+    C = np.corrcoef(values.T)
+    C = np.asarray(C, dtype=float)
+    np.fill_diagonal(C, 0.0)
+    return obs, C
+
+
 def partial_residual_corr(g, X, obs_index, score):
     """Correlation of data residuals after regressing each observed column on its parents' latent scores.
     -> (obs_names, P [n_obs, n_obs]). `score` is the latent-score dict from graph.estimate_weights."""
@@ -39,6 +54,122 @@ def partial_residual_corr(g, X, obs_index, score):
     P = np.corrcoef(R.T)
     np.fill_diagonal(P, 0.0)
     return obs, P
+
+
+def leave_pair_out_residual_pairs(g, X, obs_index):
+    """Reliable local residual correlations without PC1 part-whole leakage.
+
+    For each observed pair sharing a parent, latent parent proxies exclude both members of the
+    pair.  Factors with at most 32 indicators re-estimate PC1 exactly.  For larger batteries the
+    full-data PC1 loading is frozen once and the two indicators' value contributions are removed;
+    this retains the crucial value-level leave-two-out property without an SVD per pair.
+
+    At most eight strongest marginally associated local neighbors are retained per node (the
+    symmetric union), preventing a wide single-factor scale from quadratically dominating the
+    residual objective.  Each item is regressed on the proxies for its own parents.  A pair is
+    omitted when no leave-pair-out parent representation exists (notably a two-indicator factor).
+
+    The pair-specific estimates do not in general form a positive-semidefinite matrix, so callers
+    must treat them as sparse soft constraints rather than as a target Gram matrix.
+    """
+    X = np.asarray(X, dtype=float)
+    obs = list(g.observed)
+    n_samples = int(X.shape[0])
+    tau = 2.0 / max(np.sqrt(n_samples), 1.0)
+    parent_sets = {o: set(g.parents(o)) for o in obs}
+    corr = np.corrcoef(X[:, [obs_index[o] for o in obs]].T)
+    oi_local = {o: i for i, o in enumerate(obs)}
+    allowed = set()
+    for a in obs:
+        local = [b for b in obs if b != a and parent_sets[a] & parent_sets[b]]
+        ordered = sorted(local, key=lambda b: abs(float(corr[oi_local[a], oi_local[b]])),
+                         reverse=True)
+        for b in ordered[:8]:
+            allowed.add(tuple(sorted((a, b))))
+
+    large_parent = {}
+    for parent in g.latents:
+        descendants = [o for o in g.observed_descendants(parent) if o in obs_index]
+        if len(descendants) <= 32:
+            continue
+        sub = X[:, [obs_index[o] for o in descendants]]
+        centered = sub - sub.mean(0)
+        _, _, vt = np.linalg.svd(centered, full_matrices=False)
+        loading = vt[0]
+        large_parent[parent] = {
+            "descendants": descendants,
+            "score": centered @ loading,
+            "contribution": {o: centered[:, k] * loading[k]
+                             for k, o in enumerate(descendants)},
+        }
+
+    pairs = []
+    unavailable = 0
+    exact_count = 0
+    frozen_loading_count = 0
+
+    for ia, a in enumerate(obs):
+        for b in obs[ia + 1:]:
+            if not (parent_sets[a] & parent_sets[b]):
+                continue
+            if tuple(sorted((a, b))) not in allowed:
+                continue
+            proxy = {}
+            for p in parent_sets[a] | parent_sets[b]:
+                if g.is_latent(p):
+                    remaining = [o for o in g.observed_descendants(p) if o not in (a, b)
+                                 and o in obs_index]
+                    if not remaining:
+                        continue
+                    if p in large_parent:
+                        info = large_parent[p]
+                        values = info["score"].copy()
+                        for node in (a, b):
+                            if node in info["contribution"]:
+                                values -= info["contribution"][node]
+                        frozen_loading_count += 1
+                    else:
+                        sub = X[:, [obs_index[o] for o in remaining]]
+                        sub = sub - sub.mean(0)
+                        if sub.shape[1] == 1:
+                            values = sub[:, 0]
+                        else:
+                            _, _, vt = np.linalg.svd(sub, full_matrices=False)
+                            values = sub @ vt[0]
+                        exact_count += 1
+                    if np.std(values) >= 1e-12:
+                        proxy[p] = values
+                elif p in obs_index and p not in (a, b):
+                    proxy[p] = X[:, obs_index[p]]
+
+            residuals = []
+            usable = True
+            for node in (a, b):
+                regressors = [proxy[p] for p in g.parents(node) if p in proxy]
+                if not regressors:
+                    usable = False
+                    break
+                y = X[:, obs_index[node]]
+                design = np.column_stack([np.ones(n_samples), *regressors])
+                beta, *_ = np.linalg.lstsq(design, y, rcond=None)
+                residuals.append(y - design @ beta)
+            if not usable:
+                unavailable += 1
+                continue
+            rho = float(np.corrcoef(residuals[0], residuals[1])[0, 1])
+            if np.isfinite(rho) and abs(rho) > tau:
+                pairs.append((a, b, rho))
+
+    return {
+        "pairs": pairs,
+        "tau": tau,
+        "n_samples": n_samples,
+        "candidate_count": len(allowed),
+        "reliable_count": len(pairs),
+        "unavailable_count": unavailable,
+        "exact_proxy_count": exact_count,
+        "frozen_loading_proxy_count": frozen_loading_count,
+    }
 
 
 def shrink_corr(P, n_samples):
@@ -103,7 +234,9 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                         seed=0, device="cpu", free_w=False, als_rounds=5,
                         residual=0.0, lam_res=0.0, partial_corr=None,
                         lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-                        neg_op=None, bridge=None, gen_op=None, verbose=False):
+                        neg_op=None, bridge=None, gen_op=None, verbose=False,
+                        n_samples=None, independent_info=None, item_info=None,
+                        item_corr=None, residual_pair_info=None):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
@@ -179,7 +312,8 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
         return At[n] if n in At else E[n]
 
     node_idx = {n: i for i, n in enumerate(g.nodes)}
-    zp_pairs = g.independent_pairs()
+    zp_pairs = (list(independent_info["pairs"]) if independent_info is not None
+                else g.independent_pairs())
     ia = torch.tensor([node_idx[a] for a, b in zp_pairs], dtype=torch.long, device=device)
     ib = torch.tensor([node_idx[b] for a, b in zp_pairs], dtype=torch.long, device=device)
     # faithfulness floor: trek-connected OBSERVED pairs with a data-corr-scaled minimum |cos|

@@ -138,6 +138,57 @@ class Graph:
                 W[(a, b)] = float(np.corrcoef(va, vb)[0, 1])
         return W, score
 
+    def reconcile_independent_pairs(self, X=None, obs_index=None, latent_scores=None):
+        """Reconcile graph-implied marginal independences with available data representations.
+
+        Observed nodes use their original data columns and latent nodes use the PC1 scores returned
+        by :meth:`estimate_weights`.  A graph-implied zero constraint is retained when either node
+        has no usable data representation or when ``abs(Pearson rho) <= 2 / sqrt(n_samples)``.
+        A larger empirical correlation only removes the zero constraint; it never changes the graph
+        or creates an edge.
+
+        Returns a dictionary containing the retained ``pairs`` and auditable counts.  Keeping this
+        logic here makes L2 solving and L3 encoder training use exactly the same reconciliation.
+        """
+        raw = self.independent_pairs()
+        n_samples = int(np.asarray(X).shape[0]) if X is not None else 0
+        tau = 2.0 / max(np.sqrt(n_samples), 1.0) if n_samples else None
+        latent_scores = latent_scores or {}
+        obs_index = obs_index or {}
+        representations = {}
+        if X is not None:
+            X = np.asarray(X)
+            for n in self.observed:
+                if n in obs_index:
+                    representations[n] = np.asarray(X[:, obs_index[n]], dtype=float)
+        for n, values in latent_scores.items():
+            representations[n] = np.asarray(values, dtype=float)
+
+        kept, conflicts = [], []
+        for a, b in raw:
+            va, vb = representations.get(a), representations.get(b)
+            if va is None or vb is None or tau is None:
+                kept.append((a, b))
+                continue
+            ok = np.isfinite(va) & np.isfinite(vb)
+            if ok.sum() < 3 or np.std(va[ok]) < 1e-12 or np.std(vb[ok]) < 1e-12:
+                kept.append((a, b))
+                continue
+            rho = float(np.corrcoef(va[ok], vb[ok])[0, 1])
+            if not np.isfinite(rho) or abs(rho) <= tau:
+                kept.append((a, b))
+            else:
+                conflicts.append((a, b, rho))
+        return {
+            "pairs": kept,
+            "raw_count": len(raw),
+            "retained_count": len(kept),
+            "conflict_count": len(conflicts),
+            "conflicts": conflicts,
+            "tau": tau,
+            "n_samples": n_samples,
+        }
+
 
 def from_dot(path):
     """Parse a TLVD-style .dot: nodes colored red (latent) / blue (observed); 'a -> b' edges."""

@@ -1,0 +1,143 @@
+{
+  "manifest_schema": 1,
+  "release_version": "4.1",
+  "release_tag": "v4.1",
+  "release_date": "2026-07-21",
+  "release_status": "final",
+  "architecture": {
+    "encoder": "intfloat/e5-large-v2",
+    "l3": "last-2-layer q/v LoRA, rank 8, alpha 16",
+    "l2": "22-feature WeightNet with six per-node constraint multipliers",
+    "solver": "structured functional-Adam, K=120 inference, 2x60 truncated BPTT training",
+    "decoder": "SpLiCE over the L3-re-encoded concept bank"
+  },
+  "component_schemas": {
+    "l3_checkpoint": 3,
+    "l3_dictionary": 3,
+    "l2_checkpoint": 4
+  },
+  "source": {
+    "base_commit": "8bcace9a7da85f92388d8c3a1fe45755b3220adc",
+    "state": "working-tree snapshot",
+    "commit_created": false,
+    "git_tag_created": false,
+    "note": "v4.1 was formalized without commit, tag, or push as explicitly requested; base_commit alone does not contain the release changes."
+  },
+  "artifacts": [
+    {
+      "role": "l3_checkpoint",
+      "path": "outputs/l3_lora_rel.pt",
+      "size_bytes": 266181,
+      "sha256": "7f7c1b9c96b8fbfa467854327324601fd50ac50b74c166f4fcaf00fb55bdf232",
+      "format": "graph-semantics-l3-lora",
+      "schema_version": 3
+    },
+    {
+      "role": "l3_dictionary",
+      "path": "outputs/concept_bank_l3_rel.npz",
+      "size_bytes": 2230483097,
+      "sha256": "87c58e49f93d77874e9da14d77f88f8560b43ad923cf6d9cafa96e26f4850603",
+      "format": "graph-semantics-l3-dictionary",
+      "schema_version": 3,
+      "shape": [542705, 1024],
+      "dtype": "float32",
+      "depends_on_l3_sha256": "7f7c1b9c96b8fbfa467854327324601fd50ac50b74c166f4fcaf00fb55bdf232"
+    },
+    {
+      "role": "l2_checkpoint",
+      "path": "outputs/l2_mlp_v4_1.pt",
+      "legacy_source_path": "outputs/l2_mlp_todo4.pt",
+      "copy_mode": "byte-for-byte",
+      "copy_verified": true,
+      "size_bytes": 27665,
+      "sha256": "d346442b16b6bfebb3eee18f95156fb227184fafc33dc8381e96f9881ff93f87",
+      "format": "graph-semantics-weightnet",
+      "schema_version": 4,
+      "feature_dim": 22,
+      "terms": ["gen", "resnorm", "anchor", "node", "norm", "item"],
+      "depends_on_l3_sha256": "7f7c1b9c96b8fbfa467854327324601fd50ac50b74c166f4fcaf00fb55bdf232"
+    },
+    {
+      "role": "l3_trainlog",
+      "path": "outputs/l3_rel_trainlog.json",
+      "size_bytes": 16211,
+      "sha256": "e0180252c7f4a3a28872cea4acb25182e4e5ecb7d9c168b9588b7bd503d1ca28"
+    },
+    {
+      "role": "l2_trainlog",
+      "path": "outputs/l2_mlp_v4_1_trainlog.json",
+      "legacy_source_path": "outputs/l2_mlp_todo4_trainlog.json",
+      "copy_mode": "byte-for-byte",
+      "copy_verified": true,
+      "size_bytes": 3490,
+      "sha256": "b3d88cc52472fe69a76d7ec5f44dc5b06b6ee2a2ea30e3ee5a3c0564112aa8be"
+    },
+    {
+      "role": "task1_targeted_api_free",
+      "path": "outputs/v4_1_targeted_task1.json",
+      "legacy_source_path": "outputs/todo4_targeted_task1.json",
+      "copy_mode": "byte-for-byte",
+      "copy_verified": true,
+      "size_bytes": 160742,
+      "sha256": "3f5e6e4cc83f75ccfb4e54a0973c653115633d8c2f010a66b8363bcae8bb9c5c"
+    },
+    {
+      "role": "task1_all13_api_free",
+      "path": "outputs/v4_1_task1_all13_api_free.json",
+      "legacy_source_path": "outputs/todo4_task1_all13_api_free.json",
+      "copy_mode": "byte-for-byte",
+      "copy_verified": true,
+      "size_bytes": 447424,
+      "sha256": "6418c13b330ba536fca3284c819f998167c8107c5d2b1957a76c4fa82d0f13d8"
+    }
+  ],
+  "training": {
+    "order": ["train L3 LoRA", "re-encode concept bank", "train L2 WeightNet in final L3 space"],
+    "solver_steps": 120,
+    "truncation_steps": 60,
+    "cuda_auto_select": true,
+    "held_out_label_texts_used_for_tuning": false
+  },
+  "evaluation": {
+    "api_free": true,
+    "judge_called": false,
+    "task1_datasets": ["tlvd", "himi", "bigfive", "hs", "rse", "mach", "gcbs", "sixteenpf", "hsq", "sd3", "hexaco", "riasec", "kims"],
+    "record_count": 2079,
+    "mean_core_match": 0.8081257631257632,
+    "mean_core_exact": 0.0075074925074925065,
+    "mean_core_cosine": 0.9071125819599402
+  },
+  "verification": {
+    "unit_and_mechanism_tests": "22/22 passed",
+    "full_dictionary_sha256_verified": true,
+    "formal_copies_byte_identical": true,
+    "l2_state_tensors_equal": true,
+    "default_entry_smoke": {
+      "dataset": "rse",
+      "judge_called": false,
+      "record_count": 30,
+      "core_match": 1.0,
+      "core_exact": 0.0,
+      "core_cosine": 0.925376528635556
+    }
+  },
+  "diagnostics": {
+    "riasec_independent_pairs": {"raw": 1215, "retained": 134, "conflicts": 1081},
+    "himi_frozen_gap": 0.116240549,
+    "himi_l3_gap": 0.116350066,
+    "sixteenpf": {"match": 0.7208333333333333, "exact": 0.012121212121212121, "cosine": 0.9075362335251581},
+    "rse": {"match": 1.0, "cosine": 0.925376528635556},
+    "mach": {"match": 0.6, "cosine": 0.881928572120277},
+    "l2_best_dev_outer_loss": 0.8754721935838461,
+    "multiplier_one_dev_outer_loss": 0.8800561409443617
+  },
+  "known_limitations": [
+    "RIASEC graph/data conflicts are removed, but the structured core does not explicitly represent a generic circumplex.",
+    "MACH/RSE item identity remains information-theoretically unidentifiable when the observed data provide no stable distinguishing signal.",
+    "Task 2 has not received a final v4.1 regression run.",
+    "Himi is protected from L3 regression, but the selected LoRA update is small.",
+    "No K=60 versus K=120 ablation was run, so aggregate changes cannot be attributed solely to unroll depth.",
+    "L3 max_len=64/128 is not fully unified across every encoding path.",
+    "outputs/ is gitignored; artifact distribution requires the files listed here, not only the tracked manifest."
+  ]
+}

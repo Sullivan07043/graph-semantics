@@ -73,9 +73,12 @@ def run_dataset(ds, C, cwords, records):
     T = encode.embed([labels[o] for o in obs])
     alpha = metrics.pick_alpha(T, C)
     W, score = g.estimate_weights(X, oi)
-    pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
+    item_corr = optimize.marginal_corr(g, X, oi)
+    pc = optimize.partial_residual_corr(g, X, oi, score)
+    residual_pair_info = optimize.leave_pair_out_residual_pairs(g, X, oi)
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
+    independent_info = g.reconcile_independent_pairs(X, oi, score)
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
     br = None
     if BRIDGE:
@@ -107,7 +110,11 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP,
+                                           n_samples=X.shape[0],
+                                           independent_info=independent_info,
+                                           item_corr=item_corr,
+                                           residual_pair_info=residual_pair_info)
         U = np.stack([emb[L] for L in lat_names])
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])

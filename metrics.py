@@ -51,6 +51,13 @@ def match_acc(pred, masked_idx, T):
     return float(np.mean(c == np.arange(len(masked_idx))))
 
 
+def true_cosine(pred, masked_idx, T):
+    """Mean cosine of each masked prediction with its own true label embedding."""
+    P = norm_rows(np.asarray(pred))
+    target = norm_rows(np.asarray(T)[masked_idx])
+    return float(np.mean(np.sum(P * target, axis=1)))
+
+
 def judge_completion(words_list, true_texts):
     """-> (acc | None, verdicts | None); judge mode 'completion' (dominant meaning, synonyms count)."""
     if not judge.available():
