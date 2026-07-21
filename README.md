@@ -109,14 +109,19 @@ a trained GNN — the latents are causally load-bearing, not decorative. (`exper
 
 ## Pending fixes (known, prioritized)
 
-1. **riasec regression (.431 judge under the main line, was .516).** Root cause: Holland's six
-   types form a circumplex, not a hierarchy; the bridge/hierarchy constraints mis-shape it.
-   Needs a circumplex-aware constraint (or exempting circumplex graphs from the upper tail).
+1. **riasec: diagnosed (2026-07-17), fix needs a design decision.** Both single-constraint
+   hypotheses were rejected (removing the similarity lower bound changes nothing, match .756;
+   removing independence decorrelation makes it WORSE, .671). The real problem is solution
+   instability: same config judges anywhere in .229--.431 across processes — the circumplex
+   leaves large weakly-determined directions. Fix direction: a circumplex-specific structural
+   prior (e.g. Prediger's two dimensions) to break the symmetry; needs advisor discussion.
 2. **K=60 unroll budget binds on the deepest graphs** (hexaco/tlvd judge below the frozen-space
    column). Retrain WeightNet with larger K via truncated backpropagation; verification is
    API-free (match/embedding metrics). Evidence: mult=1 control loses .05 overall vs 400 steps.
-3. **himi regression under L3** (.817 → .717 judge): not yet diagnosed; suspect the anchor set
-   under-covers cognitive-task vocabulary (same family as the tlvd .500 ceiling).
+3. **himi regression under L3: diagnosed as judge noise (2026-07-17).** Only 2 borderline items
+   flipped and their decoded words are essentially unchanged between L2 and L3; the underlying
+   weakness is decode-dictionary coverage of cognitive-task vocabulary (same family as the tlvd
+   .500 ceiling) — a dictionary issue, not a method issue.
 4. **mach/rse single-factor scales**: graph constraints have nothing to use; known limitation,
    not a bug.
 5. **week6\_report**: L3 section not yet added (L2 section is in).
