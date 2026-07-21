@@ -25,10 +25,12 @@ recorded in [`fix_todo.md`](fix_todo.md).
 | L2 training log | `outputs/l2_mlp_v4_1_trainlog.json` | `b3d88cc52472fe69a76d7ec5f44dc5b06b6ee2a2ea30e3ee5a3c0564112aa8be` |
 | Targeted Task 1 evaluation | `outputs/v4_1_targeted_task1.json` | `3f5e6e4cc83f75ccfb4e54a0973c653115633d8c2f010a66b8363bcae8bb9c5c` |
 | All-13 Task 1 evaluation | `outputs/v4_1_task1_all13_api_free.json` | `6418c13b330ba536fca3284c819f998167c8107c5d2b1957a76c4fa82d0f13d8` |
+| All-13 Task 2 API-free records | `outputs/v4_1_task2_all13_api_free.json` | `e0b1f26476ce5da7fc86949531aa1f1b9c6deadcd126a281c9ffa794de2df596` |
 
-The L2 checkpoint, L2 log, and evaluation records are byte-for-byte release-named copies of the
-validated `_todo4` candidate; the original files remain intact. The 2.23 GB concept bank was not
-copied or rewritten, avoiding unnecessary storage and preserving its existing L3 SHA binding.
+The L2 checkpoint, L2 log, and Task 1 evaluation records are byte-for-byte release-named copies
+of the validated `_todo4` candidate; the original files remain intact. The Task 2 file is the
+subsequent final v4.1 API-free run. The 2.23 GB concept bank was not copied or rewritten, avoiding
+unnecessary storage and preserving its existing L3 SHA binding.
 
 The main evaluator validates the manifest, the L3 and L2 file hashes, dictionary metadata, and
 the fact that both the dictionary and L2 checkpoint depend on the same L3 checkpoint. Set
@@ -46,6 +48,10 @@ be run independently with:
   checkpoint compatibility, and the release contract.
 - The all-13 Task 1 API-free result is mean match `0.808126`, mean exact `0.007507`, and mean
   true-target cosine `0.907113`, across 2,079 records. No judge call was made.
+- The all-13 Task 2 API-free run completed all 13 datasets, 90 unique dataset-latent pairs, and
+  five folds, producing the expected 450 core records with no empty decoded-word lists. All judge
+  fields are null. The current Task 2 protocol defines only judge-ACC, so this run validates the
+  complete solve/decode path but does not provide an API-free accuracy number.
 - RIASEC independent pairs changed from `1215` raw to `134` retained, with `1081` graph/data
   conflicts. The Himi frozen/L3 cosine gap changed from `0.116241` to `0.116350`. The 16PF
   match/exact/cosine result is `0.720833/0.012121/0.907536`.
@@ -66,6 +72,15 @@ $env:RECORDS_OUT = "outputs/v4_1_task1_all13_api_free.json"
 .\.venv\Scripts\python.exe -B pipeline_L3_v1\run_eval_l3.py
 ```
 
+For the corresponding all-13 Task 2 API-free solve/decode regression, keep the same environment
+and change:
+
+```powershell
+$env:TASK = "2"
+$env:RECORDS_OUT = "outputs/v4_1_task2_all13_api_free.json"
+.\.venv\Scripts\python.exe -B pipeline_L3_v1\run_eval_l3.py
+```
+
 Retraining must run in this order:
 
 1. `pipeline_L3_v1/l3_train.py`
@@ -80,11 +95,12 @@ CUDA is selected automatically when available.
   explicitly represented by the structured core.
 - MACH and RSE remain subject to an exchangeability limit when the data contain no stable signal
   that distinguishes individual items.
-- The Himi guard prevents regression, but the selected LoRA update is small. Task 2 has not
-  received a final v4.1 regression run.
+- The Himi guard prevents regression, but the selected LoRA update is small.
+- Task 2 completed its final API-free solve/decode run, but its current protocol has no API-free
+  latent accuracy metric. Quantitative judge-ACC remains unavailable when the judge is disabled.
 - Some multi-factor datasets exhibit real match trade-offs. No judge evaluation and no K=60
   versus K=120 ablation were run.
 - `outputs/` is gitignored. Source code plus the manifest alone does not include the binary
   artifacts listed above.
-- As required, no commit, Git tag, or push was created. Version 4.1 is therefore a formalized
-  local file release, not yet a Git tag.
+- The source release is committed on `xuran_v4` (initial release commit `83879b4`) and pushed to
+  `origin/xuran_v4`. No Git tag was created.

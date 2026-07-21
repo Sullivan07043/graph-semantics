@@ -19,14 +19,16 @@ L2_CHECKPOINT_SCHEMA_VERSION = 4
 SOLVER_STEPS = 120
 TRUNCATION_STEPS = 60
 
-# The 2.23 GB dictionary remains at its immutable, L3-SHA-bound component path.  The final L2
-# checkpoint and evaluation records receive release-level names as inexpensive byte copies.
+# The 2.23 GB dictionary remains at its immutable, L3-SHA-bound component path. The final L2
+# checkpoint and Task 1 records receive release-level names as inexpensive byte copies; the
+# Task 2 record is produced by the subsequent final release run.
 L3_CHECKPOINT_NAME = "l3_lora_rel.pt"
 L3_DICTIONARY_NAME = "concept_bank_l3_rel.npz"
 L2_CHECKPOINT_TEMPLATE = "l2_{arm}_v4_1.pt"
 L2_TRAINLOG_TEMPLATE = "l2_{arm}_v4_1_trainlog.json"
 TARGETED_RESULTS_NAME = "v4_1_targeted_task1.json"
 ALL13_RESULTS_NAME = "v4_1_task1_all13_api_free.json"
+ALL13_TASK2_RESULTS_NAME = "v4_1_task2_all13_api_free.json"
 MANIFEST_NAME = "release_v4_1.json"
 
 

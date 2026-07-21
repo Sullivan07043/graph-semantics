@@ -45,8 +45,9 @@ The machine-readable release contract is release_v4_1.json.
 ## Repository and artifact protection
 
 The untracked data/ and experiment_logs/ directories existed before the repair and were
-preserved. No commit, push, reset, clean, or deletion of user files was performed. Existing
-output artifacts were not overwritten.
+preserved. No reset, clean, deletion, or unintended staging of user files was performed. Existing
+output artifacts were not overwritten. The scoped v4.1 source changes were later committed and
+pushed on the dedicated xuran_v4 branch.
 
 Formal v4.1 artifacts:
 
@@ -57,11 +58,13 @@ Formal v4.1 artifacts:
 - outputs/l2_mlp_v4_1_trainlog.json
 - outputs/v4_1_targeted_task1.json
 - outputs/v4_1_task1_all13_api_free.json
+- outputs/v4_1_task2_all13_api_free.json
 
-The release-named L2 checkpoint, L2 log, and result files are byte-for-byte copies of the final
-_todo4 artifacts. Their originals remain intact. The 2.23 GB dictionary was neither copied nor
-rewritten; the manifest designates the existing SHA-bound file as the v4.1 dictionary. Earlier
-_rel L2 and evaluation files remain available as the pre-v4.1 baseline.
+The release-named L2 checkpoint, L2 log, and Task 1 result files are byte-for-byte copies of the
+final _todo4 artifacts. Their originals remain intact. The Task 2 result is the later final v4.1
+API-free execution. The 2.23 GB dictionary was neither copied nor rewritten; the manifest
+designates the existing SHA-bound file as the v4.1 dictionary. Earlier _rel L2 and evaluation
+files remain available as the pre-v4.1 baseline.
 
 ~~~text
 L3 checkpoint SHA-256
@@ -72,6 +75,9 @@ L3 dictionary SHA-256
 
 L2 checkpoint SHA-256
 d346442b16b6bfebb3eee18f95156fb227184fafc33dc8381e96f9881ff93f87
+
+Task 2 all-13 API-free records SHA-256
+e0b1f26476ce5da7fc86949531aa1f1b9c6deadcd126a281c9ffa794de2df596
 ~~~
 
 The dictionary and L2 checkpoint both record and validate the same L3 SHA.
@@ -89,9 +95,11 @@ The dictionary and L2 checkpoint both record and validate the same L3 SHA.
   hash and exact L2 tensor comparison.
 - A default-path API-free RSE smoke run passed without artifact overrides. It produced 30 records
   with core match/exact/cosine 1.000000/0.000000/0.925377.
+- The final all-13 Task 2 API-free run completed 13 datasets, 90 unique dataset-latent pairs, five
+  folds, and all 450 expected core records. No decoded-word list was empty and no judge was called.
 - No L3 or dictionary archive was rewritten, so the validated cryptographic binding is intact.
-- No commit, Git tag, or push was created. The source is a working-tree snapshot based on commit
-  8bcace9a7da85f92388d8c3a1fe45755b3220adc; that base commit alone does not contain v4.1.
+- The source was committed on xuran_v4 (initial release commit
+  83879b4714004bdb05dd2eaa6ce63f326791f590) and pushed to origin/xuran_v4. No Git tag was created.
 
 ## 1. Normalized structured objective
 
@@ -663,7 +671,30 @@ tuning was performed on these final results.
 
 outputs/v4_1_task1_all13_api_free.json contains 2,079 arm/item records.
 
-## 10. Single-factor theoretical limit
+## 10. All 13 Task 2 datasets, API-free
+
+The final Task 2 run used the same formal L3 checkpoint, L3 dictionary, schema-v4 WeightNet, and
+K=120 solver as Task 1. It completed all 13 datasets and all five folds:
+
+| Check | Result |
+|---|---:|
+| Datasets completed | 13 |
+| Unique dataset-latent pairs | 90 |
+| Folds | 5 |
+| Expected core records | 450 |
+| Written core records | 450 |
+| Empty decoded-word lists | 0 |
+| Non-null judge fields | 0 |
+
+The output is outputs/v4_1_task2_all13_api_free.json (169,146 bytes; SHA-256
+e0b1f26476ce5da7fc86949531aa1f1b9c6deadcd126a281c9ffa794de2df596).
+
+This is a complete API-free solve/decode regression, not an accuracy claim. The current Task 2
+runner defines latent accuracy only through judge-ACC. With the judge disabled, each dataset's
+summary values are null; there is no Task 2 analogue of Task 1 match/exact/true-cosine yet. No
+OpenAI API or other judge was invoked, and held-out latent descriptions were not used for tuning.
+
+## 11. Single-factor theoretical limit
 
 A single-factor bipartite graph gives every item the same parent. If the data distribution is
 unchanged under exchange of two items, the graph, parent score, edge support, and visible labels
@@ -692,7 +723,7 @@ masks the only reliable neighbor, \(z_i\) lacks identifying information. High co
 recovery of a common topic rather than the exact item. Increasing K, LoRA, or WeightNet capacity
 cannot remove this information-theoretic limit.
 
-## 11. Next methods for remaining issues
+## 12. Next methods for remaining issues
 
 ### RIASEC
 
@@ -719,7 +750,7 @@ The guard fixes regression, but epoch 0 has very small drift. A future simple al
 near-isometric low-rank rotation or a projection of the DEV Gram matrix after each step. This is
 more direct than adding scalar identity weights and still requires no held-out labels.
 
-## 12. Commands
+## 13. Commands
 
 ~~~powershell
 $env:OPENAI_API_KEY = ""
@@ -753,6 +784,11 @@ $env:DATASET = "tlvd,himi,bigfive,hs,rse,mach,gcbs,sixteenpf,hsq,sd3,hexaco,rias
 $env:RECORDS_OUT = "outputs/v4_1_task1_all13_api_free.json"
 ./.venv/Scripts/python.exe -B pipeline_L3_v1/run_eval_l3.py
 
+# All 13 Task 2 datasets, API-free solve/decode regression.
+$env:TASK = "2"
+$env:RECORDS_OUT = "outputs/v4_1_task2_all13_api_free.json"
+./.venv/Scripts/python.exe -B pipeline_L3_v1/run_eval_l3.py
+
 # Full release verification.
 ./.venv/Scripts/python.exe -B pipeline_v4/verify_release.py --full-dictionary-sha
 ~~~
@@ -760,7 +796,7 @@ $env:RECORDS_OUT = "outputs/v4_1_task1_all13_api_free.json"
 The evaluator enforces K=120 and verifies L3 format/schema, concept-bank format/schema/L3 SHA,
 L2 format/schema/L3 SHA, and v4.1 artifact paths, sizes, and hashes.
 
-## 13. Modified and added files
+## 14. Modified and added files
 
 - graph.py: shared graph/data independence reconciliation.
 - metrics.py: API-free true-target cosine.
@@ -782,7 +818,7 @@ L2 format/schema/L3 SHA, and v4.1 artifact paths, sizes, and hashes.
 - README.md: current-main-line prose; historical result numbers unchanged.
 - RELEASE_v4.1.md: release summary, artifacts, commands, and limitations.
 
-## 14. Incomplete work and retained risks
+## 15. Incomplete work and retained risks
 
 - RIASEC's wrong independence constraints are fixed, but the core still lacks an explicit generic
   two-dimensional circumplex. Match 0.811 remains below rawcorr 1.000.
@@ -793,10 +829,12 @@ L2 format/schema/L3 SHA, and v4.1 artifact paths, sizes, and hashes.
   semantic benefit.
 - K=120 is implemented and tested, but no K=60/K=120 ablation was run, so metric changes cannot be
   attributed solely to unroll depth.
-- Task 2 did not receive a final v4.1 regression run.
+- Task 2 completed its final API-free solve/decode regression, but the runner exposes no API-free
+  latent accuracy metric; only judge-ACC can score the decoded latent words today.
 - L3 max lengths 64 and 128 are not fully unified across encoding paths.
 - No judge or OpenAI API was called.
 - No held-out labels were used for tuning. K=240, large ablations, and week6_report were explicit
   exclusions.
 - outputs/ is gitignored, so source plus manifest does not distribute the binary artifacts.
-- No commit, Git tag, or push was created. v4.1 is a formalized local file release.
+- The source is committed and pushed on xuran_v4, but no Git tag was created. Because outputs/ is
+  gitignored, the Task 2 JSON and other binary artifacts are not transported by the source branch.

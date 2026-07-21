@@ -1,7 +1,9 @@
 """Evaluate the final L3 encoder + L2 WeightNet under the official runners.
 
 The L3 dictionary and L2 checkpoint are cryptographically tied to the same versioned LoRA
-checkpoint.  API-free match/exact/cosine evaluation is obtained by leaving OPENAI_API_KEY unset.
+checkpoint. Leaving OPENAI_API_KEY unset gives API-free match/exact/cosine for Task 1. Task 2
+still runs and records every decoded latent, but its current protocol reports accuracy only via
+the optional judge.
 """
 import os
 import sys

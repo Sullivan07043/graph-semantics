@@ -18,10 +18,13 @@
   },
   "source": {
     "base_commit": "8bcace9a7da85f92388d8c3a1fe45755b3220adc",
-    "state": "working-tree snapshot",
-    "commit_created": false,
+    "release_branch": "xuran_v4",
+    "initial_release_commit": "83879b4714004bdb05dd2eaa6ce63f326791f590",
+    "state": "committed and pushed release branch",
+    "commit_created": true,
     "git_tag_created": false,
-    "note": "v4.1 was formalized without commit, tag, or push as explicitly requested; base_commit alone does not contain the release changes."
+    "push_target": "origin/xuran_v4",
+    "note": "The initial v4.1 source release was committed and pushed on xuran_v4. Generated evaluation outputs and binary artifacts remain gitignored and are identified by path, size, and SHA-256 in this manifest."
   },
   "artifacts": [
     {
@@ -89,6 +92,16 @@
       "copy_verified": true,
       "size_bytes": 447424,
       "sha256": "6418c13b330ba536fca3284c819f998167c8107c5d2b1957a76c4fa82d0f13d8"
+    },
+    {
+      "role": "task2_all13_api_free",
+      "path": "outputs/v4_1_task2_all13_api_free.json",
+      "size_bytes": 169146,
+      "sha256": "e0b1f26476ce5da7fc86949531aa1f1b9c6deadcd126a281c9ffa794de2df596",
+      "dataset_count": 13,
+      "latent_count": 90,
+      "fold_count": 5,
+      "record_count": 450
     }
   ],
   "training": {
@@ -105,7 +118,19 @@
     "record_count": 2079,
     "mean_core_match": 0.8081257631257632,
     "mean_core_exact": 0.0075074925074925065,
-    "mean_core_cosine": 0.9071125819599402
+    "mean_core_cosine": 0.9071125819599402,
+    "task2": {
+      "datasets": ["tlvd", "himi", "bigfive", "hs", "rse", "mach", "gcbs", "sixteenpf", "hsq", "sd3", "hexaco", "riasec", "kims"],
+      "dataset_count": 13,
+      "latent_count": 90,
+      "folds": [0, 1, 2, 3, 4],
+      "record_count": 450,
+      "empty_decoded_word_lists": 0,
+      "judge_called": false,
+      "non_null_judge_records": 0,
+      "api_free_accuracy_metric_available": false,
+      "note": "The current Task 2 protocol defines latent accuracy through judge-ACC only. With the judge disabled, all latent solve/decode records are produced but the summary accuracy values are null."
+    }
   },
   "verification": {
     "unit_and_mechanism_tests": "22/22 passed",
@@ -119,6 +144,13 @@
       "core_match": 1.0,
       "core_exact": 0.0,
       "core_cosine": 0.925376528635556
+    },
+    "task2_all13_api_free": {
+      "datasets_completed": 13,
+      "unique_dataset_latents": 90,
+      "record_count": 450,
+      "decoded_records_complete": true,
+      "judge_called": false
     }
   },
   "diagnostics": {
@@ -134,7 +166,7 @@
   "known_limitations": [
     "RIASEC graph/data conflicts are removed, but the structured core does not explicitly represent a generic circumplex.",
     "MACH/RSE item identity remains information-theoretically unidentifiable when the observed data provide no stable distinguishing signal.",
-    "Task 2 has not received a final v4.1 regression run.",
+    "Task 2 completed its final API-free solve/decode regression, but the current protocol has no API-free latent accuracy metric; judge-ACC remains unavailable when the judge is disabled.",
     "Himi is protected from L3 regression, but the selected LoRA update is small.",
     "No K=60 versus K=120 ablation was run, so aggregate changes cannot be attributed solely to unroll depth.",
     "L3 max_len=64/128 is not fully unified across every encoding path.",

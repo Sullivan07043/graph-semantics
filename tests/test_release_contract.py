@@ -19,6 +19,8 @@ class ReleaseContractTests(unittest.TestCase):
             self.assertEqual(handle.read().strip(), "4.1")
         self.assertEqual(release.RELEASE_VERSION, "4.1")
         self.assertEqual(release.RELEASE_TAG, "v4.1")
+        self.assertEqual(release.ALL13_TASK2_RESULTS_NAME,
+                         "v4_1_task2_all13_api_free.json")
 
     def test_release_and_component_schemas_are_distinct(self):
         self.assertEqual(LM.CHECKPOINT_VERSION, release.L2_CHECKPOINT_SCHEMA_VERSION)
@@ -50,11 +52,32 @@ class ReleaseContractTests(unittest.TestCase):
             "l3_checkpoint": "outputs/l3_lora_rel.pt",
             "l3_dictionary": "outputs/concept_bank_l3_rel.npz",
             "l2_checkpoint": "outputs/l2_mlp_v4_1.pt",
+            "task2_all13_api_free": "outputs/v4_1_task2_all13_api_free.json",
         }
         for role, path in expected_paths.items():
             entry = release.artifact(manifest, role)
             self.assertEqual(entry["path"], path)
             self.assertRegex(entry["sha256"], r"^[0-9a-f]{64}$")
+        task2 = manifest["evaluation"]["task2"]
+        self.assertEqual(task2["dataset_count"], 13)
+        self.assertEqual(task2["folds"], list(range(5)))
+        self.assertEqual(task2["record_count"], task2["latent_count"] * len(task2["folds"]))
+        self.assertFalse(task2["judge_called"])
+        self.assertFalse(task2["api_free_accuracy_metric_available"])
+        task2_artifact = release.artifact(manifest, "task2_all13_api_free")
+        self.assertEqual(task2_artifact["size_bytes"], 169146)
+        self.assertEqual(
+            task2_artifact["sha256"],
+            "e0b1f26476ce5da7fc86949531aa1f1b9c6deadcd126a281c9ffa794de2df596")
+        self.assertEqual(task2_artifact["record_count"], 450)
+        source = manifest["source"]
+        self.assertEqual(source["release_branch"], "xuran_v4")
+        self.assertEqual(
+            source["initial_release_commit"],
+            "83879b4714004bdb05dd2eaa6ce63f326791f590")
+        self.assertTrue(source["commit_created"])
+        self.assertFalse(source["git_tag_created"])
+        self.assertEqual(source["push_target"], "origin/xuran_v4")
 
     def test_wrong_release_manifest_fails_clearly(self):
         with tempfile.TemporaryDirectory() as directory:
