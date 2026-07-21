@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "experiment_id": "jspace_causcale_v41_smoke",
+  "seed": 20260721,
+  "v41": {
+    "release": "4.1",
+    "solver_steps": 120,
+    "folds": 5,
+    "mask_fraction": 0.2
+  },
+  "jlens": {
+    "source_repository": "https://github.com/anthropics/jacobian-lens",
+    "source_commit": "581d398613e5602a5af361e1c34d3a92ea82ba8e",
+    "model": "Qwen/Qwen3.5-4B",
+    "lens_repository": "neuronpedia/jacobian-lens",
+    "lens_revision": "b62c39069a0740aebcc70462231b68612cae367f",
+    "lens_filename": "qwen3.5-4b/jlens/Salesforce-wikitext/Qwen3.5-4B_jacobian_lens_n1000.pt",
+    "lens_size_bytes": 406332644,
+    "lens_sha256": "1f9a8f8fd593f0ffec1a9640993257ca4560f8ae3e5602315643d5cc6818534e",
+    "dtype": "bfloat16",
+    "max_sequence_length": 128,
+    "position_rule": "last_prompt_token",
+    "layer_fractions": [0.25, 0.5, 0.75, 0.9375],
+    "concept_surfaces": [
+      "France",
+      "China",
+      "spider",
+      "eagle",
+      "oxygen"
+    ],
+    "readout_smoke_prompts": 50,
+    "full_rows": 1000,
+    "observational_rows": 500,
+    "interventional_rows_per_node": 25,
+    "heldout_prompt_pairs": 100,
+    "intervention_strength_sigma": [1.0, 2.0]
+  },
+  "causcale": {
+    "source_commit": "9d4766bbe5efd118f9ae696545956e89ca8e4e4d",
+    "checkpoint_repository": "OpenCausaLab/causcale-model",
+    "checkpoint_filename": "synthetic/auprc=0.905_migrated.ckpt",
+    "feature_sample_size": 500,
+    "edge_threshold": 0.5,
+    "break_cycles": true,
+    "bootstrap_seeds": [0, 1, 2]
+  },
+  "controls": {
+    "graph_arms": [
+      "oracle",
+      "causcale",
+      "correlation",
+      "degree_matched_shuffle",
+      "no_graph"
+    ],
+    "semantic_arms": ["v4.1", "unit_multipliers", "visible_mean"],
+    "intervention_controls": ["clean", "matched_norm_random", "ablate", "inject"]
+  }
+}
