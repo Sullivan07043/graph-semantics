@@ -23,6 +23,7 @@ def select_datasets(which):
     return [w.strip() for w in which.split(",")]
 
 FOLDS = int(os.environ.get("FOLDS", 5))
+LATCON = os.environ.get("LATCON", "1") == "1"   # latent-level constraints (main-line default 2026-07-22)
 STEPS = int(os.environ.get("STEPS", 400))
 LAM_ZERO = float(os.environ.get("LAM_ZERO", 0.3))
 LAM_NORM = float(os.environ.get("LAM_NORM", 0.1))
@@ -60,7 +61,13 @@ def run_dataset(ds, C, cwords, records):
     Tn = metrics.norm_rows(T)
     alpha = metrics.pick_alpha(T, C)
     W, score = g.estimate_weights(X, oi)
+    if LATCON:
+        import latent_constraints as _LC
+        W, score = _LC.sign_fix(g, W, score)
     pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
+    if LATCON and pc is not None:
+        import latent_constraints as _LC
+        pc = _LC.augmented_partial_corr(g, X, oi, score, pc)
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
@@ -69,6 +76,10 @@ def run_dataset(ds, C, cwords, records):
         import dependence as _dep
         br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
                   lam_upper=0.3, kappa=0.5, q=0.7)
+        if LATCON:
+            import latent_constraints as _LC
+            _bn, _bD = _LC.augmented_bridge(g, list(obs), oi, X, score, br["dep_marg"])
+            br = dict(obs=_bn, dep_marg=_bD, lam_upper=0.3, kappa=0.5, q=0.7)
     dep = (obs, Craw) if LAM_DEP > 0 else None
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
