@@ -169,25 +169,30 @@ enter any training; API spend only on final candidates (judge verdicts disk-cach
 Data: openpsychometrics.org `_rawdata` zips under `$GRAPHSEM_DATA/pool/`; nothing under `data/`
 is committed.
 
+## Layout (since 2026-07-22)
+
+- **`v5/`** — THE pipeline, self-contained and flat: base objective + runners, L2 learned solver
+  (`l2_solver.py`, `l2_modules.py`), L3 LoRA space (`lora.py`), latent-level constraints
+  (`latent_constraints.py`), entry point **`v5/main.py`**; its `outputs/` and `data_cache/` live inside.
+- **`archive/`** — all superseded code, intact; runnable via `git checkout pre-v5` (see archive/README).
+
 ## Run
 
 ```
-# main line (LoRA space + WeightNet solver); API-free unless OPENAI_API_KEY is set
-TASK=1 DATASET=heldout L2_ARM=mlp python pipeline_L3_v1/run_eval_l3.py
+# main line (v5 = LoRA space + WeightNet solver); API-free unless OPENAI_API_KEY is set
+TASK=1 DATASET=heldout L2_ARM=mlp python v5/main.py
+
+# frozen-space reference (baseline columns)
+python v5/run_task1.py                    # DATASET=dev|heldout|all|<csv>
+python v5/run_task2.py
 
 # retrain the pieces
-python pipeline_v4/l2_train.py            # ARM=mlp|static, K, EPOCHS
-python pipeline_L3_v1/l3_train.py         # then: python pipeline_L3_v1/reencode_dict.py
-python negop.py train
+python v5/l2_train.py                     # ARM=mlp|static, K, EPOCHS
+python v5/l3_train.py                     # then: python v5/reencode_dict.py
+python v5/negop.py train
 
-# frozen-space reference runs
-python run_task1.py                       # DATASET=dev|heldout|all|<csv>
-python run_task2.py
-python pipeline_v4/run_eval.py            # L2_ARM=mult1|static|mlp on the frozen space
-
-# interventions
-python experiments/intervene.py           # geometric swap
-python experiments/intervene_judge.py     # judged swap
+# hierarchy + latent-constraints experiment (bigfive pilot)
+LATCON=1 TASK=1 python v5/run_bigfive_hier.py
 ```
 
 Env knobs: `DATASET`, `FOLDS`, `NEGOP`, `BRIDGE`, `RESIDUAL`, `LAM_RES`, `GRAPHSEM_ENCODER`,

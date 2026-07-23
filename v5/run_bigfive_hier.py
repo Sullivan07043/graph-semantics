@@ -11,9 +11,8 @@ Env: TASK=1|2, RECORDS_OUT; keyless => free metrics only.
 import os
 import sys
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
 
 DICT = os.path.join(HERE, "outputs", "concept_bank_l3.npz")
 os.environ["GRAPHSEM_DICT"] = DICT
@@ -23,8 +22,9 @@ import numpy as np                                                    # noqa: E4
 import torch                                                          # noqa: E402
 import encode                                                         # noqa: E402
 import graph as G                                                     # noqa: E402
-from pipeline_L3_v1 import lora                                       # noqa: E402
-from pipeline_v4 import core, l2_modules as LM                        # noqa: E402
+import lora                                       # noqa: E402
+import l2_solver as core                           # noqa: E402
+import l2_modules as LM                            # noqa: E402
 
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 4)))
 
@@ -83,7 +83,7 @@ encode._MODEL = _LoraST()
 
 # ---- WeightNet solver (identical to run_eval_l3, L2_ARM=mlp) ----
 import optimize                                                       # noqa: E402
-from pipeline_L3_v1 import latent_constraints as LC                   # noqa: E402
+import latent_constraints as LC                   # noqa: E402
 LATCON = os.environ.get("LATCON", "0") == "1"
 _DS_CACHE = {}
 

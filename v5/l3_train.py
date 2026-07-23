@@ -20,13 +20,12 @@ import time
 import numpy as np
 import torch
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
 import pool, encode, negop                                            # noqa: E402
 import dependence as depmod                                           # noqa: E402
 from run_task1 import ALL_LOADERS                                     # noqa: E402
-from pipeline_L3_v1 import lora                                          # noqa: E402
+import lora                                          # noqa: E402
 
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 8)))
 DEVICE = os.environ.get("DEVICE", "cuda")

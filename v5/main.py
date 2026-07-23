@@ -12,9 +12,8 @@ Env: TASK=1|2, DATASET, RECORDS_OUT, L2_ARM=frozen|mlp (frozen = 400-step offici
 import os
 import sys
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
 
 DICT = os.path.join(HERE, "outputs", "concept_bank_l3.npz")
 os.environ["GRAPHSEM_DICT"] = DICT
@@ -22,7 +21,7 @@ os.environ["GRAPHSEM_DICT"] = DICT
 import numpy as np                                                    # noqa: E402
 import torch                                                          # noqa: E402
 import encode                                                         # noqa: E402
-from pipeline_L3_v1 import lora                                       # noqa: E402
+import lora                                       # noqa: E402
 
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 4)))
 CKPT = os.path.join(HERE, "outputs", "l3_lora.pt")
@@ -56,7 +55,8 @@ encode._MODEL = _LoraST()
 ARM = os.environ.get("L2_ARM", "frozen")
 if ARM == "mlp":
     import optimize                                                   # noqa: E402
-    from pipeline_v4 import core, l2_modules as LM                    # noqa: E402
+    import l2_solver as core
+    import l2_modules as LM                    # noqa: E402
     _MODULE = LM.load(os.environ.get("L2_CKPT", os.path.join(HERE, "outputs", "l2_mlp.pt")))
     K = int(os.environ.get("K", 60))
 

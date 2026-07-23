@@ -44,7 +44,6 @@ if NEGOP:
 GENPHI = os.environ.get("GENPHI", "0") == "1"
 GEN_OP = None
 if GENPHI:
-    sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
     import genphi as _genphi
     GEN_OP = _genphi.load()
 
@@ -67,7 +66,6 @@ def run_dataset(ds, C, cwords, records):
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
     br = None
     if BRIDGE:
-        sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
         import dependence as _dep
         br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
                   lam_upper=0.3, kappa=0.5, q=0.7)

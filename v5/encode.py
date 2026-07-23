@@ -15,7 +15,7 @@ SPECS = {
 ENCODER = os.environ.get("GRAPHSEM_ENCODER", "e5-large")
 _MODEL_NAME, _PREFIX, _DICT_FILE = SPECS[ENCODER]
 _DICT_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "..", "wikipedia", "outputs"))
+                                         "..", "..", "wikipedia", "outputs"))
 DICT_PATH = os.environ.get("GRAPHSEM_DICT", os.path.join(_DICT_DIR, _DICT_FILE))
 
 _MODEL = None

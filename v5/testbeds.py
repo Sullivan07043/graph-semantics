@@ -13,7 +13,7 @@ import numpy as np
 import graph as G
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", "data")))
+DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", "..", "data")))
 CACHE = os.path.join(HERE, "data_cache")
 
 

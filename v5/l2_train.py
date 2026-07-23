@@ -17,14 +17,13 @@ import time
 import numpy as np
 import torch
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "pipeline_v3"))
 import pool, encode, optimize, negop                                  # noqa: E402
 import dependence as depmod                                           # noqa: E402
 from run_task1 import ALL_LOADERS                                     # noqa: E402
-from pipeline_v4 import core                                          # noqa: E402
-from pipeline_v4 import l2_modules as LM                              # noqa: E402
+import l2_solver as core                                              # noqa: E402
+import l2_modules as LM                                              # noqa: E402
 
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 4)))
 

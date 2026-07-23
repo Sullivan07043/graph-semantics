@@ -8,10 +8,10 @@ import time
 import numpy as np
 import torch
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import encode                                                         # noqa: E402
-from pipeline_L3_v1 import lora                                       # noqa: E402
+import lora                                       # noqa: E402
 
 DEVICE = os.environ.get("DEVICE", "cuda")
 CKPT = os.path.join(HERE, "outputs", "l3_lora.pt")

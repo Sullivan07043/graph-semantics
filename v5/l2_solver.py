@@ -15,7 +15,7 @@ import os
 import sys
 import numpy as np
 
-HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # repo root
+HERE = os.path.dirname(os.path.abspath(__file__))   # repo root
 sys.path.insert(0, HERE)
 import optimize as O                                                  # noqa: E402
 

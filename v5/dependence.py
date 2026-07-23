@@ -16,7 +16,7 @@ Usage: python pipeline_v3/dependence.py [datasets csv]   (default: DEV+HELDOUT a
 import os, sys, time
 import numpy as np
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 import pool, optimize
 from run_task1 import ALL_LOADERS
