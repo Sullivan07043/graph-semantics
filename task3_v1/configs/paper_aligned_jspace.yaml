@@ -1,0 +1,55 @@
+schema_version: 1
+experiment_name: paper_aligned_jspace_qwen3_5_4b
+description: A paper-aligned J-space replication on Qwen3.5-4B; not an exact reproduction of the Claude experiments.
+seed: 20260725
+
+model:
+  id: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  tokenizer_id: Qwen/Qwen3.5-4B
+  tokenizer_revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  local_path: ../.hf-jlens/model/Qwen3.5-4B
+  dtype: bfloat16
+  device: cuda
+  max_context_tokens: 512
+
+lens:
+  repository: neuronpedia/jacobian-lens
+  revision: b62c39069a0740aebcc70462231b68612cae367f
+  file: qwen3.5-4b/jlens/Salesforce-wikitext/Qwen3.5-4B_jacobian_lens_n1000.pt
+  local_path: ../.hf-jlens/lens/qwen3.5-4b/jlens/Salesforce-wikitext/Qwen3.5-4B_jacobian_lens_n1000.pt
+  sha256: 1f9a8f8fd593f0ffec1a9640993257ca4560f8ae3e5602315643d5cc6818534e
+  tensor_convention: unit_normalized_J_transpose_unembedding_direction
+
+prompts:
+  upstream_repository: https://github.com/anthropics/jacobian-lens
+  upstream_commit: 581d398613e5602a5af361e1c34d3a92ea82ba8e
+  official_file: task3/data/prompts/official_anthropic/probe-swap.json
+  processed_dir: task3/data/prompts/paper_aligned_qwen
+  calibration_fraction: 0.4
+  split_group: category
+  prefer_single_token: true
+
+layer_protocol:
+  scan: all_fitted_residual_layers
+  normalized_depth_denominator: max_fitted_layer
+  selection_criterion: calibration_mean_reciprocal_rank
+  workspace_band_width: 6
+  selection_tie_break: earliest_band
+
+intervention:
+  method: strict_pairwise_jlens_coordinate_swap
+  strength: 1.0
+  positions: all_prompt_positions
+  pseudoinverse_rcond: 1.0e-6
+  run_noop_control: true
+  run_single_layer_diagnostic: true
+
+interpretation:
+  minimum_primary_examples: 20
+  readable_band_top5_rate: 0.5
+  successful_swap_rate: 0.25
+
+outputs:
+  results_dir: task3/outputs/paper_aligned
+  logs_dir: task3/logs/paper_aligned

@@ -1,0 +1,171 @@
+{
+  "status": "CANDIDATE_STATIC_VALIDATION_PASSED_NOT_BEHAVIORALLY_FROZEN",
+  "count": 32,
+  "source": {
+    "path": "task3/build_discovery_matrix.py",
+    "symbol": "CONCEPTS",
+    "sha256": "a071459bd069c586ce6bc01383932cfd4a728c03848c8a8d708b73f457ef8689"
+  },
+  "concept_tokens": [
+    {
+      "index": 0,
+      "token": " water",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 1,
+      "token": " fire",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 2,
+      "token": " music",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 3,
+      "token": " danger",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 4,
+      "token": " Italy",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 5,
+      "token": " code",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 6,
+      "token": " animal",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 7,
+      "token": " happy",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 8,
+      "token": " money",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 9,
+      "token": " doctor",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 10,
+      "token": " city",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 11,
+      "token": " truth",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 12,
+      "token": " false",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 13,
+      "token": " love",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 14,
+      "token": " anger",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 15,
+      "token": " fear",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 16,
+      "token": " food",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 17,
+      "token": " sleep",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 18,
+      "token": " work",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 19,
+      "token": " school",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 20,
+      "token": " family",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 21,
+      "token": " war",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 22,
+      "token": " peace",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 23,
+      "token": " science",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 24,
+      "token": " art",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 25,
+      "token": " language",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 26,
+      "token": " number",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 27,
+      "token": " time",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 28,
+      "token": " future",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 29,
+      "token": " past",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 30,
+      "token": " safe",
+      "leading_space_preserved": true
+    },
+    {
+      "index": 31,
+      "token": " risk",
+      "leading_space_preserved": true
+    }
+  ]
+}

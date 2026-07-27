@@ -1,0 +1,26 @@
+{
+  "upstream_repository_url": "https://github.com/anthropics/jacobian-lens",
+  "commit_sha": "581d398613e5602a5af361e1c34d3a92ea82ba8e",
+  "retrieval_date": "2026-07-25",
+  "license": "Apache-2.0",
+  "files": [
+    {
+      "original_path": "LICENSE",
+      "local_path": "task3/data/prompts/official_anthropic/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+    },
+    {
+      "original_path": "data/experiments/README.md",
+      "local_path": "task3/data/prompts/official_anthropic/README.md",
+      "sha256": "1d78c702fa22ba610990d545b4c9c96839cc75cd4e451f2badb1cab23e04ad0f",
+      "git_blob_sha1": "7dc8656d24520944ec9f5ec2d3f4795dd583a4f8"
+    },
+    {
+      "original_path": "data/experiments/probe-swap.json",
+      "local_path": "task3/data/prompts/official_anthropic/probe-swap.json",
+      "sha256": "a0edd27ca23f7b4d0fbe90448c2ddcc7457a3d812121bf024ed12a032ff86796",
+      "git_blob_sha1": "88f70682242cbbf7fadb7462996283ce42a906cc"
+    }
+  ]
+}
