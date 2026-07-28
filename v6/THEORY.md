@@ -8,9 +8,20 @@ Notation. Causal DAG `G` over nodes `V = Z ∪ X` (latents `Z`, observed `X`, |X
 signed edge set `E`. Structural model: each node `V_c = f_c(V_{pa(c)}, ε_c)` with jointly
 independent noises. Data: n i.i.d. samples of `X`. Encoder: a fixed map `Φ : texts → S^{d-1}`.
 A subset `L ⊆ X` carries labels with embeddings `a_i = Φ(ℓ_i)`. A *semantic assignment* is
-`e : V → R^d` with `e_i = a_i` for `i ∈ L`. `D_{ij}` denotes a population dependence magnitude
-between `V_i, V_j` (linear-Gaussian default: `|corr|`), and `D_{ij|S}` its conditional version
-given `S ⊆ V`.
+`e : V → R^d` with `e_i = a_i` for `i ∈ L`.
+
+**The two geometries.** Let `H = L²(P)` be the Hilbert space of centered unit-variance random
+variables with `⟨U,W⟩_H = E[UW]`, and write `V̄_i` for the standardized version of `V_i` (latents
+enter through their structural definition; empirically through their scores). Two standard facts
+anchor everything below:
+  (F1) `corr(V_i, V_j) = cos_H(V̄_i, V̄_j)` — correlation IS the cosine of the angle in `H`;
+  (F2) the partial correlation `ρ_{ij·S}` IS the cosine between the residuals of `V̄_i, V̄_j`
+       after orthogonal projection onto `span{V̄_s : s ∈ S}` in `H` — probabilistic conditioning
+       IS orthogonal projection in `L²`.
+The other geometry is the semantic sphere `S^{d-1} ⊂ R^d` with its cosine. `D_{ij}` denotes the
+chosen dependence functional (default `|cos_H| = |corr|`; a declared modeling choice — MI/dcor
+variants were tested and added nothing on Likert data), and `D_{ij|S}` its conditional version
+(default `|ρ_{ij·S}|`).
 
 ---
 
@@ -28,20 +39,37 @@ against token anchors; we take it, not raw correlation, as the primitive carrier
 
 ### 1.2 What "realization" means
 
-**Definition 2 (semantic realization).** Fix a monotone *bridge function* `ψ : [0,1] → [0,1]`
-with `ψ(0)=0`, and a tolerance `η ≥ 0`. An assignment `e` is an *(η, ψ)-realization* of `(G, P)`
-if:
+**Definition 2 (semantic realization).** Fix a strictly increasing `ψ : [0,1] → [0,1]` with
+`ψ(0) = 0` (the *similarity transfer function*; monotone only — order-preserving, not
+isometric, since the encoder's similarity scale need not equal the correlation scale) and a
+tolerance `η ≥ 0`. An assignment `e` is an *(η, ψ)-realization* of `(G, P)` if the map
+`ι : V̄_i ∈ H ↦ e_i ∈ S^{d-1}` is an **approximate similarity-structure homomorphism that
+intertwines the projection operators**, together with a graph-faithful generative
+parameterization:
 
 - **(R1) Generation.** For every non-root `c`: `e_c = g_c(e_{pa(c)}) + r_c`, `‖r_c‖ ≤ η`, where
-  the map `g_c` is *Jacobian-locked to G*: `∂g_c/∂e_p ≠ 0` iff `p ∈ pa(c)`, and the directional
+  `g_c` is *Jacobian-locked to G*: `∂g_c/∂e_p ≠ 0` iff `p ∈ pa(c)`, and the directional
   derivative along each parent respects the edge sign.
-- **(R2) Marginal bridge.** For trek-connected pairs: `| |cos(e_i, e_j)| − ψ(D_{ij}) | ≤ η`.
-  In particular d-separated (by ∅) pairs satisfy `|cos| ≤ η` (the zero end).
-- **(R3) Conditional bridge.** For any pair `(i,j)` and blocking-relevant ancestor set `S`:
-  `| cos(res_S e_i, res_S e_j) − sign·ψ(D_{ij|S}) | ≤ η`, where `res_S` projects onto the
-  orthogonal complement of `span{e_s : s ∈ S}`. (R2) is the case `S = ∅`; v5's residual-anchor
-  term is the case `S = pa`, applied to the residual vectors `r`.
+- **(R2) Gram correspondence (marginal).** For all `(i,j)` in the support set `T` (pairs with
+  nonzero model-implied dependence, i.e. trek-connected in `G`):
+  `| |cos_{R^d}(e_i, e_j)| − ψ(|cos_H(V̄_i, V̄_j)|) | ≤ η`.
+  By (F1) the argument of ψ is `D_{ij}`. Pairs d-separated by ∅ have model-implied dependence 0,
+  so `|cos_{R^d}(e_i, e_j)| ≤ η` — the zero end is a special case, not a separate condition.
+- **(R3) Projection intertwining (conditional).** For any pair `(i,j)` with blocking set `S`,
+  writing `P_S^H` for projection onto `span{V̄_s}^⊥` in `H` and `P_S^e` for projection onto
+  `span{e_s : s ∈ S}^⊥` in `R^d`:
+  `| cos_{R^d}(P_S^e e_i, P_S^e e_j) − sgn · ψ(|cos_H(P_S^H V̄_i, P_S^H V̄_j)|) | ≤ η`.
+  By (F2) the argument of ψ is `|ρ_{ij·S}|`. (R2) is the case `S = ∅`; v5's residual-anchor
+  term is the case `S = pa` applied to the residual vectors; d-separation given `S` implies
+  `ρ_{ij·S} = 0`, making conditional orthogonality another special case.
 - **(R4) Boundary.** `e_i = a_i` on `L`.
+
+**One-sentence characterization.** `e` transports the Gram structure of the random variables in
+`L²(P)` to the Gram structure of the embeddings on the sphere, up to the monotone
+reparameterization ψ and tolerance η, in a way that commutes with orthogonal projection
+(= conditioning). The entire method is then: *find the point configuration on the sphere whose
+Gram structure realizes the (conditional) correlation structure of the causal model, pinned at
+the anchors.*
 
 **Remark 1 (v5 as a relaxation).** The v5 objective is a Lagrangian relaxation of (R1)–(R4)
 with three restrictions: `g_c` linear (`Σ w_pc e_p`, with the `f_neg` patch approximating the
@@ -145,10 +173,13 @@ cross-run judge variance traces to low `cert` on its type nodes; (b) metatraits 
 
 ## §3 The bridge assumption, its enforcement, and its violation statistic
 
-**Assumption A1 (encoder realizability).** There exist `ψ` monotone and `η₀` small such that
-the *true* label embeddings `{Φ(ℓ_i)}` form an `(η₀, ψ)`-realization of `(G, P)` restricted to
-labeled nodes. In words: language, as embedded by `Φ`, already mirrors the dependence structure
-of the measured system, up to tolerance.
+**Assumption A1 (encoder realizability).** There exist a strictly increasing `ψ` and `η₀`
+small such that the *true* label embeddings `{Φ(ℓ_i)}` satisfy (R2)–(R3) with tolerance `η₀` on
+labeled pairs — i.e., the restriction of `ι` to labeled nodes is already an approximate
+similarity-structure homomorphism. In words: language, as embedded by `Φ`, mirrors the
+dependence structure of the measured system up to a monotone rescaling. Define the *empirical
+realizability loss* `R(Φ) = mean over labeled pairs of the (R2)/(R3) violation`; A1 asserts
+`R(Φ) ≤ η₀`, and A1 is thereby testable on labeled data before any solving.
 
 This is the load-bearing assumption of the whole method — meaning can be recovered from
 structure only if structure is echoed in the semantic space. It is *testable on labeled data*:
