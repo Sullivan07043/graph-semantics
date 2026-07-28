@@ -1,6 +1,6 @@
 # v6 THEORY — Semantic Embeddings as Geometric Realizations of Causal Dependence
 
-Status: DRAFT 1 (2026-07-28). Sections 1–4 are the trunk spec; every v6 component implements a
+Status: DRAFT 2 (2026-07-28; L2-formalized). Sections 1–4 are the trunk spec; every v6 component implements a
 definition or condition stated here. Claims are labeled **Definition / Assumption / Proposition
 (proved) / Conjecture (not proved)**. Nothing unlabeled is load-bearing.
 
