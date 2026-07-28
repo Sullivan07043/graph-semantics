@@ -14,8 +14,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-DICT = os.path.join(HERE, "outputs", "concept_bank_l3.npz")
-os.environ["GRAPHSEM_DICT"] = DICT
+DICT = os.environ.get("GRAPHSEM_DICT") or os.path.join(HERE, "outputs", "concept_bank_l3_cog.npz")
+os.environ["GRAPHSEM_DICT"] = DICT   # v6 default: expanded bank (+1390 Cognitive Atlas terms)
 os.environ.setdefault("DATASET", "bigfive2")
 
 import numpy as np                                                    # noqa: E402
