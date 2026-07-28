@@ -302,7 +302,14 @@ version IN ITS TESTED FORM (λ shared with the marginal mean, full non-ancestral
 projection against ancestor spans that move during the solve): it double-loads the degrees of
 freedom the generation term is shaping and dilutes the marginal term. A differently designed
 embedding-level enforcement (own small λ, static projection basis, restricted support) remains
-an open item, not a closed door. Held-out attribution (2026-07-28, Task 1 match, untrained arms): v5 objective .658;
+an open item, not a closed door.
+
+**Hard substitution (ruling 2026-07-28, adopted).** The residual coordinate is DEFINED, not
+optimized: `r_c ≡ e_c − Σ_p T_θ(e_p)`. No auxiliary residual variables exist in the default
+solver: the generation-fit and residual-norm terms coincide (`‖r_c‖²`), and the Gram anchor
+acts on the identity residuals, so every constraint acts literally on embeddings and the
+operator (this removes the soft-coupling caveat above for the default configuration). The
+soft-variable form (v5 semantics) remains available as `RCHAN=soft` for attribution. Held-out attribution (2026-07-28, Task 1 match, untrained arms): v5 objective .658;
 marginal-only (v5 semantics, new implementation) .658 — digit-for-digit, certifying the
 implementation; marginal + shrink targets **.672** (adopted); + duplicated conditional pairs
 .422; + training on the duplicated objective .378. The duplicated channel is retained in code

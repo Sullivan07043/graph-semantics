@@ -207,6 +207,10 @@ Definition 1's object.
                (polarity is binary; dcor is unsigned). DECLARED linear remnants: ALS as
                initializer only (THEORY §4.3); PC1 latent scores as conditioning summaries
                (proper replacement = Task-3 TC layer).
+           4a+. RCHAN=hard default (ruling 2026-07-28): residual coordinate by IDENTITY
+               (r_c = e_c - sum T(e_p)); no auxiliary r variables; soft form kept for
+               attribution only. Training restarted on this form (soft-form run discarded
+               per the "don't train on a form about to be replaced" principle).
            4b. Trainer rework: per-epoch checkpoint PAIRS + epoch selection by dev fold-4
                MATCH (embedding val loss measured to decouple: val .80→.22 while held-out
                match collapsed .658→.378).

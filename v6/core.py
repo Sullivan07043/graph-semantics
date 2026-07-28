@@ -31,6 +31,12 @@ import optimize as O                                                  # noqa: E4
 import terms as TF                                                    # noqa: E402
 import gen_operator as GO                                             # noqa: E402
 
+# Residual channel form (user ruling 2026-07-28): "hard" = r_c IS the identity
+# e_c - sum_p T(e_p) — no auxiliary residual variables, every constraint acts literally on
+# embeddings and operator (the generation-fit and residual-norm terms merge into one); "soft"
+# = v5-style free r variables with a norm penalty (kept for attribution).
+RCHAN = os.environ.get("RCHAN", "hard")
+
 
 # --------------------------------------------------------------------------- static context
 def build_ctx(g, W, A, free, d, seed, device,
@@ -48,21 +54,22 @@ def build_ctx(g, W, A, free, d, seed, device,
     ctx["gen_op"] = gen_op.to(device)
     ctx["edge_par"], ctx["edge_cond"], ctx["child_rows"] = GO.edge_table(g, W, device=device)
 
-    ctx["use_res"] = residual > 0
+    ctx["rchan"] = RCHAN
+    ctx["use_res"] = residual > 0 and RCHAN == "soft"
     ctx["residual"] = residual
     ctx["lam_res"] = lam_res
     ctx["pc_nodes"] = []
     if ctx["use_res"]:
         gnr = np.random.default_rng(seed)
         ctx["Rv0"] = {n: gnr.normal(0, 1e-3, d) for n in gen_nodes}
-        if lam_res > 0 and partial_corr is not None:
-            pc_names, Pmat = partial_corr
-            rv_set = set(gen_nodes)
-            pc_nodes = [n for n in pc_names if n in rv_set]
-            pidx = [list(pc_names).index(n) for n in pc_nodes]
-            ctx["pc_nodes"] = pc_nodes
-            ctx["Pt"] = torch.tensor(Pmat[np.ix_(pidx, pidx)], dtype=torch.float32, device=device)
-            ctx["offdiag"] = ~torch.eye(len(pc_nodes), dtype=torch.bool, device=device)
+    if lam_res > 0 and partial_corr is not None:   # anchor targets used by BOTH forms
+        pc_names, Pmat = partial_corr
+        rv_set = set(gen_nodes)
+        pc_nodes = [n for n in pc_names if n in rv_set]
+        pidx = [list(pc_names).index(n) for n in pc_nodes]
+        ctx["pc_nodes"] = pc_nodes
+        ctx["Pt"] = torch.tensor(Pmat[np.ix_(pidx, pidx)], dtype=torch.float32, device=device)
+        ctx["offdiag"] = ~torch.eye(len(pc_nodes), dtype=torch.bool, device=device)
 
     ctx["ci_groups"] = []
     ctx["ci_count"] = 0
@@ -85,35 +92,47 @@ def step_loss(ctx, emb, E, Rv, lam_zero, lam_norm, nw=None):
     import torch
     gen_nodes = ctx["gen_nodes"]
     At = ctx["At"]
+    hard = ctx["rchan"] == "hard"
     use_res = ctx["use_res"] and Rv is not None
+    pc_set = set(ctx["pc_nodes"])
+    rcache = {}
     loss = 0.0
 
-    # R1 generation: one batched operator forward per step over all edges
+    # R1 generation: one batched operator forward per step over all edges.
+    # HARD form: r_c := tgt - sum_p T(e_p) by identity; the generation-fit and residual-norm
+    # terms are the same quantity ||r_c||^2 (gen channel weights it; resnorm channel is inert).
     Xp = torch.stack([emb(p) for p in ctx["edge_par"]])
     contrib = ctx["gen_op"](Xp, ctx["edge_cond"])
     for k, n in enumerate(gen_nodes):
         tot = contrib[ctx["child_rows"][n]].sum(0)
-        if use_res:
-            tot = tot + Rv[n]
         tgt = At[n] if n in At else E[n]
-        term = ((tgt - tot) ** 2).sum()
+        if hard:
+            rv = tgt - tot
+            if n in pc_set:
+                rcache[n] = rv
+            term = (rv ** 2).sum()
+        else:
+            if use_res:
+                tot = tot + Rv[n]
+            term = ((tgt - tot) ** 2).sum()
         loss = loss + (term if nw is None else nw["gen"][k] * term)
 
-    # R3 at S = pa: residual norms + partial-correlation Gram anchor
+    # R3 at S = pa: residual norms (soft only) + partial-correlation Gram anchor (both forms)
     if use_res:
         Rn = torch.stack([Rv[n] for n in gen_nodes])
         rn2 = (Rn ** 2).sum(1)
         loss = loss + ctx["residual"] * (rn2.mean() if nw is None else (nw["resnorm"] * rn2).mean())
-        if len(ctx["pc_nodes"]) > 1:
-            Rm = torch.stack([Rv[n] for n in ctx["pc_nodes"]])
-            Rm = torch.nn.functional.normalize(Rm, dim=1)
-            aerr = ((Rm @ Rm.T) - ctx["Pt"]) ** 2
-            if nw is None:
-                loss = loss + ctx["lam_res"] * aerr[ctx["offdiag"]].mean()
-            else:
-                wa = nw["anchor"]
-                pw = 0.5 * (wa[:, None] + wa[None, :])
-                loss = loss + ctx["lam_res"] * (pw * aerr)[ctx["offdiag"]].mean()
+    if len(ctx["pc_nodes"]) > 1 and (hard or use_res):
+        src = rcache if hard else Rv
+        Rm = torch.stack([src[n] for n in ctx["pc_nodes"]])
+        Rm = torch.nn.functional.normalize(Rm, dim=1)
+        aerr = ((Rm @ Rm.T) - ctx["Pt"]) ** 2
+        if nw is None:
+            loss = loss + ctx["lam_res"] * aerr[ctx["offdiag"]].mean()
+        else:
+            wa = nw["anchor"]
+            pw = 0.5 * (wa[:, None] + wa[None, :])
+            loss = loss + ctx["lam_res"] * (pw * aerr)[ctx["offdiag"]].mean()
 
     need_M = (ctx["ci_count"] and lam_zero > 0) or ctx["br_terms"] is not None
     pairw = None if nw is None else nw["node"]
