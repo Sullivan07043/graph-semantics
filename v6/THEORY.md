@@ -25,6 +25,39 @@ variants were tested and added nothing on Likert data), and `D_{ij|S}` its condi
 
 ---
 
+## §0 Plain statement (read this first)
+
+In three sentences. The causal graph tells us which dependence relations must hold among the
+variables — which pairs are related, how strongly, which become unrelated once you account for
+their causes, and who generates whom. We ask for the arrangement of points on the semantic
+sphere whose similarity structure obeys exactly those relations, with the known labels pinned in
+place. The unknown nodes' positions are then forced, and reading a position off against a
+dictionary is translation.
+
+### §0.1 Where causality enters (and where it does not)
+
+Observational data alone pins down only DEPENDENCE structure — this is a basic fact of causal
+inference, not a choice of ours; (R2)/(R3) are written in correlation language because that is
+what the data side can supply. The causal content enters through the GIVEN graph, at three
+places:
+
+1. **Constraint support is causal.** Which pairs must be orthogonal, given whom, and which pairs
+   are trek-connected are consequences of the causal Markov condition of `G` — d-separation is a
+   causal-graph concept, not a data pattern. We enforce the GRAPH's claims, not the data's
+   appearance; conflicts between the two are precisely what `V(G,X)` (Definition 5) measures.
+2. **Generation is directed.** (R1) runs along the causal arrows: Markov-equivalent DAGs share
+   dependence structure but yield DIFFERENT generation systems and different realizations. This
+   is exactly where the given-graph task setting injects the information that observational data
+   cannot supply (the choice within the Markov equivalence class).
+3. **Validation is interventional.** The swap test performs do-operations on latent
+   representations and checks downstream semantics — a causal criterion with no correlational
+   counterpart.
+
+What we do NOT claim: no structure discovery (the graph is given), no causal-effect estimation
+(no do-effects are computed). The correct classification of this method is **dependence geometry
+constrained by a causal model** — observational fitting through the causal model's dependence
+implications, with direction and intervention semantics supplied by the model.
+
 ## §1 The realization principle
 
 ### 1.1 The object to be realized
