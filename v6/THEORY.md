@@ -294,9 +294,15 @@ given its parents". Accordingly:
 
 **What was rejected, and why (measured).** The earlier draft enforced conditional statements a
 SECOND time on span-projected embeddings (`cos(P_S^⊥ e_i, P_S^⊥ e_j) → ψ(D_{ij|S})`).
-This double-loads the degrees of freedom the generation term is shaping, dilutes the marginal
-term (shared mean), and projects against ancestor spans that are themselves moving during the
-solve. Held-out attribution (2026-07-28, Task 1 match, untrained arms): v5 objective .658;
+Honest scope of the claim: the two enforcements are NOT mathematically identical — `r` is a
+soft-coupled variable (the generation term pulls `r_c` toward `e_c − Σ T(e_p)` as a penalty,
+not an identity), so the residual channel constrains the conditional geometry indirectly while
+the span-projected version constrains it directly. What is rejected is the span-projected
+version IN ITS TESTED FORM (λ shared with the marginal mean, full non-ancestral support,
+projection against ancestor spans that move during the solve): it double-loads the degrees of
+freedom the generation term is shaping and dilutes the marginal term. A differently designed
+embedding-level enforcement (own small λ, static projection basis, restricted support) remains
+an open item, not a closed door. Held-out attribution (2026-07-28, Task 1 match, untrained arms): v5 objective .658;
 marginal-only (v5 semantics, new implementation) .658 — digit-for-digit, certifying the
 implementation; marginal + shrink targets **.672** (adopted); + duplicated conditional pairs
 .422; + training on the duplicated objective .378. The duplicated channel is retained in code
