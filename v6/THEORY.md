@@ -201,6 +201,13 @@ cross-run judge variance traces to low `cert` on its type nodes; (b) metatraits 
   metatrait direction is a composition `ψ∘ψ` of two hops, hence flat ⇒ low `cert`, generic
   decodes. Fix class: add direct influence readout across two hops (P3), which supplies
   first-order evidence bypassing the composition.
+  The influence readout is defined **generatively** (ruling 2026-07-28): for latent `u` and
+  observed `o`, `B_{uo}` is the Jacobian of the composed generative map along all directed
+  paths `u → … → o`, evaluated at the solution — Definition 1's `B` on the embedding side,
+  estimated by forward JVP through the locked operator `T_θ`. It is deliberately NOT the
+  derivative of the solver output: labeled nodes are pinned inputs of the solve, so that
+  derivative vanishes identically on exactly the text-bearing nodes, which is degenerate for
+  the readout's purpose; the generative Jacobian is defined on all descendants.
 
 ---
 

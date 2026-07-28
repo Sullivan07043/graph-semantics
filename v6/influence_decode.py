@@ -6,11 +6,11 @@ of the generation composition along directed paths u -> ... -> o, evaluated at t
 across two hops" of THEORY §2.4: first-order evidence for metatraits that bypasses the flat
 psi(psi(.)) curvature.
 
-DECLARED DEVIATION from PLAN P3's wording ("d(observed solutions)/d(latent u) through the
-differentiable solve"): through the solve, text-bearing (labeled) observed nodes are PINNED,
-so that derivative is identically zero exactly where the footprint needs weight. The
-generative-path Jacobian is the object T1 actually names, is nonzero on all descendants, and
-is what §2.4 prescribes. Flagged to the user 2026-07-28.
+Definition RATIFIED by user ruling 2026-07-28 (canonicalized in THEORY §2.4): the readout is
+the generative-path Jacobian, NOT the solve derivative — through the solve, text-bearing
+(labeled) observed nodes are PINNED, so that derivative is identically zero exactly where the
+footprint needs weight; the generative Jacobian (Definition 1's B) is defined on all
+descendants.
 
 Estimator: forward JVP of the operator composition. Probe tangents v at u propagate in
 topological order: delta_c = sum_{p in pa(c)} JVP of T(. ; cond_pc) at e_p applied to delta_p.

@@ -129,9 +129,11 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
   (c) judge correctness correlation on dev. No thresholds — report the correlations.
 
 ### P3 (← T1) Influence-weighted decoding for deep latents
-- New `v6/influence_decode.py`: ∂(observed solutions)/∂(latent u) through the differentiable
-  solve → influence weights over text-bearing nodes → footprint-assisted decode for latents ≥ 2
-  hops from text (metatraits; facets optional).
+- [x] IMPLEMENTED (TRUNK-3): `v6/influence_decode.py` — GENERATIVE-path influence (ruling
+  2026-07-28, THEORY §2.4): forward JVP of the locked operator along directed paths u → o at
+  the solution (Definition 1's B), data-grounded polarity, f_neg-aware footprint, blend.
+  (Original wording "∂(observed solutions)/∂u through the solve" was superseded: that
+  derivative is identically zero on pinned text-bearing nodes.)
 - Validation: bigfive2 metatraits (currently 5/15) and hexaco facet/factor decodes, free first
   (word inspection + match), judge last (~$1).
 
@@ -147,8 +149,11 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
   screen.
 
 ### P5 (← T3) Structure-adequacy diagnostic V(G,X)
-- New `v6/adequacy.py`: compute V(G,X) per dataset; report alongside results. Graph-repair
-  proposals stay OFF (the extend/correct decision is not made here).
+- [x] IMPLEMENTED (TRUNK-3): `v6/adequacy.py` — V(G,X) from ci_table targets (marginal Def 5
+  verbatim + conditional extension), per-pair localization. Graph-repair PROPOSALS ON (ruling
+  2026-07-28: next phase discovers structure): `propose_repairs()` emits ranked hypotheses
+  (shared-latent clusters / pairwise repairs) — proposals ONLY, the given graph stays in use
+  and is never modified.
 
 ### P0 Loading-matrix estimation upgrade (graph-side input to the trunk)
 The linear block of the influence structure IS the loading matrix; v5 estimates it by PC1-score
@@ -185,10 +190,10 @@ Definition 1's object.
            read-only post-solve consumers of the core.
            [BUILT 2026-07-28: certainty.py (Def 4 exact — active-set Jacobian rows incl.
            autograd operator Jacobians, sigma_min per free node), influence_decode.py
-           (generative-path JVP influence + data-sign footprint + blend; DECLARED DEVIATION
-           from the P3 wording: solve-derivatives are zero on pinned text nodes, so the object
-           is Definition 1's B along generation paths per THEORY §2.4 — flagged to user),
-           adequacy.py (Def 5 on ci_table targets; marginal verbatim + conditional extension).
+           (generative-path JVP influence + data-sign footprint + blend; deviation from the
+           original P3 wording RATIFIED by user 2026-07-28 and canonicalized in THEORY §2.4),
+           adequacy.py (Def 5 on ci_table targets; marginal verbatim + conditional extension;
+           propose_repairs() ON per ruling 2026-07-28 — hypotheses only, given graph in use).
            Syntax-compiled only — NO run of any kind; validation runs (P2 falsification tests,
            P3 metatrait decode, P5 tables) await user approval.]
   TRUNK-4  Full-scale training: the generation operator trained across the 16 dev graphs

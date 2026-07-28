@@ -12,7 +12,9 @@ S = empty-set group is Definition 5 verbatim (marginal claims); the S != empty g
 conditional extension under the unified rule. Reported separately and combined; no thresholds
 beyond tau_n, no pass/fail — evidence tables only.
 
-Graph-repair proposals stay OFF (the extend/correct decision is not made here; PLAN P5).
+Graph-repair PROPOSALS are ON (user ruling 2026-07-28: the next phase discovers structure, so
+the violation pattern should already speak in structural terms) — but the solver keeps using
+the GIVEN graph; nothing here modifies it. propose_repairs() emits ranked hypotheses only.
 """
 import numpy as np
 
@@ -50,3 +52,40 @@ def compute(g, X, obs_index, score, ci=None, top=20):
         "V_total": marg_mass + cond_mass,
         "top_pairs": [{"a": a, "b": b, "S": S, "rho": rho} for _, rho, a, b, S in rows[:top]],
     }
+
+
+def propose_repairs(g, ci):
+    """Structural hypotheses from the violation pattern. PROPOSALS ONLY — the given graph is
+    never modified here. Heuristics (evidence-ranked):
+      - a connected component of the violation graph with >= 3 nodes -> one shared latent over
+        those nodes (confounder-cluster hypothesis);
+      - an isolated violating pair -> pairwise repair (missing edge or pairwise confounder;
+        direction is NOT identifiable from V alone, stated as such).
+    -> list of dicts sorted by violation mass, each carrying its supporting pairs."""
+    viol = [(a, b, float(rho), list(S)) for S, pairs, tg in ci
+            for (a, b), rho in zip(pairs, tg) if float(rho) != 0.0]
+    parent = {}
+
+    def find(x):
+        parent.setdefault(x, x)
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for a, b, _, _ in viol:
+        parent[find(a)] = find(b)
+    comps = {}
+    for a, b, rho, S in viol:
+        comps.setdefault(find(a), []).append((a, b, rho, S))
+    out = []
+    for _, vpairs in comps.items():
+        nodes = sorted({x for a, b, _, _ in vpairs for x in (a, b)})
+        mass = sum(abs(r) for _, _, r, _ in vpairs)
+        kind = "add-shared-latent" if len(nodes) >= 3 else "pairwise-edge-or-confounder"
+        out.append({"proposal": kind, "nodes": nodes, "mass": mass,
+                    "n_pairs": len(vpairs),
+                    "pairs": [{"a": a, "b": b, "rho": r, "S": S}
+                              for a, b, r, S in sorted(vpairs, key=lambda v: -abs(v[2]))]})
+    out.sort(key=lambda p: -p["mass"])
+    return out
