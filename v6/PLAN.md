@@ -183,6 +183,14 @@ Definition 1's object.
            run_bigfive_hier on core). Syntax-compiled only — NO run of any kind yet.]
   TRUNK-3  Diagnostics: P2 (certainty), P3 (influence-weighted decode), P5 (adequacy V(G,X)) —
            read-only post-solve consumers of the core.
+           [BUILT 2026-07-28: certainty.py (Def 4 exact — active-set Jacobian rows incl.
+           autograd operator Jacobians, sigma_min per free node), influence_decode.py
+           (generative-path JVP influence + data-sign footprint + blend; DECLARED DEVIATION
+           from the P3 wording: solve-derivatives are zero on pinned text nodes, so the object
+           is Definition 1's B along generation paths per THEORY §2.4 — flagged to user),
+           adequacy.py (Def 5 on ci_table targets; marginal verbatim + conditional extension).
+           Syntax-compiled only — NO run of any kind; validation runs (P2 falsification tests,
+           P3 metatrait decode, P5 tables) await user approval.]
   TRUNK-4  Full-scale training: the generation operator trained across the 16 dev graphs
            (folds 0–3/4, held-out untouched) + WeightNet co-retrained under the new dynamics;
            then full evaluation (free metrics first, held-out primary, judge once at the end).
