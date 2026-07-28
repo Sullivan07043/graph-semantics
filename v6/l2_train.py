@@ -1,5 +1,11 @@
 """L2 outer training: learn constraint-weight multipliers by unrolling the solver on dev graphs.
 
+*** v6 STATUS: DO NOT RUN. This is the v5 trainer that produced the frozen l2_mlp.pt lineage;
+it unrolls the OLD l2_solver objective (no gen operator, no unified CI rule). Running it in v6
+would train WeightNet against an objective that no longer matches inference. The v6 trainer
+(WeightNet co-trained with gen_operator on core.solve_unrolled, sign_audit included) is
+TRUNK-4 and will replace this file. ***
+
 Data: the 16 dev datasets (pool.DEV). Held-out (hexaco/riasec/kims) NEVER touched.
 Split: folds 0-3 of each dataset train, fold 4 validates (checkpoint selection).
 Outer loss per (dataset, fold): masked observed nodes' 1-cos to their true label embeddings
