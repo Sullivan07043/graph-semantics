@@ -1,7 +1,7 @@
 """v6 CORE solver — the term-factory objective around the Jacobian-locked nonlinear operator.
 
-Supersedes l2_solver.py (kept for the archive/L2-training lineage). One objective, assembled
-from terms.py tables (THEORY Definition 2):
+Supersedes v5's l2_solver.py (removed from v6; the v5 tree keeps the lineage). One objective,
+assembled from terms.py tables (THEORY Definition 2):
 
   R1  generation through gen_operator.GenOperator — THE generation path; there is no separate
       linear branch. The untrained (zero-init) operator reproduces v5's linear+f_neg exactly.
