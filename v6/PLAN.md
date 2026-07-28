@@ -12,6 +12,34 @@ theorem.
 
 ---
 
+## THE MAIN LINE (convergence statement, 2026-07-28)
+
+**One principle**: a semantic embedding is a **geometric realization of the causal dependence
+structure** — the embedding geometry (cosines, orthogonality, the generative map) must realize,
+item by item, the dependence structure the causal model asserts.
+
+Everything below is a corollary, not a parallel idea:
+- T1 defines the object to be realized (influence structure, B = E[∂X/∂Z]);
+- T2 is the central mathematical question (given anchors, is the realization unique?);
+- T3 is the realization condition + whether the encoder space can support it (LoRA = enforcement)
+  + where the model fails to fit (V(G,X));
+- T4 is faithfulness of the generative map (use the true map, Jacobian pattern locked to the
+  graph; linear+f_neg = its first-order special case);
+- T5 is the conditional part of the same condition; T6 the unmodeled part.
+- WeightNet / LoRA / f_neg are NOT theory: numerics, satisfiability engineering, and a special
+  case of T4 respectively — demoted to implementation notes in THEORY.md.
+
+**Anti-divergence rule (binding)**: any future addition must first answer "is it a corollary of
+the realization principle?" If not, it does not enter v6.
+
+**Engineering consequence**: the five hand-written objective terms are five instances of one
+abstraction (structure pattern → moment condition). The v6 core is rewritten as a single
+term-factory; the f_neg special-case branch is absorbed by T4's operator; flat and hierarchical
+graphs share one conditional-independence rule (P4). Net: core shrinks and unifies; P2/P3/P5 are
+read-only post-solve consumers (low coupling); **the single complexity hotspot is P1** (training
+infrastructure + Jacobian-lock audit + WeightNet co-retraining) — scheduled LAST, after the
+unified frame stands on P2-P5.
+
 ## PART A — THEORY CHANGES
 
 ### T1. Meaning as Jacobian influence (definition change)
@@ -122,12 +150,13 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
 ---
 
 ## ORDER OF WORK
-1. THEORY.md §1–§3 drafts (T1–T3) — before any code, since P1–P3 implement them.
-2. P2 + P3 (free, fast, each closes an open problem; no training).
-3. P4 (small, closes the hierarchy tail).
-4. P1 (the heavy build: spec → implement → train → screen).  P2's diagnostics gate P1's audit.
+1. THEORY.md: the realization principle + corollaries §1–§3 (T1–T3) — before any code.
+2. Core rewrite as term-factory (unification refactor; behavior-identical screens vs v5).
+3. P2 + P3 (free, fast, each closes an open problem; no training).
+4. P4 (small, closes the hierarchy tail — now one rule for flat and hierarchical graphs).
 5. P5 + P6 alongside.
-6. Full evaluation: free metrics first, held-out primary, judge once on the final configuration.
+6. P1 LAST (the one complexity hotspot: spec → implement → train → screen; P2 gates its audit).
+7. Full evaluation: free metrics first, held-out primary, judge once on the final configuration.
 
 ## DISCIPLINE (carried over, binding)
 - Held-out (hexaco/riasec/kims) never touches training or design decisions; generalization claims
