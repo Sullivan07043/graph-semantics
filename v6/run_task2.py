@@ -23,6 +23,7 @@ LAM_RES = float(os.environ.get("LAM_RES", 0.0))
 SHRINK = os.environ.get("SHRINK", "0") == "1"
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))
+NLDEP = os.environ.get("NLDEP", "1") == "1"      # TRUNK-4a: dcor targets + GBR residualization
 NEGOP = os.environ.get("NEGOP", "0") == "1"
 BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # decode the GNN's latent-node outputs too
@@ -76,32 +77,34 @@ def run_dataset(ds, C, cwords, records):
     if LATCON:
         import latent_constraints as _LC
         W, score = _LC.sign_fix(g, W, score)
-    pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
-    if LATCON and pc is not None:
-        import latent_constraints as _LC
-        pc = _LC.augmented_partial_corr(g, X, oi, score, pc)
+    _mats = None
+    if NLDEP:                                    # TRUNK-4a nonlinear target stack (default)
+        import nldep as _nl
+        _mats = _nl.matrices(g, X, oi, score, ds["name"])
+        W = _nl.nl_weights(W, _mats)
+        pc = _nl.pc_matrix(_mats) if RESIDUAL > 0 else None
+        br = _nl.bridge_dict(_mats) if BRIDGE != "off" else None
+    else:                                        # legacy Pearson path (attribution only)
+        pc = optimize.partial_residual_corr(g, X, oi, score) if RESIDUAL > 0 else None
+        if LATCON and pc is not None:
+            import latent_constraints as _LC
+            pc = _LC.augmented_partial_corr(g, X, oi, score, pc)
+        br = None
+        if BRIDGE and BRIDGE != "off":
+            import dependence as _dep
+            br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
+                      lam_upper=0.3, kappa=0.5, q=0.7)
+            if LATCON:
+                import latent_constraints as _LC
+                _bn, _bD = _LC.augmented_bridge(g, list(obs), oi, X, score, br["dep_marg"])
+                br = dict(obs=_bn, dep_marg=_bD, lam_upper=0.3, kappa=0.5, q=0.7)
     if pc is not None and SHRINK:
         pc = (pc[0], optimize.shrink_corr(pc[1], X.shape[0]))
     Craw = np.corrcoef(X.T); np.fill_diagonal(Craw, 0.0)
-    br = None
-    if BRIDGE:
-        import dependence as _dep
-        br = dict(obs=list(obs), dep_marg=_dep.load(ds["name"], "marginal", BRIDGE),
-                  lam_upper=0.3, kappa=0.5, q=0.7)
-        if LATCON:
-            import latent_constraints as _LC
-            _bn, _bD = _LC.augmented_bridge(g, list(obs), oi, X, score, br["dep_marg"])
-            br = dict(obs=_bn, dep_marg=_bD, lam_upper=0.3, kappa=0.5, q=0.7)
     dep = ([o for o in obs], Craw) if LAM_DEP > 0 else None
     import terms as _terms
-    ci = _terms.ci_table(g, X, oi, score)        # v6 unified CI rule (built AFTER sign_fix)
-    # v6 DEFAULT (ruling 2026-07-28, one statement one channel): CI term = marginal support +
-    # shrink targets; conditional statements live in the residual Gram channel (see run_task1).
-    _cim = os.environ.get("CI_MODE", "marginal_shrink")
-    if _cim == "marginal":
-        ci = [(S, pairs, tg * 0) for S, pairs, tg in ci if not S]
-    elif _cim == "marginal_shrink":
-        ci = [(S, pairs, tg) for S, pairs, tg in ci if not S]
+    # built AFTER sign_fix; CI_MODE default marginal_shrink handled inside ci_table
+    ci = _terms.ci_table(g, X, oi, score, nl=_mats)
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]

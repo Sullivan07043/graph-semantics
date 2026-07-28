@@ -97,13 +97,9 @@ def _latcon_inputs(g, W_in):
         oi = {o: k for k, o in enumerate(g.observed)}
         W0, score0 = g.estimate_weights(X, oi)
         Wf, scoref = LC.sign_fix(g, W0, score0)
-        base_pc = optimize.partial_residual_corr(g, X, oi, scoref)
-        pc_aug = LC.augmented_partial_corr(g, X, oi, scoref, base_pc)
-        import dependence as depmod
-        base_dep = depmod.load("bigfive2", "marginal", "pearson")
-        br_names, br_D = LC.augmented_bridge(g, list(g.observed), oi, X, scoref, base_dep)
-        _DS_CACHE[key] = (Wf, pc_aug, dict(obs=br_names, dep_marg=br_D,
-                                           lam_upper=0.3, kappa=0.5, q=0.7))
+        import nldep as _nl                       # TRUNK-4a nonlinear targets
+        mats = _nl.matrices(g, X, oi, scoref, "bigfive2")
+        _DS_CACHE[key] = (_nl.nl_weights(Wf, mats), _nl.pc_matrix(mats), _nl.bridge_dict(mats))
     return _DS_CACHE[key]
 _MODULE = LM.load(os.environ.get("L2_CKPT", os.path.join(HERE, "outputs", "l2_mlp.pt")))
 K = int(os.environ.get("K", 60))

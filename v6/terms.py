@@ -26,14 +26,22 @@ ci_table notes:
 - Latents without an estimated score (no observed descendants) are skipped as endpoints and
   as conditioning signals; the graph-side pattern is unchanged.
 """
+import os
+
 import numpy as np
 import torch
 
 
 # ------------------------------------------------------------------ unified CI rule (P4)
-def ci_table(g, X, obs_index, score):
+def ci_table(g, X, obs_index, score, nl=None, mode=None):
     """-> list of groups (S_names tuple, pairs [(a, b)], targets float32 [n_pairs]).
-    Support: every unordered non-ancestral pair; group key = its common-ancestor set S."""
+    Support: every unordered non-ancestral pair; group key = its common-ancestor set S.
+    nl: nldep.matrices dict — marginal targets become sign(Pearson) * dcor with the Pearson
+    noise-floor keep/zero decision (TRUNK-4a); conditional-group targets stay Pearson-based
+    (diagnostics only). mode (default env CI_MODE=marginal_shrink, ruling 2026-07-28):
+    'marginal_shrink' = marginal groups with shrink targets (THE objective default);
+    'marginal' = marginal groups, hard-zero targets (v5 semantics); 'full' = everything
+    (diagnostics/attribution only — measured harmful in the objective)."""
     anc = {n: g.ancestors(n) for n in g.nodes}
     sig = {}
     for n in g.nodes:
@@ -71,6 +79,13 @@ def ci_table(g, X, obs_index, score):
         for a, b in groups[S]:
             if a not in sig or b not in sig:
                 continue
+            if not S and nl is not None and a in nl["idx"] and b in nl["idx"]:
+                ia_, ib_ = nl["idx"][a], nl["idx"][b]
+                p_ = nl["marg_pear"][ia_, ib_]
+                rho = float(np.sign(p_) * nl["marg_dcor"][ia_, ib_]) if abs(p_) >= tau else 0.0
+                keep.append((a, b))
+                tg.append(rho)
+                continue
             ra, rb = resid(a), resid(b)
             den = np.linalg.norm(ra) * np.linalg.norm(rb)
             rho = float(ra @ rb / den) if den > 1e-9 else 0.0
@@ -78,6 +93,11 @@ def ci_table(g, X, obs_index, score):
             tg.append(rho if abs(rho) >= tau else 0.0)
         if keep:
             out.append((S, keep, np.array(tg, np.float32)))
+    mode = mode or os.environ.get("CI_MODE", "marginal_shrink")
+    if mode == "marginal":
+        out = [(S, p, t * 0) for S, p, t in out if not S]
+    elif mode == "marginal_shrink":
+        out = [(S, p, t) for S, p, t in out if not S]
     return out
 
 

@@ -41,6 +41,7 @@ import optimize                                                       # noqa: E4
 import lora                                                           # noqa: E402
 import dependence as depmod                                           # noqa: E402
 import latent_constraints as LC                                       # noqa: E402
+import nldep as NL                                                    # noqa: E402
 import terms as TF                                                    # noqa: E402
 import gen_operator as GO                                             # noqa: E402
 import core                                                           # noqa: E402
@@ -96,12 +97,12 @@ def prep(name):
     T = encode.embed([labels[o] for o in obs])
     W, score = g.estimate_weights(X, oi)
     W, score = LC.sign_fix(g, W, score)
-    pc = optimize.partial_residual_corr(g, X, oi, score)
-    pc = LC.augmented_partial_corr(g, X, oi, score, pc)
-    bn, bD = LC.augmented_bridge(g, list(obs), oi, X, score,
-                                 depmod.load(name, "marginal", "pearson"))
-    br = dict(obs=bn, dep_marg=bD, lam_upper=0.3, kappa=0.5, q=0.7)
-    ci = TF.ci_table(g, X, oi, score)
+    # TRUNK-4a nonlinear target stack (user order: BEFORE the retrain)
+    mats = NL.matrices(g, X, oi, score, name)
+    W = NL.nl_weights(W, mats)
+    pc = NL.pc_matrix(mats)
+    br = NL.bridge_dict(mats)
+    ci = TF.ci_table(g, X, oi, score, nl=mats)   # CI_MODE default marginal_shrink inside
     edge_par, edge_cond, _ = GO.edge_table(g, W, device=DEVICE)
     lat_names = [L for L in g.latents if L in gt]
     G = encode.embed([gt[L] for L in lat_names]) if lat_names else None

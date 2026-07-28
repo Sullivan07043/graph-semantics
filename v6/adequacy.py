@@ -24,7 +24,7 @@ def compute(g, X, obs_index, score, ci=None, top=20):
     ci: terms.ci_table output (built here if None)."""
     if ci is None:
         import terms
-        ci = terms.ci_table(g, X, obs_index, score)
+        ci = terms.ci_table(g, X, obs_index, score, mode="full")   # diagnostics need all groups
     rows = []                                     # (|rho|, rho, a, b, S)
     marg_mass = cond_mass = 0.0
     marg_viol = cond_viol = marg_n = cond_n = 0
