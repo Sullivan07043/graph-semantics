@@ -14,14 +14,17 @@ Replaces the v5 l2_train.py (kept in v5/ as the l2_mlp.pt lineage). Decisions (d
   at the solution (THEORY §4.2: the audit is part of the training objective and reported).
 - CONFIG matches inference: latcon (sign_fix + augmented anchors/bridge), ci table, K=60,
   residual=1.0, lam_res=1.0, lam_zero=0.3, lam_norm=0.1, bridge(0.3/.5/.7).
-- DATA: 16 dev datasets, folds 0-3 train / fold 4 validation (checkpoint selection by val
-  OUTER loss; audit logged separately). Held-out never touched.
+- DATA: 16 dev datasets, folds 0-3 train / fold 4 validation. Held-out never touched.
+- SELECTION (revised 2026-07-28 after the first attempt overfit): the canonical pair is the
+  epoch with the best mean dev fold-4 MATCH (free Hungarian, the decision metric); the
+  embedding-space outer loss is logged but never selects (measured to decouple: val
+  .80 -> .22 while held-out match collapsed). EVERY epoch's pair is also saved
+  (l2_mlp_v6_ep<N>.pt + gen_operator_ep<N>.pt) so post-hoc screening loses nothing.
+- TARGETS: the TRUNK-4a nonlinear stack (nldep: dcor magnitudes, GBR residualization) —
+  user order: upgraded BEFORE this retrain.
 - CHECKPOINTS (new filenames — outputs/l2_mlp.pt is a SYMLINK to v5 and must never be
-  written): outputs/l2_mlp_v6.pt + outputs/gen_operator.pt, saved as a PAIR at the best-val
-  epoch. Log: outputs/train_v6_log.json.
-- Lesson carried (2026-07 WeightNet retrain failure): validation loss in embedding space is
-  NOT a proxy for decode metrics — adoption is decided by the official free MATCH screens and
-  the user, never by this val number.
+  written): canonical pair outputs/l2_mlp_v6.pt + outputs/gen_operator.pt.
+  Log: outputs/train_v6_log.json.
 
 Env: K, INNER_LR, OP_LR, WN_LR, LAM_AUDIT, EPOCHS (4), DEVICE, TORCH_THREADS.
 """
@@ -37,9 +40,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import pool                                                           # noqa: E402
 import encode                                                         # noqa: E402
-import optimize                                                       # noqa: E402
 import lora                                                           # noqa: E402
-import dependence as depmod                                           # noqa: E402
 import latent_constraints as LC                                       # noqa: E402
 import nldep as NL                                                    # noqa: E402
 import terms as TF                                                    # noqa: E402
@@ -135,13 +136,15 @@ def outer_loss(tensors, d_, fold, device):
     return lo
 
 
-def solve_pair(d_, fold, module, gen_op, train, device):
-    """-> (outer, audit) losses for one (dataset, fold)."""
+def solve_pair(d_, fold, module, gen_op, train, device, want_match=False):
+    """-> (outer, audit, match_or_None) for one (dataset, fold). match = the free Hungarian
+    match-ACC on the fold's masked observed nodes — the DECISION metric for epoch selection
+    (embedding-space outer loss was measured to decouple from decode quality)."""
     obs, T, g, W = d_["obs"], d_["T"], d_["g"], d_["W"]
-    masked = set(int(i) for i in d_["folds"][fold])
-    vis = {obs[i]: T[i] for i in range(len(obs)) if i not in masked}
+    masked = sorted(int(i) for i in d_["folds"][fold])
+    vis = {obs[i]: T[i] for i in range(len(obs)) if i not in set(masked)}
     feats = torch.tensor(LM.node_features(g, W, set(vis)), device=device)
-    _, tensors = core.solve_unrolled(
+    emb, tensors = core.solve_unrolled(
         g, W, vis, d=T.shape[1], gen_op=gen_op, ci=d_["ci"], weight_module=module, K=K,
         inner_lr=INNER_LR, lam_zero=0.3, lam_norm=0.1, seed=fold, device=device,
         residual=1.0, lam_res=1.0, partial_corr=d_["pc"], bridge=d_["br"],
@@ -150,7 +153,12 @@ def solve_pair(d_, fold, module, gen_op, train, device):
     vis_t = {n: torch.tensor(v, dtype=torch.float32, device=device) for n, v in vis.items()}
     Xp = torch.stack([tensors[p] if p in tensors else vis_t[p] for p in d_["edge_par"]])
     audit = gen_op.sign_audit(Xp, d_["edge_cond"])
-    return outer, audit
+    match = None
+    if want_match:
+        import metrics
+        P = np.stack([emb[obs[i]] for i in masked])
+        match = metrics.match_acc(P, masked, T)
+    return outer, audit, match
 
 
 def main():
@@ -185,21 +193,25 @@ def main():
 
     def val_pass():
         module.eval(); gen_op.eval()
-        vo, va = [], []
+        vo, va, vm = [], [], []
         for n in names:
-            o, a = solve_pair(data[n], 4, module, gen_op, False, DEVICE)
-            vo.append(float(o.detach())); va.append(float(a.detach()))
+            o, a, m = solve_pair(data[n], 4, module, gen_op, False, DEVICE, want_match=True)
+            vo.append(float(o.detach())); va.append(float(a.detach())); vm.append(float(m))
         module.train(); gen_op.train()
-        return vo, va
+        return vo, va, vm
 
-    vo, va = val_pass()
+    vo, va, vm = val_pass()
     log["start_val"] = {"outer": float(np.mean(vo)), "audit": float(np.mean(va)),
-                        "per_ds": dict(zip(names, [round(x, 4) for x in vo]))}
+                        "match": float(np.mean(vm)),
+                        "match_per_ds": dict(zip(names, [round(x, 4) for x in vm]))}
     print(f"[{ts()}] START (epoch-0 state == current v6 inference): "
-          f"val_outer={np.mean(vo):.4f} val_audit={np.mean(va):.4f}", flush=True)
+          f"val_outer={np.mean(vo):.4f} val_audit={np.mean(va):.4f} "
+          f"val_MATCH={np.mean(vm):.4f}", flush=True)
 
     pairs = [(n, f) for n in names for f in range(4)]
-    best = float("inf")
+    best_match = float(np.mean(vm))            # epoch-0 state is a valid candidate
+    LM.save(module, WN_CKPT, "mlp")
+    GO.save(gen_op, OP_CKPT)
     for ep in range(EPOCHS):
         rng = np.random.default_rng(100 + ep)
         order = rng.permutation(len(pairs))
@@ -207,7 +219,7 @@ def main():
         for j, pi in enumerate(order):
             n, f = pairs[int(pi)]
             opt.zero_grad()
-            outer, audit = solve_pair(data[n], f, module, gen_op, True, DEVICE)
+            outer, audit, _ = solve_pair(data[n], f, module, gen_op, True, DEVICE)
             (outer + LAM_AUDIT * audit).backward()
             torch.nn.utils.clip_grad_norm_(trainable, 1.0)
             opt.step()
@@ -215,22 +227,27 @@ def main():
             if j % 8 == 0:
                 print(f"[{ts()}] ep{ep} {j}/{len(pairs)} outer={np.mean(tl[-8:]):.4f} "
                       f"audit={np.mean(ta[-8:]):.4f}", flush=True)
-        vo, va = val_pass()
-        v = float(np.mean(vo))
+        vo, va, vm = val_pass()
+        v, m = float(np.mean(vo)), float(np.mean(vm))
+        # per-epoch pair always saved (post-hoc screening never loses an epoch)
+        LM.save(module, os.path.join(HERE, "outputs", f"l2_mlp_v6_ep{ep}.pt"), "mlp")
+        GO.save(gen_op, os.path.join(HERE, "outputs", f"gen_operator_ep{ep}.pt"))
         log["epochs"].append({"train_outer": float(np.mean(tl)), "train_audit": float(np.mean(ta)),
                               "val_outer": v, "val_audit": float(np.mean(va)),
-                              "val_per_ds": dict(zip(names, [round(x, 4) for x in vo]))})
+                              "val_match": m,
+                              "match_per_ds": dict(zip(names, [round(x, 4) for x in vm]))})
+        is_best = m > best_match
         print(f"[{ts()}] EPOCH {ep}: train_outer={np.mean(tl):.4f} val_outer={v:.4f} "
-              f"val_audit={np.mean(va):.4f} {'(best, saved pair)' if v < best else ''}",
-              flush=True)
-        if v < best:
-            best = v
+              f"val_MATCH={m:.4f} audit={np.mean(va):.4f} "
+              f"{'(best MATCH, canonical pair updated)' if is_best else ''}", flush=True)
+        if is_best:                            # canonical pair = best dev fold-4 MATCH
+            best_match = m
             LM.save(module, WN_CKPT, "mlp")
             GO.save(gen_op, OP_CKPT)
         json.dump(log, open(os.path.join(HERE, "outputs", "train_v6_log.json"), "w"), indent=1)
-    print(f"[{ts()}] done. best val_outer={best:.4f} (start {log['start_val']['outer']:.4f}). "
-          f"Adoption is decided by official free MATCH screens + user, not by this number.",
-          flush=True)
+    print(f"[{ts()}] done. best dev fold-4 MATCH={best_match:.4f} "
+          f"(start {log['start_val']['match']:.4f}). Held-out runs ONCE on the canonical pair; "
+          f"adoption decided by the user.", flush=True)
 
 
 if __name__ == "__main__":
