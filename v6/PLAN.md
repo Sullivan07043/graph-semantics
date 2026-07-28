@@ -142,6 +142,15 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
 - New `v6/adequacy.py`: compute V(G,X) per dataset; report alongside results. Graph-repair
   proposals stay OFF (the extend/correct decision is not made here).
 
+### P0 Loading-matrix estimation upgrade (graph-side input to the trunk)
+The linear block of the influence structure IS the loading matrix; v5 estimates it by PC1-score
+correlations (crude). Upgrade: confirmatory factor analysis (ML/WLS) on the GIVEN structure
+(second-order CFA for hierarchies) via an existing library — no home-grown estimator.
+Buys: (a) proper magnitudes/signs (subsumes the manual sign convention), (b) loading standard
+errors → feed P2 certainty and constraint weighting, (c) model-implied correlations (Wright's
+rules) → calibrate ψ (THEORY open item 2). Passes the anti-divergence test: better estimator of
+Definition 1's object.
+
 ### P6 Housekeeping (no science)
 - `dependence.py`: lazy auto-compute on cache miss (kills the bigfive2-crash class).
 - Single entry `v6/main.py` = solve + diagnostics (certainty, adequacy) in one pass.
