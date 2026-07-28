@@ -149,14 +149,21 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
 
 ---
 
-## ORDER OF WORK
-1. THEORY.md: the realization principle + corollaries §1–§3 (T1–T3) — before any code.
-2. Core rewrite as term-factory (unification refactor; behavior-identical screens vs v5).
-3. P2 + P3 (free, fast, each closes an open problem; no training).
-4. P4 (small, closes the hierarchy tail — now one rule for flat and hierarchical graphs).
-5. P5 + P6 alongside.
-6. P1 LAST (the one complexity hotspot: spec → implement → train → screen; P2 gates its audit).
-7. Full evaluation: free metrics first, held-out primary, judge once on the final configuration.
+## THE TRUNK (主干工程 — must be COMPLETE before any branch starts; binding)
+The trunk is the load-bearing path every package consumes. Three segments, in order, none
+skippable:
+  TRUNK-1  `v6/THEORY.md` §1–§3: the realization principle formalized. It is the SPEC for all
+           code; writing implementations without it is exactly how divergence and degradation
+           happen.
+  TRUNK-2  Term-factory core: one objective engine (structure pattern → moment condition) +
+           the differentiable-solver interface. P2/P3/P5 are its read-only consumers, P4 is one
+           new moment-condition instance, P1 is an operator swap in its generation slot — ALL
+           branches plug into this trunk.
+  TRUNK-3  Behavior-identity verification vs v5: the trunk must reproduce v5's numbers
+           (match level, all 13 datasets) BEFORE any branch plugs in; otherwise no later
+           increment is attributable.
+Branches (NOT to be started until TRUNK-3 passes): P2, P3, P4, P5, then P1 last, then P6
+alongside, then full evaluation (free first, held-out primary, judge once at the end).
 
 ## DISCIPLINE (carried over, binding)
 - Held-out (hexaco/riasec/kims) never touches training or design decisions; generalization claims
