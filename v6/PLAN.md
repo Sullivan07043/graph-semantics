@@ -149,21 +149,19 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
 
 ---
 
-## THE TRUNK (主干工程 — must be COMPLETE before any branch starts; binding)
-The trunk is the load-bearing path every package consumes. Three segments, in order, none
-skippable:
-  TRUNK-1  `v6/THEORY.md` §1–§3: the realization principle formalized. It is the SPEC for all
-           code; writing implementations without it is exactly how divergence and degradation
-           happen.
-  TRUNK-2  Term-factory core: one objective engine (structure pattern → moment condition) +
-           the differentiable-solver interface. P2/P3/P5 are its read-only consumers, P4 is one
-           new moment-condition instance, P1 is an operator swap in its generation slot — ALL
-           branches plug into this trunk.
-  TRUNK-3  Behavior-identity verification vs v5: the trunk must reproduce v5's numbers
-           (match level, all 13 datasets) BEFORE any branch plugs in; otherwise no later
-           increment is attributable.
-Branches (NOT to be started until TRUNK-3 passes): P2, P3, P4, P5, then P1 last, then P6
-alongside, then full evaluation (free first, held-out primary, judge once at the end).
+## THE TRUNK (主干工程 — complete before branches; binding)
+  TRUNK-1  `v6/THEORY.md` §1–§4: the realization principle formalized, INCLUDING the nonlinear
+           generative map (T4) — nonlinearity is part of the main line, not an appendix.
+  TRUNK-2  Term-factory core: one objective engine (structure pattern → moment condition) with
+           the differentiable-solver interface, built AROUND the nonlinear operator slot.
+  TRUNK-3  P1: the Jacobian-locked nonlinear generation operator — the primary build, done
+           immediately after the core, at full scale.
+Branches after the trunk: P2/P3/P5 (diagnostics), P4 (conditional-independence instance), P6,
+then full evaluation (free metrics first, held-out primary, judge once at the end).
+
+**Verification rule (user order 2026-07-28, binding)**: NO smoke tests, identity checks,
+verification runs, or validation passes of any kind without asking the user first. Build
+faithfully, then ask what to verify.
 
 ## DISCIPLINE (carried over, binding)
 - Held-out (hexaco/riasec/kims) never touches training or design decisions; generalization claims
