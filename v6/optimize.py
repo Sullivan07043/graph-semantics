@@ -103,7 +103,7 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                         seed=0, device="cpu", free_w=False, als_rounds=5,
                         residual=0.0, lam_res=0.0, partial_corr=None,
                         lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-                        neg_op=None, bridge=None, gen_op=None, verbose=False):
+                        neg_op=None, bridge=None, gen_op=None, ci=None, verbose=False):
     """g: graph.Graph; W: dict edge->signed weight (given support, data-estimated);
     labeled_emb: dict observed_name -> np.array[d] (frozen, VISIBLE labels only).
     free_w: also optimize embedding-space edge magnitudes (sign/support locked to the given graph).
@@ -122,6 +122,9 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     lower bound hinge(kappa*dep - |cos|)^2 — the UPPER tail; the lower tail stays lam_zero on
     independent pairs; the conditional tail rides through partial_corr (whose magnitudes the caller
     may replace with dcor/MI, sign from Pearson).
+    gen_op (v6): gen_operator.GenOperator — the Jacobian-locked operator IS the generation path
+    (|w| scaling inside; supersedes neg_op). ci (v6): terms.ci_table output — the unified
+    conditional-independence rule; when given it REPLACES the marginal zp decorrelation.
     Returns dict node_name -> np.array[d] for ALL nodes (labeled ones pass through unchanged)."""
     import torch
     torch.manual_seed(seed)
@@ -182,6 +185,14 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     zp_pairs = g.independent_pairs()
     ia = torch.tensor([node_idx[a] for a, b in zp_pairs], dtype=torch.long, device=device)
     ib = torch.tensor([node_idx[b] for a, b in zp_pairs], dtype=torch.long, device=device)
+    ci_groups, ci_count = [], 0
+    if ci is not None:
+        import terms as _terms
+        for S, cia, cib, ctg in _terms.ci_tensors(ci, node_idx, device=device):
+            S_idx = torch.tensor([node_idx[s] for s in S], dtype=torch.long, device=device) \
+                if S else None
+            ci_groups.append((S_idx, cia, cib, ctg))
+            ci_count += len(ctg)
     # faithfulness floor: trek-connected OBSERVED pairs with a data-corr-scaled minimum |cos|
     dep_terms = None
     if lam_dep > 0 and dep_corr is not None:
@@ -198,19 +209,11 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
     colls = [(node_idx[p1], node_idx[p2], node_idx[c]) for p1, p2, c in g.v_structures()] \
         if lam_coll > 0 else []
     neg_parents = []
-    if gen_op is not None:                                # g_phi supersedes the neg_op special case
+    if gen_op is not None:                    # v6 operator supersedes the neg_op special case
+        import gen_operator as _go
         gen_op = gen_op.to(device)
         neg_op = None
-        ge = [(p, n, float(W.get((p, n), 0.0))) for n in gen_nodes for p in g.parents(n)]
-        ge_par = [p for p, n, w in ge]
-        lat = set(g.latents)
-        ge_cond = torch.tensor([[1.0 if w >= 0 else -1.0, abs(w),
-                                 1.0 if (p in lat and n in lat) else 0.0] for p, n, w in ge],
-                               dtype=torch.float32, device=device)
-        ge_absw = torch.tensor([abs(w) for p, n, w in ge], dtype=torch.float32, device=device)
-        ge_child = {}
-        for r, (p, n, w) in enumerate(ge):
-            ge_child.setdefault(n, []).append(r)
+        ge_par, ge_cond, ge_child = _go.edge_table(g, W, device=device)
     if neg_op is not None:
         neg_op = neg_op.to(device)
         neg_parents = sorted({p for (p, n), w in W.items() if w < 0})
@@ -241,9 +244,9 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
             NP = neg_op(torch.stack([emb(p) for p in neg_parents]))
             neg_cache = {p: NP[i] for i, p in enumerate(neg_parents)}
         gout = None
-        if gen_op is not None:                            # one batched g_phi forward per step
+        if gen_op is not None:                # one batched operator forward per step (|w| inside)
             Xp = torch.stack([emb(p) for p in ge_par])
-            gout = ge_absw[:, None] * gen_op(Xp, ge_cond)
+            gout = gen_op(Xp, ge_cond)
         for n in gen_nodes:
             if gout is not None:
                 tot = gout[ge_child[n]].sum(0)
@@ -267,12 +270,18 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
                 Rm = torch.stack([Rv[n] for n in pc_nodes])
                 Rm = torch.nn.functional.normalize(Rm, dim=1)
                 loss = loss + lam_res * (((Rm @ Rm.T) - Pt)[offdiag] ** 2).mean()
-        need_M = (len(zp_pairs) and lam_zero > 0) or dep_terms is not None or colls \
-            or br_terms is not None
+        need_M = ((ci_count or len(zp_pairs)) and lam_zero > 0) or dep_terms is not None \
+            or colls or br_terms is not None
         if need_M:
             M = torch.stack([emb(n) for n in g.nodes])
             Mn = torch.nn.functional.normalize(M, dim=1)
-        if len(zp_pairs) and lam_zero > 0:                           # vectorized independence decorrelation
+        if ci_count and lam_zero > 0:                    # v6 unified CI rule (residualized cos)
+            tot_ci = 0.0
+            for S_idx, cia, cib, ctg in ci_groups:
+                cs = _terms.ci_cos(M, (S_idx, cia, cib))
+                tot_ci = tot_ci + ((cs - ctg) ** 2).sum()
+            loss = loss + lam_zero * tot_ci / ci_count
+        elif len(zp_pairs) and lam_zero > 0:                         # vectorized independence decorrelation
             loss = loss + lam_zero * (((Mn[ia] * Mn[ib]).sum(1)) ** 2).mean()
         if dep_terms is not None:                                    # faithfulness dependence floor
             da, db, floor = dep_terms

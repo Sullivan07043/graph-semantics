@@ -106,6 +106,9 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
 ## PART B — PIPELINE CHANGES (v6 work packages)
 
 ### P1 (← T4) Jacobian-locked nonlinear generation  [THE substantive trained component]
+- [x] ARCHITECTURE (2026-07-28, part of TRUNK-2): `v6/gen_operator.py` — shared T_theta
+  conditioned on (sign, |w|, lat-lat), |w|*(base + Delta), base = e_p / f_neg(e_p), zero-init
+  Delta head, sign_audit() hinge. TRAINING = TRUNK-4 (not started).
 - New `v6/gen_operator.py`: operator g (small conditioned MLP per edge-type), zero-init to
   linear+f_neg; Jacobian lock enforced by construction (masked input routing) + penalty audit.
 - Trained across the 16 dev graphs (folds 0–3/4 discipline unchanged, held-out untouched);
@@ -133,6 +136,11 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
   (word inspection + match), judge last (~$1).
 
 ### P4 (← T5) Conditional-independence decorrelation
+- [x] IMPLEMENTED (2026-07-28, part of TRUNK-2): `terms.ci_table` — support = every
+  non-ancestral pair, S = all common ancestors (provably trek-blocking), target = shrunk
+  partial correlation (graph zero below the 2/sqrt(n) noise floor); embedding side =
+  `terms.ci_cos` (project off span(S), cosine). Replaces the marginal zp term in BOTH solver
+  arms; S = empty set reproduces it. Evaluation pending (TRUNK-4).
 - Extend `latent_constraints.py`: residualized decorrelation pairs for graphs whose marginal
   independence set is empty/small; automatic (structure-driven support, like everything else).
 - Validation: bigfive2 hierarchy (does T1 recover the flat-graph gap fully?); all-13 regression
@@ -158,15 +166,28 @@ Definition 1's object.
 
 ---
 
-## THE TRUNK (主干工程 — complete before branches; binding)
+## THE TRUNK (主干工程 — complete before branches; binding; REVISED 2026-07-28 per user)
   TRUNK-1  `v6/THEORY.md` §1–§4: the realization principle formalized, INCLUDING the nonlinear
-           generative map (T4) — nonlinearity is part of the main line, not an appendix.
-  TRUNK-2  Term-factory core: one objective engine (structure pattern → moment condition) with
-           the differentiable-solver interface, built AROUND the nonlinear operator slot.
-  TRUNK-3  P1: the Jacobian-locked nonlinear generation operator — the primary build, done
-           immediately after the core, at full scale.
-Branches after the trunk: P2/P3/P5 (diagnostics), P4 (conditional-independence instance), P6,
-then full evaluation (free metrics first, held-out primary, judge once at the end).
+           generative map (T4) — nonlinearity is part of the main line, not an appendix.  [DONE]
+  TRUNK-2  Term-factory core WITH the nonlinear operator BUILT IN: one objective engine
+           (structure pattern → moment condition, THEORY Def 2 R1–R4). The generation path IS
+           the Jacobian-locked nonlinear operator (P1's architecture) — there is NO separate
+           linear default. "Linear+f_neg" survives ONLY as the operator's zero-initialization
+           (strict-refinement discipline: untrained operator ≡ v5 behavior). P4's unified
+           conditional-independence support rule also lives here (constraint generation, not
+           diagnostics). WeightNet differentiable-solver interface preserved; latcon default on.
+           [BUILT 2026-07-28: gen_operator.py (T_theta, zero-init=linear+f_neg, sign_audit) +
+           terms.py (ci_table/ci_cos/dep_floor_table) + core.py (solve_unrolled, train=True
+           reaches operator AND WeightNet) + wiring (run_task1/2 pass ci + GENOP default on,
+           optimize.py same contracts for the frozen arm, main.py default L2_ARM=mlp,
+           run_bigfive_hier on core). Syntax-compiled only — NO run of any kind yet.]
+  TRUNK-3  Diagnostics: P2 (certainty), P3 (influence-weighted decode), P5 (adequacy V(G,X)) —
+           read-only post-solve consumers of the core.
+  TRUNK-4  Full-scale training: the generation operator trained across the 16 dev graphs
+           (folds 0–3/4, held-out untouched) + WeightNet co-retrained under the new dynamics;
+           then full evaluation (free metrics first, held-out primary, judge once at the end).
+Branches after the trunk: P0 (CFA loading estimation — can slot before TRUNK-4 if the user
+orders it), P6 (housekeeping).
 
 **Verification rule (user order 2026-07-28, binding)**: NO smoke tests, identity checks,
 verification runs, or validation passes of any kind without asking the user first. Build

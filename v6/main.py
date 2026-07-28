@@ -5,9 +5,10 @@ Reuses run_task1/run_task2 unchanged. Swaps, before the runners import anything:
   encode._MODEL     -> the LoRA-adapted SentenceTransformer (encode.embed then uses it as-is)
   GRAPHSEM_DICT env -> outputs/concept_bank_l3.npz (decode space = optimization space; version
                        asserted against the lora checkpoint)
-  optionally the solver -> L2 WeightNet unrolled solver (L2_ARM=mlp), same as pipeline_v4/run_eval.
+  the solver -> v6 core (term-factory objective + Jacobian-locked operator) under the WeightNet
+  unrolled solver. L2_ARM=mlp is the v6 DEFAULT; frozen = 400-step Adam solver (same v6 terms).
 
-Env: TASK=1|2, DATASET, RECORDS_OUT, L2_ARM=frozen|mlp (frozen = 400-step official solver).
+Env: TASK=1|2, DATASET, RECORDS_OUT, L2_ARM=mlp|frozen.
 """
 import os
 import sys
@@ -52,10 +53,10 @@ class _LoraST:
 
 encode._MODEL = _LoraST()
 
-ARM = os.environ.get("L2_ARM", "frozen")
+ARM = os.environ.get("L2_ARM", "mlp")          # v6 main line: WeightNet solver on the v6 core
 if ARM == "mlp":
     import optimize                                                   # noqa: E402
-    import l2_solver as core
+    import core                                                       # noqa: E402
     import l2_modules as LM                    # noqa: E402
     _MODULE = LM.load(os.environ.get("L2_CKPT", os.path.join(HERE, "outputs", "l2_mlp.pt")))
     K = int(os.environ.get("K", 60))
@@ -64,13 +65,13 @@ if ARM == "mlp":
                   seed=0, device="cpu", free_w=False, als_rounds=5,
                   residual=0.0, lam_res=0.0, partial_corr=None,
                   lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-                  neg_op=None, bridge=None, gen_op=None, verbose=False):
+                  neg_op=None, bridge=None, gen_op=None, ci=None, verbose=False):
         feats = torch.tensor(LM.node_features(g, W, set(labeled_emb)), device=device)
         emb, _ = core.solve_unrolled(
-            g, W, labeled_emb, d, weight_module=_MODULE, K=K, inner_lr=2e-2,
-            lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
+            g, W, labeled_emb, d, gen_op=gen_op, ci=ci, weight_module=_MODULE, K=K,
+            inner_lr=2e-2, lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
             residual=residual, lam_res=lam_res, partial_corr=partial_corr,
-            neg_op=neg_op, bridge=bridge, train=False, feats=feats)
+            bridge=bridge, train=False, feats=feats)
         return emb
 
     optimize.optimize_embeddings = _l2_solve

@@ -42,11 +42,11 @@ NEG_OP = None
 if NEGOP:
     import negop
     NEG_OP = negop.load()
-GENPHI = os.environ.get("GENPHI", "0") == "1"
+GENOP = os.environ.get("GENOP", "1") == "1"      # v6: Jacobian-locked operator IS the gen path
 GEN_OP = None
-if GENPHI:
-    import genphi as _genphi
-    GEN_OP = _genphi.load()
+if GENOP:
+    import gen_operator as _go
+    GEN_OP = _go.load_or_init()
 
 
 def ts():
@@ -81,6 +81,8 @@ def run_dataset(ds, C, cwords, records):
             _bn, _bD = _LC.augmented_bridge(g, list(obs), oi, X, score, br["dep_marg"])
             br = dict(obs=_bn, dep_marg=_bD, lam_upper=0.3, kappa=0.5, q=0.7)
     dep = (obs, Craw) if LAM_DEP > 0 else None
+    import terms as _terms
+    ci = _terms.ci_table(g, X, oi, score)        # v6 unified CI rule (built AFTER sign_fix)
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
@@ -115,7 +117,8 @@ def run_dataset(ds, C, cwords, records):
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
                                            free_w=FREE_W, residual=RESIDUAL, lam_res=LAM_RES,
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
-                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br, gen_op=GEN_OP)
+                                           lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br,
+                                           gen_op=GEN_OP, ci=ci)
         preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch

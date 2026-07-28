@@ -23,7 +23,7 @@ import torch                                                          # noqa: E4
 import encode                                                         # noqa: E402
 import graph as G                                                     # noqa: E402
 import lora                                       # noqa: E402
-import l2_solver as core                           # noqa: E402
+import core                                        # noqa: E402
 import l2_modules as LM                            # noqa: E402
 
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 4)))
@@ -113,15 +113,15 @@ def _l2_solve(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0
               seed=0, device="cpu", free_w=False, als_rounds=5,
               residual=0.0, lam_res=0.0, partial_corr=None,
               lam_dep=0.0, dep_corr=None, dep_kappa=0.5, lam_coll=0.0,
-              neg_op=None, bridge=None, gen_op=None, verbose=False):
+              neg_op=None, bridge=None, gen_op=None, ci=None, verbose=False):
     if LATCON:
         W, partial_corr, bridge = _latcon_inputs(g, W)
     feats = torch.tensor(LM.node_features(g, W, set(labeled_emb)), device=device)
     emb, _ = core.solve_unrolled(
-        g, W, labeled_emb, d, weight_module=_MODULE, K=K, inner_lr=2e-2,
-        lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
+        g, W, labeled_emb, d, gen_op=gen_op, ci=ci, weight_module=_MODULE, K=K,
+        inner_lr=2e-2, lam_zero=lam_zero, lam_norm=lam_norm, seed=seed, device=device,
         residual=residual, lam_res=lam_res, partial_corr=partial_corr,
-        neg_op=neg_op, bridge=bridge, train=False, feats=feats)
+        bridge=bridge, train=False, feats=feats)
     return emb
 
 
