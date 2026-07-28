@@ -161,15 +161,18 @@ def main():
         print(f"[{ts()}]   {n}: {len(data[n]['obs'])} obs, {len(data[n]['g'].latents)} latents, "
               f"{sum(len(t) for _, _, t in data[n]['ci'])} ci pairs", flush=True)
 
-    module = LM.load(WN_INIT, device=DEVICE)                # warm start: frozen v5 WeightNet
+    # paired resume: if a previous run saved checkpoints, BOTH modules continue from them;
+    # never resume one and reset the other (that trains an inconsistent pair)
+    resume = os.path.exists(OP_CKPT) and os.path.exists(WN_CKPT)
+    module = LM.load(WN_CKPT if resume else WN_INIT, device=DEVICE)
     module.train()
     for p in module.parameters():
         p.requires_grad_(True)
-    fresh_op = not os.path.exists(OP_CKPT)
-    gen_op = GO.load_or_init(d=data[names[0]]["T"].shape[1], device=DEVICE, path=OP_CKPT)
+    gen_op = GO.load_or_init(d=data[names[0]]["T"].shape[1], device=DEVICE,
+                             path=OP_CKPT if resume else "/nonexistent")
     gen_op.train()
-    print(f"[{ts()}] init: WeightNet <- l2_mlp.pt (v5 frozen), operator "
-          f"{'ZERO-INIT (== v5 linear+f_neg)' if fresh_op else 'RESUMED from ' + OP_CKPT}",
+    print(f"[{ts()}] init: " + ("RESUMED pair (l2_mlp_v6.pt + gen_operator.pt)" if resume else
+          "WeightNet <- l2_mlp.pt (v5 frozen), operator ZERO-INIT (== v5 linear+f_neg)"),
           flush=True)
     opt = torch.optim.Adam([
         {"params": gen_op.delta.parameters(), "lr": OP_LR},
