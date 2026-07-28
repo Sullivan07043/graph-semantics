@@ -138,11 +138,12 @@ CauScale's causal-sufficiency assumption is a Task-3 boundary handled by the TC 
   (word inspection + match), judge last (~$1).
 
 ### P4 (← T5) Conditional-independence decorrelation
-- [x] IMPLEMENTED (2026-07-28, part of TRUNK-2): `terms.ci_table` — support = every
-  non-ancestral pair, S = all common ancestors (provably trek-blocking), target = shrunk
-  partial correlation (graph zero below the 2/sqrt(n) noise floor); embedding side =
-  `terms.ci_cos` (project off span(S), cosine). Replaces the marginal zp term in BOTH solver
-  arms; S = empty set reproduces it. Evaluation pending (TRUNK-4).
+- [x] IMPLEMENTED (2026-07-28, part of TRUNK-2), then REVISED same day after held-out
+  attribution: embedding-level conditional pairs measured harmful (.658 → .422 untrained;
+  double enforcement against the residual channel). v6 DEFAULT is now CI_MODE=marginal_shrink
+  (marginal support + shrink targets, .672); conditional statements live in the residual Gram
+  channel (observed + latcon latent rows). Full conditional ci_table kept for DIAGNOSTICS only
+  (V(G,X)). See THEORY §5 (one statement, one channel).
 - Extend `latent_constraints.py`: residualized decorrelation pairs for graphs whose marginal
   independence set is empty/small; automatic (structure-driven support, like everything else).
 - Validation: bigfive2 hierarchy (does T1 recover the flat-graph gap fully?); all-13 regression
@@ -196,9 +197,23 @@ Definition 1's object.
            propose_repairs() ON per ruling 2026-07-28 — hypotheses only, given graph in use).
            Syntax-compiled only — NO run of any kind; validation runs (P2 falsification tests,
            P3 metatrait decode, P5 tables) await user approval.]
-  TRUNK-4  Full-scale training: the generation operator trained across the 16 dev graphs
-           (folds 0–3/4, held-out untouched) + WeightNet co-retrained under the new dynamics;
-           then full evaluation (free metrics first, held-out primary, judge once at the end).
+  TRUNK-4  Full-scale training, REVISED ORDER (user 2026-07-28: "不允许线性近似、线性训练…
+           排在重训之前"):
+           4a. NONLINEAR TARGET STACK first — all constraint-target MAGNITUDES move from
+               Pearson to dcor (marginal CI targets, bridge floor incl. latcon latent rows,
+               |w| edge conditioning); conditional residualization moves from linear lstsq to
+               gradient-boosted regression, residual dependence = signed dcor; new caches for
+               all 19 datasets + bigfive2 (old caches untouched). Signs stay Pearson-sign
+               (polarity is binary; dcor is unsigned). DECLARED linear remnants: ALS as
+               initializer only (THEORY §4.3); PC1 latent scores as conditioning summaries
+               (proper replacement = Task-3 TC layer).
+           4b. Trainer rework: per-epoch checkpoint PAIRS + epoch selection by dev fold-4
+               MATCH (embedding val loss measured to decouple: val .80→.22 while held-out
+               match collapsed .658→.378).
+           4c. Joint retrain (operator + WeightNet) on the corrected objective + nonlinear
+               targets; then held-out ONCE as the report number (judge spend user-approved).
+           [First attempt 2026-07-28 FAILED and was attributed: duplicated conditional pairs
+           (objective, -.236) + overfit-by-val-selection (training, -.044); both fixed above.]
 Branches after the trunk: P0 (CFA loading estimation — can slot before TRUNK-4 if the user
 orders it), P6 (housekeeping).
 

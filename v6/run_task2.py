@@ -95,6 +95,13 @@ def run_dataset(ds, C, cwords, records):
     dep = ([o for o in obs], Craw) if LAM_DEP > 0 else None
     import terms as _terms
     ci = _terms.ci_table(g, X, oi, score)        # v6 unified CI rule (built AFTER sign_fix)
+    # v6 DEFAULT (ruling 2026-07-28, one statement one channel): CI term = marginal support +
+    # shrink targets; conditional statements live in the residual Gram channel (see run_task1).
+    _cim = os.environ.get("CI_MODE", "marginal_shrink")
+    if _cim == "marginal":
+        ci = [(S, pairs, tg * 0) for S, pairs, tg in ci if not S]
+    elif _cim == "marginal_shrink":
+        ci = [(S, pairs, tg) for S, pairs, tg in ci if not S]
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]

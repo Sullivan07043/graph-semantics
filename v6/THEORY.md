@@ -276,16 +276,36 @@ Proposition 1's null-space analysis applies to the linearization at any point.
 
 ---
 
-## §5 Conditional-independence tail (one rule for flat and hierarchical graphs)
+## §5 Conditional-independence tail: one statement, one channel (REVISED 2026-07-28)
 
-The marginal zero end of (R2) has empty support under a global root (measured: bigfive+GFP,
-1210 → 0 pairs). The general rule is (R3): for every pair `(i,j)` d-separated *given* an
-ancestor set `S(i,j)` (minimal blocking set from the DAG), constrain
-`cos(res_S e_i, res_S e_j) → ψ(D_{ij|S})`, with `D_{ij|S}` the partial dependence from data.
-Marginal independence is the special case `S = ∅`; v5's residual anchors are the projection of
-this rule onto residual vectors at `S = pa`. One implementation (P4) replaces both special
-cases; support is derived from the DAG automatically (blocking sets), so flat and hierarchical
-graphs are treated by the same code path.
+**Principle.** Every independence statement the graph licenses is enforced exactly once, in the
+coordinates the model itself defines. The generative decomposition `e_c = Σ_p T_θ(e_p) + r_c`
+supplies a conditional coordinate for every generated node: `r_c` *is* "what remains of `c`
+given its parents". Accordingly:
+
+- **Marginal statements** (`S = ∅`): embedding-cosine decorrelation, target
+  `shrink(D_ij)` — the graph's zero unless the data dependence clears the `2/√n` noise floor,
+  in which case the data value is kept and `V(G,X)` records the conflict.
+- **Conditional statements**: residual-coordinate matching, `cos(r_i, r_j) → D_{ij·pa}`
+  (partial dependence from data), for observed AND latent generated nodes (the latent rows are
+  the latcon augmentation). Completeness: for any non-ancestral pair, conditioning each node on
+  its own parents blocks every trek, so this channel covers the entire conditional tail;
+  root–root pairs are marginal or trek-connected and are covered by (R2).
+
+**What was rejected, and why (measured).** The earlier draft enforced conditional statements a
+SECOND time on span-projected embeddings (`cos(P_S^⊥ e_i, P_S^⊥ e_j) → ψ(D_{ij|S})`).
+This double-loads the degrees of freedom the generation term is shaping, dilutes the marginal
+term (shared mean), and projects against ancestor spans that are themselves moving during the
+solve. Held-out attribution (2026-07-28, Task 1 match, untrained arms): v5 objective .658;
+marginal-only (v5 semantics, new implementation) .658 — digit-for-digit, certifying the
+implementation; marginal + shrink targets **.672** (adopted); + duplicated conditional pairs
+.422; + training on the duplicated objective .378. The duplicated channel is retained in code
+for diagnostics only (`V(G,X)` localization), never in the objective.
+
+**Hierarchy status.** Under a global root the marginal support shrinks (bigfive+GFP: 1210 → 0
+pairs); the conditional structure is then carried by the residual channel's latent rows —
+which is exactly the configuration that produced the hierarchy pilot result (hier + latcon
+match .740 > flat .720), with no embedding-level conditional pairs involved.
 
 ---
 
