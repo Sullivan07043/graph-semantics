@@ -1,6 +1,6 @@
 # v6 PLAN — theory upgrades and pipeline rebuild (reference document)
 
-Status: PLANNING (2026-07-28). This file is the authoritative checklist for v6. Nothing below is
+Status: TRUNK-1 THEORY DRAFTED (2026-07-28); next = term-factory core (TRUNK-2). This file is the authoritative checklist for v6. Nothing below is
 implemented until its box is checked. v6 starts as a full copy of v5 (frozen artifacts symlinked
 from `v5/outputs/`); every change is made faithfully and at full scale — no silent downgrades.
 
@@ -46,9 +46,9 @@ unified frame stands on P2-P5.
 Replace the informal "meaning = constrained position" with the formal primitive:
 the semantics of a node is its influence structure **B = E[∂X/∂Z]** on nameable anchors
 (derivative-as-dependence; same primitive as J-space at LLM scale, TC's B(J_f) at identification).
-- [ ] Write the definition: semantic assignment `e: nodes → S^{d-1}` such that pairwise geometry
+- [x] Write the definition: semantic assignment `e: nodes → S^{d-1}` such that pairwise geometry
       of `e` realizes the influence structure of the causal model.
-- [ ] Rewrite each v5 constraint as a moment condition on the Jacobian (generation = first-order
+- [x] Rewrite each v5 constraint as a moment condition on the Jacobian (generation = first-order
       expansion; independence = zero blocks; floor/anchors = magnitude conditions).
 - DELIVERABLE: `v6/THEORY.md` §1, referenced by every pipeline component.
 
@@ -59,18 +59,18 @@ under (i) faithful graph, (ii) bridge assumption (T3), (iii) anchor density cond
 node trek-connected to ≥ k labeled anchors through identifiable paths), (iv) sign conventions,
 the solution is unique up to an explicit equivalence class, and the masked-node solution converges
 to the true label embedding as anchor density grows.
-- [ ] Characterize the NULL SPACE of the constraint system at a solution (which directions are
+- [x] (Prop 1/2 + Def 4 drafted; C1 stated as conjecture) Characterize the NULL SPACE of the constraint system at a solution (which directions are
       free). Hypothesis: riasec chaos and metatrait genericity are exactly large null spaces.
-- [ ] State and prove the linear-SEM case first (v5 objective is quadratic + hinges; the quadratic
+- [~] Linear generation core proved (Prop 1); C1 with bridge constraints open (v5 objective is quadratic + hinges; the quadratic
       core has closed-form analysis). Nonlinear case (T4) as extension or assumption.
-- [ ] Derive per-node identifiability score usable at runtime (→ P2).
+- [x] Derive per-node identifiability score usable at runtime (→ P2).
 - DELIVERABLE: `v6/THEORY.md` §2 with proofs or explicit counterexamples.
 
 ### T3. Bridge axiom as a stated assumption with a violation statistic
-- [ ] Formalize: |cos(e_i,e_j)| = g(dep(X_i,X_j)) for monotone g in class G, on trek-connected
+- [x] Formalize: |cos(e_i,e_j)| = g(dep(X_i,X_j)) for monotone g in class G, on trek-connected
       pairs; independence ⇒ orthogonality on d-separated pairs. LoRA calibration = enforcing this
       assumption on the encoder; the anchor loss bounds the enforcement's distortion (drift ≤ ε).
-- [ ] Define the violation statistic V(G,X) = mass of pairs where the graph claims ⊥ but data
+- [x] Define the violation statistic V(G,X) = mass of pairs where the graph claims ⊥ but data
       dependence is high (the unmodeled-confounder signature). This is the structure-adequacy
       diagnostic; also quantifies the "extend/correct the graph?" question.
 - DELIVERABLE: `v6/THEORY.md` §3; V(G,X) implemented in P5.
@@ -82,7 +82,7 @@ graph**: ∂g_c/∂e_p ≠ 0 iff p ∈ pa(c), sign(∂g_c/∂e_p) = sign(w_pc) (
 the parent embedding). Linear+f_neg is the exact zero-init special case (identity discipline).
 This is the principled revival of g_φ: the earlier failure mode (himi corruption from
 unconstrained transforms) is directly addressed by the Jacobian lock.
-- [ ] Formal spec: operator class, the Jacobian penalty/parameterization that enforces the lock,
+- [x] Formal spec: operator class, the Jacobian penalty/parameterization that enforces the lock,
       why d-separation semantics is preserved under the locked pattern.
 - DELIVERABLE: `v6/THEORY.md` §4; implementation in P1.
 
@@ -91,7 +91,7 @@ Marginal d-separation vanishes under a global root (bigfive+GFP: 0 independent p
 the entire lower tail of the bridge axiom. Fix: decorrelation applies to RESIDUALIZED embeddings —
 pairs d-separated GIVEN ancestors get cos(residual_i, residual_j) → ρ̂ (partial corr), extending
 the residual-anchor logic from observed pairs to all pairs with a blocking ancestor set.
-- [ ] Formal: which conditional statements the graph licenses; the embedding-side operator
+- [x] Formal: which conditional statements the graph licenses; the embedding-side operator
       (project out ancestor span, then decorrelate).
 - DELIVERABLE: `v6/THEORY.md` §5; implementation in P4.
 
