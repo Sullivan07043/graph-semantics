@@ -132,9 +132,13 @@ def ci_cos(M, group, Gram=None, eps=1e-9):
         MQ = M @ Q                                             # [N, |S|]
         num = Gram[ia, ib] - (MQ[ia] * MQ[ib]).sum(1)
         sq = (MQ * MQ).sum(1)
-        da = torch.clamp(Gram[ia, ia] - sq[ia], min=0.0)
-        db = torch.clamp(Gram[ib, ib] - sq[ib], min=0.0)
+        da = Gram[ia, ia] - sq[ia]
+        db = Gram[ib, ib] - sq[ib]
     else:
         num = Gram[ia, ib]
         da, db = Gram[ia, ia], Gram[ib, ib]
+    # clamp BEFORE sqrt: sqrt'(0) is inf, and near-zero norms are REAL here (ALS gives
+    # childless roots ~0 vectors) — clamp-after-sqrt still produces 0 * inf = nan in backward
+    da = torch.clamp(da, min=1e-12)
+    db = torch.clamp(db, min=1e-12)
     return num / (torch.sqrt(da) * torch.sqrt(db) + eps)

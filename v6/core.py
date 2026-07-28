@@ -135,7 +135,8 @@ def step_loss(ctx, emb, E, Rv, lam_zero, lam_norm, nw=None):
     # R2 upper tail: dependence floor on strongly-dependent trek pairs (Gram form)
     if ctx["br_terms"] is not None:
         ba, bb, bfloor, lam_up = ctx["br_terms"]
-        cs = (Gram[ba, bb] / (torch.sqrt(Gram[ba, ba] * Gram[bb, bb]) + 1e-9)).abs()
+        den = torch.sqrt(torch.clamp(Gram[ba, ba] * Gram[bb, bb], min=1e-24))
+        cs = (Gram[ba, bb] / (den + 1e-9)).abs()
         t = torch.relu(bfloor - cs) ** 2
         if pairw is not None:
             t = 0.5 * (pairw[ba] + pairw[bb]) * t
