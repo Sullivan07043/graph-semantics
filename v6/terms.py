@@ -117,16 +117,24 @@ def dep_floor_table(g, node_idx, bridge, device="cpu"):
 
 
 # ------------------------------------------------------------------ shared eval helper
-def ci_cos(M, group, eps=1e-9):
-    """Residualized cosine for one CI group. M: [N, d] raw node embeddings (solver order);
-    group: (S_idx LongTensor or None, ia, ib). Projects the endpoint embeddings off the span
-    of the S embeddings (differentiable, current values), then row-normalizes."""
+def ci_cos(M, group, Gram=None, eps=1e-9):
+    """Residualized cosine per pair, from NODE-level quantities only (algebraic identity:
+    <res_S a, res_S b> = <a,b> - <a,Q><Q,b> for orthonormal Q spanning the S embeddings).
+    Per-pair tensors are scalars — memory O(N^2 + n_pairs), never O(n_pairs x d). This is
+    load-bearing for the training path (6.7k-pair graphs x 60 unrolled steps with retained
+    graphs OOMed the 40GB GPU under the direct per-pair gather; same objective value).
+    Gram: optional precomputed M @ M.T (share it across groups within one solver step)."""
     S_idx, ia, ib = group
-    Ea, Eb = M[ia], M[ib]
+    if Gram is None:
+        Gram = M @ M.T
     if S_idx is not None and len(S_idx):
         Q, _ = torch.linalg.qr(M[S_idx].T)                     # [d, |S|] orthonormal span
-        Ea = Ea - (Ea @ Q) @ Q.T
-        Eb = Eb - (Eb @ Q) @ Q.T
-    Ea = Ea / (Ea.norm(dim=1, keepdim=True) + eps)
-    Eb = Eb / (Eb.norm(dim=1, keepdim=True) + eps)
-    return (Ea * Eb).sum(1)
+        MQ = M @ Q                                             # [N, |S|]
+        num = Gram[ia, ib] - (MQ[ia] * MQ[ib]).sum(1)
+        sq = (MQ * MQ).sum(1)
+        da = torch.clamp(Gram[ia, ia] - sq[ia], min=0.0)
+        db = torch.clamp(Gram[ib, ib] - sq[ib], min=0.0)
+    else:
+        num = Gram[ia, ib]
+        da, db = Gram[ia, ia], Gram[ib, ib]
+    return num / (torch.sqrt(da) * torch.sqrt(db) + eps)

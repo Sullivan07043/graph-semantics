@@ -276,9 +276,10 @@ def optimize_embeddings(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, 
             M = torch.stack([emb(n) for n in g.nodes])
             Mn = torch.nn.functional.normalize(M, dim=1)
         if ci_count and lam_zero > 0:                    # v6 unified CI rule (residualized cos)
+            Gram = M @ M.T
             tot_ci = 0.0
             for S_idx, cia, cib, ctg in ci_groups:
-                cs = _terms.ci_cos(M, (S_idx, cia, cib))
+                cs = _terms.ci_cos(M, (S_idx, cia, cib), Gram=Gram)
                 tot_ci = tot_ci + ((cs - ctg) ** 2).sum()
             loss = loss + lam_zero * tot_ci / ci_count
         elif len(zp_pairs) and lam_zero > 0:                         # vectorized independence decorrelation

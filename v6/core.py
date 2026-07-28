@@ -119,23 +119,23 @@ def step_loss(ctx, emb, E, Rv, lam_zero, lam_norm, nw=None):
     pairw = None if nw is None else nw["node"]
     if need_M:
         M = torch.stack([emb(n) for n in ctx["all_nodes"]])
+        Gram = M @ M.T                    # node-level; all pair terms read scalars off it
 
     # R2/R3 unified CI rule: residualized cosine -> shrunk partial correlation
     if ctx["ci_count"] and lam_zero > 0:
         tot_ci = 0.0
         for S_idx, ia, ib, tg in ctx["ci_groups"]:
-            cs = TF.ci_cos(M, (S_idx, ia, ib))
+            cs = TF.ci_cos(M, (S_idx, ia, ib), Gram=Gram)
             t = (cs - tg) ** 2
             if pairw is not None:
                 t = 0.5 * (pairw[ia] + pairw[ib]) * t
             tot_ci = tot_ci + t.sum()
         loss = loss + lam_zero * tot_ci / ctx["ci_count"]
 
-    # R2 upper tail: dependence floor on strongly-dependent trek pairs
+    # R2 upper tail: dependence floor on strongly-dependent trek pairs (Gram form)
     if ctx["br_terms"] is not None:
-        Mn = torch.nn.functional.normalize(M, dim=1)
         ba, bb, bfloor, lam_up = ctx["br_terms"]
-        cs = (Mn[ba] * Mn[bb]).sum(1).abs()
+        cs = (Gram[ba, bb] / (torch.sqrt(Gram[ba, ba] * Gram[bb, bb]) + 1e-9)).abs()
         t = torch.relu(bfloor - cs) ** 2
         if pairw is not None:
             t = 0.5 * (pairw[ba] + pairw[bb]) * t
