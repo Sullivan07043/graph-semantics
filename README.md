@@ -126,12 +126,12 @@ TORCH_THREADS` (pin it), `CUDA_VISIBLE_DEVICES` (always explicit).
 3. **Trained artifacts** (`v6/outputs/`): four small trained pieces (`negop.pt` f_neg,
    `l3_lora.pt` LoRA, `l2_mlp_v6.pt` WeightNet, `gen_operator.pt` operator) plus the
    re-encoded dictionary (`concept_bank_l3_cog.npz`, ~2 GB) are NOT in git. Two options:
-   - retrain from scratch in this order (all on the public data above):
-     `v6/negop.py train` -> `v6/tools/l3_train.py` -> `v6/tools/reencode_dict.py` ->
-     `v6/tools/expand_dictionary.py` -> `EPOCHS=16 v6/train.py`; the base 521k WordNet+
-     Numberbatch bank is built by `v6/tools/build_dictionary.py` (its WordNet-only input bank
-     comes from the archived builder — see archive/).
-   - or use the released artifact bundle if one is attached to this repository's releases.
+   No artifact bundle is released — retraining from scratch IS the reproduction path (all on
+   the public data above), in this order:
+   `v6/negop.py train` -> `v6/tools/l3_train.py` -> `v6/tools/reencode_dict.py` ->
+   `v6/tools/expand_dictionary.py` -> `EPOCHS=16 v6/train.py`; the base 521k WordNet+
+   Numberbatch bank is built by `v6/tools/build_dictionary.py` (its WordNet-only input bank
+   comes from the archived builder — see archive/).
    Judged numbers require `OPENAI_API_KEY` + `JUDGE_MODEL=gpt-5.5`; all match/exact numbers
    are free and API-independent.
 4. **Determinism**: solver runs are seeded and deterministic within a process; training uses
