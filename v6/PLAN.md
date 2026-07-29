@@ -240,17 +240,19 @@ where identifiable), then completion + translation on the DISCOVERED graph. This
 the original 2026-06-30 task scope (discovery was postponed at the 2026-07-02 meeting).
 - Discovery layer: established algorithms first (FOFC/BPC/RLCD-family rank/tetrad clustering,
   causal-learn implementations; latent-latent on estimated scores).
-- Validation layer (REVISED 2026-07-28 after user challenge — task-based alone is confounded
-  with our own pipeline): THREE independent legs.
-  (1) PIPELINE-INDEPENDENT out-of-sample structure test: discover on a sample split, evaluate
-      the structure's OWN claims (CI / rank constraints) on the unseen split —
-      V(G_discovered, X_test) vs V(G_published, X_test); plus bootstrap stability of
-      edges/clusters (unstable structure is not trusted).
-  (2) Reference agreement: published keys as REFERENCE (not truth) at cluster level;
-      deviations must be individually explained (e.g. a discovered GFP layer is a known
-      omission of the key, not an error).
-  (3) Task utility LAST: mask-20% completion/translation on the discovered graph — answers
-      "useful downstream", not "correct".
+- Validation design (user's intent, clarified 2026-07-28): the DIAGNOSTICS ARE THE INNER
+  LOOP of discovery — discover a candidate, then P2/P3/P5 decide "is it right, keep
+  expanding?":
+    P5 V(G,X) drives EXPANSION: remaining above-noise dependence mass = structure missing;
+      repair proposals say where to add; V exhausted = stop expanding.
+    P2 cert drives CONTRACTION/STOP: an added latent the evidence cannot pin down
+      (cert ~ 0) is rejected/merged — the natural regularizer against V-chasing with
+      unlimited latents. V says "too little structure", cert says "too much".
+    P3 + swap = semantic sanity on the survivors (coherent footprint, intervention behaves
+      as the structure predicts).
+  OUTER guard (keeps the inner loop honest, since V and cert iterate on training samples):
+  out-of-sample V on a sample split + bootstrap stability of edges/clusters; published keys
+  as cluster-level REFERENCE (not truth, deviations explained); mask-20% task utility LAST.
 - Translation layer: the v6 pipeline unchanged on top of the discovered graph = the full
   no-human-structure loop, and the small-scale rehearsal of Task 3's three-layer composition.
 - adequacy.propose_repairs demoted to an auxiliary signal (it assumes a starting graph).
