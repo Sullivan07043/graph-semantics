@@ -11,12 +11,12 @@ RLCD, check it with our own diagnostics, use it.
    latent hierarchy; directions only where the rank rules identify them (a property of the
    math, not a process rule). FOFC/BPC optional sanity baselines.
 
-3. CHECK AND EXPAND (the user's ruling: diagnostics are the check):
-   - V(G_hat, X): remaining above-noise dependence mass; repair proposals say where to
-     extend (add shared latent / latent-latent edge / split cluster). Apply, re-run, until
-     no above-noise mass remains or proposals stop reducing it.
-   - cert on G_hat: which discovered latents the evidence pins down; unpinned ones are
-     reported as such.
+3. CHECK = READ-ONLY REPORT (REVISED, user ruling 2026-07-28 evening): the discovered
+   structure passes downstream UNCHANGED. The V-driven edit loop was tried and RETIRED:
+   V is one-sided (penalizes violated independence claims, never rewards held ones), so
+   claim-poor graphs trivially minimize it and the loop collapsed every structure toward a
+   single factor. V and cert are reported as descriptions of the graph-data relationship,
+   never used to edit the graph. himi (n=202) dropped from the phase.
 
 4. USE: unchanged v6 pipeline on G_hat — completion (T1) and translation (T2) — reported
    next to the published-graph numbers (free match first; judge on approval). Discovered
