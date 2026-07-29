@@ -34,6 +34,7 @@ SHRINK = os.environ.get("SHRINK", "0") == "1"            # graph-zero blend for 
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))          # faithfulness dependence floor
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))        # explaining-away at v-structures
 NLDEP = os.environ.get("NLDEP", "1") == "1"      # TRUNK-4a: dcor targets + GBR residualization
+POLFIX = os.environ.get("POLFIX", "1") == "1"    # decode-side polarity correction (2026-07-28)
 NEGOP = os.environ.get("NEGOP", "0") == "1"
 BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
@@ -52,6 +53,48 @@ if GENOP:
 
 def ts():
     return time.strftime("%H:%M:%S")
+
+
+def polarity_fix(g, W, emb, obs, masked, neg):
+    """Decode-side polarity correction (user-approved 2026-07-28). The item's DATA sign
+    (its dominant latent-parent edge in the signed W — known even for masked items, the X
+    column exists) is ground truth for which pole it speaks from. If the solved embedding
+    sits closer to the wrong pole (cos vs parent direction against cos vs f_neg(parent)),
+    mirror it across the polarity axis u = pos_dir - neg_dir: this flips only the pole
+    component and preserves the item-specific remainder. The corrected embedding is the
+    method's OUTPUT — all metrics consume it. -> (dict i -> embedding, n_flipped)."""
+    import torch
+    out = {i: np.asarray(emb[obs[i]], float) for i in masked}
+    dom = {}
+    for i in masked:
+        ps = [p for p in g.parents(obs[i]) if g.is_latent(p)]
+        if not ps:
+            continue
+        p = max(ps, key=lambda q: abs(W.get((q, obs[i]), 0.0)))
+        w = float(W.get((p, obs[i]), 0.0))
+        if w != 0.0:
+            dom[i] = (p, 1.0 if w > 0 else -1.0)
+    pars = sorted({p for p, _ in dom.values()})
+    if not pars:
+        return out, 0
+    E = np.stack([np.asarray(emb[p], float) for p in pars])
+    with torch.no_grad():
+        N = neg(torch.tensor(E, dtype=torch.float32)).numpy().astype(float)
+    negdir = {p: N[k] for k, p in enumerate(pars)}
+    flips = 0
+    for i, (p, s) in dom.items():
+        e = out[i]
+        dp = np.asarray(emb[p], float)
+        dp = dp / (np.linalg.norm(dp) + 1e-9)
+        dn = negdir[p] / (np.linalg.norm(negdir[p]) + 1e-9)
+        en = e / (np.linalg.norm(e) + 1e-9)
+        pole = 1.0 if float(en @ dp) >= float(en @ dn) else -1.0
+        if pole != s:
+            u = dp - dn
+            u = u / (np.linalg.norm(u) + 1e-9)
+            out[i] = e - 2.0 * float(e @ u) * u
+            flips += 1
+    return out, flips
 
 
 def run_dataset(ds, C, cwords, records):
@@ -129,7 +172,14 @@ def run_dataset(ds, C, cwords, records):
                                            partial_corr=pc, lam_dep=LAM_DEP, dep_corr=dep,
                                            lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br,
                                            gen_op=GEN_OP, ci=ci)
-        preds["core"] = np.stack([emb[obs[i]] for i in masked])
+        if POLFIX and GEN_OP is not None:
+            fixed, nflip = polarity_fix(g, W, emb, obs, masked, GEN_OP.neg)
+            if nflip:
+                print(f"[{ts()}]   fold {fno}: polarity fix flipped {nflip}/{len(masked)}",
+                      flush=True)
+            preds["core"] = np.stack([fixed[i] for i in masked])
+        else:
+            preds["core"] = np.stack([emb[obs[i]] for i in masked])
         if gnn_ctx is not None:
             import torch
             gnn_mod, gmodel, gt_ = gnn_ctx
