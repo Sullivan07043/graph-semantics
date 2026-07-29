@@ -240,9 +240,17 @@ where identifiable), then completion + translation on the DISCOVERED graph. This
 the original 2026-06-30 task scope (discovery was postponed at the 2026-07-02 meeting).
 - Discovery layer: established algorithms first (FOFC/BPC/RLCD-family rank/tetrad clustering,
   causal-learn implementations; latent-latent on estimated scores).
-- Validation layer: published scoring keys are NOT ground truth (V(G,X): 79-100% marginal
-  violations) — the TASK is the judge: run the same mask-20% completion protocol on the
-  discovered graph vs the published graph; higher label recovery wins. V(G,X) = internal fit.
+- Validation layer (REVISED 2026-07-28 after user challenge — task-based alone is confounded
+  with our own pipeline): THREE independent legs.
+  (1) PIPELINE-INDEPENDENT out-of-sample structure test: discover on a sample split, evaluate
+      the structure's OWN claims (CI / rank constraints) on the unseen split —
+      V(G_discovered, X_test) vs V(G_published, X_test); plus bootstrap stability of
+      edges/clusters (unstable structure is not trusted).
+  (2) Reference agreement: published keys as REFERENCE (not truth) at cluster level;
+      deviations must be individually explained (e.g. a discovered GFP layer is a known
+      omission of the key, not an error).
+  (3) Task utility LAST: mask-20% completion/translation on the discovered graph — answers
+      "useful downstream", not "correct".
 - Translation layer: the v6 pipeline unchanged on top of the discovered graph = the full
   no-human-structure loop, and the small-scale rehearsal of Task 3's three-layer composition.
 - adequacy.propose_repairs demoted to an auxiliary signal (it assumes a starting graph).
