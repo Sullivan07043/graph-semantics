@@ -232,3 +232,9 @@ faithfully, then ask what to verify.
 - Every trained component zero-inits to the previous method (strict refinement).
 - Free screens before any judge spend; judge cache on; OPENAI_API_KEY explicitly blanked for
   free runs; CUDA_VISIBLE_DEVICES always explicit; ≤15 concurrent eval processes.
+
+## NEXT PHASE (user 2026-07-28: "留着下一步")
+Active structure DISCOVERY + structure VALIDATION on the small graphs: propose structure
+(seeded by adequacy.propose_repairs / V(G,X) per-pair localization, e.g. himi common-EF
+factor, hexaco correlated-factor/hierarchy), then test the proposed structure under the same
+completion protocol. Until then the given-graph contract stands.
