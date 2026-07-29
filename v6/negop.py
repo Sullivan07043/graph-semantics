@@ -61,7 +61,11 @@ def wordnet_pairs():
     return sorted(pairs)
 
 
-def dev_pole_pairs():
+def dev_pole_pairs(item_level=False):
+    """Factor-level pole pairs (v1). item_level=True (V2, 2026-07-29 cfcs fix): additionally
+    every (positive-item, negative-item) label-embedding pair per bipolar dev latent —
+    in-domain supervision for abstract construct antonymy that WordNet lemmas and the coarse
+    factor means do not cover. Dev pool only; held-out untouched."""
     from run_task1 import ALL_LOADERS
     out = []
     for name in pool.DEV:
@@ -78,6 +82,12 @@ def dev_pole_pairs():
                 vp = T[pos].mean(0); vp /= np.linalg.norm(vp) + 1e-9
                 vn = T[neg].mean(0); vn /= np.linalg.norm(vn) + 1e-9
                 out.append((vp, vn))
+                if item_level:
+                    for i in pos:
+                        for j in neg:
+                            ti = T[i] / (np.linalg.norm(T[i]) + 1e-9)
+                            tj = T[j] / (np.linalg.norm(T[j]) + 1e-9)
+                            out.append((ti, tj))
     return out
 
 
@@ -92,7 +102,7 @@ def train():
     val_n = max(1, len(wpairs) // 10)
     val_idx, tr_idx = perm[:val_n], perm[val_n:]
     A = np.stack([E[widx[a]] for a, b in wpairs]); B = np.stack([E[widx[b]] for a, b in wpairs])
-    dev = dev_pole_pairs()
+    dev = dev_pole_pairs(item_level=os.environ.get("NEGOP_V2", "0") == "1")
     print(f"[{time.strftime('%H:%M:%S')}] wordnet pairs={len(wpairs)} (val {val_n}), "
           f"dev pole pairs={len(dev)}, d={E.shape[1]}", flush=True)
     Dp = torch.tensor(np.stack([p for p, q in dev] + [q for p, q in dev]), dtype=torch.float32,
@@ -122,8 +132,9 @@ def train():
             print(f"[{time.strftime('%H:%M:%S')}] step {step} loss={float(loss):.4f} "
                   f"val_cos={float(vc):.3f} (raw antonym cos={float(base):.3f}) "
                   f"dev_pole_cos={float(dc):.3f}", flush=True)
-    torch.save({"state": m.state_dict(), "d": E.shape[1]}, CKPT)
-    print(f"saved {CKPT}", flush=True)
+    out = os.environ.get("NEGOP_OUT", CKPT)     # separate save target: training a v2 must not
+    torch.save({"state": m.state_dict(), "d": E.shape[1]}, out)   # redirect runtime loads
+    print(f"saved {out}", flush=True)
 
 
 def load(d=None):
