@@ -1,0 +1,350 @@
+{
+  "actual_command": "\"D:\\research\\translate latent variables\\graph-semantics\\.venv\\Scripts\\python.exe\" task3_v2\\scripts\\run_e0_bridge.py --config task3_v2\\experiments\\e0_oracle_bridge\\config.yaml",
+  "adapter_contract": {
+    "bridge_rows": "train+dev only",
+    "judge_api_called": false,
+    "latent_augmentation": "skipped because latent set is empty",
+    "raw_correlation_rows": "train+dev only",
+    "residual_correlation_rows": "train+dev only",
+    "solver_input": "anonymous IDs, numeric X/W, graph support, visible-label embeddings only",
+    "test_rows_used_for_estimation_or_selection": false,
+    "weight_estimation_rows": "train+dev only"
+  },
+  "artifact_caveat": "The v5-compatible WeightNet and LoRA checkpoints were retrained locally because the original ignored release bundle is absent. They are frozen for E0-prime, but the local reproduction did not exactly reproduce the README metrics.",
+  "artifact_training_commit": "70efde7ed488229667ae7958237116c7bdb40e45",
+  "artifacts": {
+    "dictionary": {
+      "embedding_shape": [
+        542705,
+        1024
+      ],
+      "lora_version": 1784798750.8526275,
+      "mtime": 1784798903.4541907,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\concept_bank_l3.npz",
+      "sha256": "6da2de255dcb2fa559fa1c2a8bfba25fd0e4fcfecb5c768ecf229b6ce4e7bb9e",
+      "size_bytes": 2230481041
+    },
+    "encoder": {
+      "model": "intfloat/e5-large-v2",
+      "offline": true,
+      "revision": "f169b11e22de13617baa190a028a32f3493550b6",
+      "snapshot": "D:\\research\\translate latent variables\\.hf_cache\\models--intfloat--e5-large-v2\\snapshots\\f169b11e22de13617baa190a028a32f3493550b6"
+    },
+    "lora": {
+      "mtime": 1784798750.8526275,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l3_lora.pt",
+      "sha256": "d90b024e7fb030e3ee1545c8d19606cf032cf810fc7f4a758749dfefc95a49d5",
+      "size_bytes": 265165
+    },
+    "negop": {
+      "mtime": 1784219501.1647224,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\negop.pt",
+      "sha256": "6f30f0d68ee653d52aef93bdae97feeac8abd17189e688ef49f594e18574690e",
+      "size_bytes": 8399113
+    },
+    "weightnet": {
+      "mtime": 1784798474.5637877,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l2_mlp.pt",
+      "sha256": "70ffc4fcf668b57d943240fde67a8b339c702fa0093a5594f34e3297a5c50bfd",
+      "size_bytes": 24073
+    }
+  },
+  "config_path": "D:\\research\\translate latent variables\\graph-semantics\\task3_v2\\experiments\\e0_oracle_bridge\\config.yaml",
+  "config_sha256": "e89b2c74721b8fb9f34728987dfdc1bb9ebb1eb0b1ac25c5714af0605d8605ea",
+  "current_git_commit": "02f8112f88cc1dddc22d2b445fbe1a14480be542",
+  "data_manifest_path": "D:\\research\\translate latent variables\\graph-semantics\\task3_v2\\experiments\\e0_oracle_bridge\\data_manifest.json",
+  "data_manifest_sha256": "e1c632622ade36dac376533deda81041161637d29eb6973392d5e289a00c3b3b",
+  "debug_skip_decode": false,
+  "decision": {
+    "consistent_positive_graph_count": 0,
+    "consistent_positive_graphs": [],
+    "criteria": {
+      "at_least_two_graphs_consistent": false,
+      "both_core_comparisons_unsupported": true,
+      "core_directionally_positive": false,
+      "oracle_vs_no_graph_ci_excludes_zero": false,
+      "oracle_vs_no_graph_mean_positive": false,
+      "oracle_vs_no_graph_supported_positive": false,
+      "oracle_vs_shuffle_ci_excludes_zero": false,
+      "oracle_vs_shuffle_mean_positive": true,
+      "oracle_vs_shuffle_supported_positive": false,
+      "reverse_mean_nonpositive": true,
+      "stable_oracle_advantage_over_reverse": false
+    },
+    "debug_skip_decode": false,
+    "decision": "NO-GO",
+    "e1_allowed": false,
+    "failure_source": "causal_graph_semantic_constraint_mismatch",
+    "formal_run": true,
+    "judge_acc_status": "pending",
+    "next_step": "diagnose graph-to-semantic constraint transfer; E1 is not allowed",
+    "operationalization": "Supported-positive means mean >0 and aggregate 95% CI lower bound >0. GO requires supported-positive oracle-vs-shuffle, oracle-vs-uniform, and oracle-vs-reverse effects, plus joint positive direction in >=2 graphs. NO-GO requires both core comparisons (oracle-vs-shuffle and oracle-vs-uniform) to be unsupported, reverse mean <=0, and the two core means not both positive. Directionally positive core means that miss CI or cross-graph requirements, and all other conflicting patterns, are INCONCLUSIVE.",
+    "primary_metric": "gold_embedding_cosine"
+  },
+  "e5_snapshot_revision": "f169b11e22de13617baa190a028a32f3493550b6",
+  "elapsed_seconds": 289.58151450002333,
+  "environment": {
+    "executable": "D:\\research\\translate latent variables\\graph-semantics\\.venv\\Scripts\\python.exe",
+    "gpu": {
+      "cuda_available": true,
+      "cuda_version": "12.8",
+      "device_count": 1,
+      "devices": [
+        {
+          "capability": [
+            12,
+            0
+          ],
+          "index": 0,
+          "name": "NVIDIA GeForce RTX 5090"
+        }
+      ],
+      "encoder_device": "cuda",
+      "negop_device": "cpu",
+      "solver_device": "cpu",
+      "weightnet_device": "cpu"
+    },
+    "offline_environment": {
+      "HF_CACHE": "D:\\research\\translate latent variables\\.hf_cache",
+      "HF_DATASETS_OFFLINE": "1",
+      "HF_HOME": "D:\\research\\translate latent variables\\.hf_cache",
+      "HF_HUB_OFFLINE": "1",
+      "TRANSFORMERS_OFFLINE": "1"
+    },
+    "packages": {
+      "PyYAML": "6.0.3",
+      "numpy": "2.5.0",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.18.0",
+      "sentence-transformers": "5.1.2",
+      "torch": "2.11.0+cu128",
+      "transformers": "4.57.6"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.13 (main, Mar  3 2026, 15:01:35) [MSC v.1944 64 bit (AMD64)]"
+  },
+  "experiment_id": "task3_e0_prime_oracle_causal_graph_bridge",
+  "finished_at_utc": "2026-07-27T13:13:53.194699Z",
+  "formal_run": true,
+  "frozen_training_audit": {
+    "lora": {
+      "epochs": 3,
+      "learning_rate": 0.0001,
+      "loss_weights": {
+        "anchor": 10.0,
+        "bridge": 1.0,
+        "independence": 0.3,
+        "negation": 1.0
+      },
+      "optimizer": "Adam",
+      "updates": 192
+    },
+    "retrained_in_e0_prime": false,
+    "weightnet": {
+      "epochs": 4,
+      "inner_unroll_steps": 60,
+      "outer_learning_rate": 0.001,
+      "outer_optimizer": "Adam",
+      "procedure_total_updates": 256,
+      "selected_checkpoint_epoch": 3,
+      "selected_checkpoint_updates": 192
+    }
+  },
+  "git_dirty": true,
+  "git_status_porcelain": [
+    "warning: could not open directory '.pytest_cache/': Permission denied",
+    " M .gitignore",
+    " M README.md",
+    "A  data/oracle_clean/codebook.txt",
+    "A  data/oracle_clean/graph.dot",
+    "A  data/oracle_clean/latent_labels.json",
+    "A  data/oracle_clean/oracle_metadata.json",
+    "A  data/oracle_mixed_parent/codebook.txt",
+    "A  data/oracle_mixed_parent/graph.dot",
+    "A  data/oracle_mixed_parent/latent_labels.json",
+    "A  data/oracle_mixed_parent/oracle_metadata.json",
+    "A  data/oracle_polarity/codebook.txt",
+    "A  data/oracle_polarity/graph.dot",
+    "A  data/oracle_polarity/latent_labels.json",
+    "A  data/oracle_polarity/oracle_metadata.json",
+    "A  data/oracle_sparse_sibling/codebook.txt",
+    "A  data/oracle_sparse_sibling/graph.dot",
+    "A  data/oracle_sparse_sibling/latent_labels.json",
+    "A  data/oracle_sparse_sibling/oracle_metadata.json",
+    "A  \"experiment_logs/experiment setting/research-notes.aux\"",
+    "A  \"experiment_logs/experiment setting/research-notes.fdb_latexmk\"",
+    "A  \"experiment_logs/experiment setting/research-notes.fls\"",
+    "A  \"experiment_logs/experiment setting/research-notes.out\"",
+    "A  \"experiment_logs/experiment setting/research-notes.pdf\"",
+    "A  \"experiment_logs/experiment setting/research-notes.synctex.gz\"",
+    "A  \"experiment_logs/experiment setting/research-notes.tex\"",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/causcale_architecture_smoke.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/causcale_official.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/causcale_official_dag.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/discovered_graph.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/oracle_graph.npy",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/v41_completion.json",
+    "A  experiments/jspace_causcale_smoke/runs/fixture/v41_on_causcale.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/causcale_seed42.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/causcale_seed43.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/causcale_seed44.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/causcale_seed45.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/causcale_seed46.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_validation_seed42.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_validation_seed43.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_validation_seed44.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_validation_seed45.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/intervention_validation_seed46.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/v41_completion.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery/v41_completion_clean_only.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_balanced/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_consensus80.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed42.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed43.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed44.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed45.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed46.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed47.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed48.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed49.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed50.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed51.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed52.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed53.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed54.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed55.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed56.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed57.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed58.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed59.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed60.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/causcale_seed61.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/dual_directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/intervention_validation_consensus80.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/intervention_validation_seed42.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/v41_consensus80_clean_only.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_discovery_harddo_v2/v41_seed42_clean_only.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/dual_directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v1/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/dual_directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/intervention_validation_consensus80_external.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/intervention_validation_seed42_external.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_heldout_harddo_v2/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/X.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/directions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/intervention_strengths.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/interventions.npy",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/labels.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/manifest.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/nodes.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/qualitative_readouts.json",
+    "A  experiments/jspace_causcale_smoke/runs/jspace_smoke/rows.jsonl",
+    "A  experiments/jspace_causcale_smoke/runs/preflight.json",
+    " M requirements.txt",
+    " M task3_v1/README.md",
+    " M task3_v1/docs/TASK3.md",
+    "?? task3_v1/docs/latex/",
+    "?? task3_v2/"
+  ],
+  "output_files": {
+    "results\\config_resolved.json": {
+      "sha256": "78910929251eb37643068e0b68193e0ae74a363968ae20b8deb8f870a47aa1ac",
+      "size_bytes": 8565
+    },
+    "results\\decision.json": {
+      "sha256": "85b26740ba16d3ea36ed96f4c1385d4bb9082f630bedd5f14137915d28c3ecd6",
+      "size_bytes": 1471
+    },
+    "results\\judge_requests.jsonl": {
+      "sha256": "ceb53812af11949228049eab9dffd33e5b457bbfdb88386b77d250f08f0763f3",
+      "size_bytes": 693528
+    },
+    "results\\paired_deltas.csv": {
+      "sha256": "a41360843e5a3bdf745002b819b2e346d98a7b388c526cad02c2a1401e40c311",
+      "size_bytes": 12513
+    },
+    "results\\paired_node_deltas.csv": {
+      "sha256": "04cc684ae3219708a6eec8a6497dd0d50759f5e659e5c87600128ca33813dd25",
+      "size_bytes": 218388
+    },
+    "results\\per_fold.csv": {
+      "sha256": "e6caf6e5972a7fc436177d5dcacfa56cfa437789be59b68b79106fb795ebf423",
+      "size_bytes": 11339
+    },
+    "results\\per_graph.csv": {
+      "sha256": "10fa54cf958b84722e7ef365aac77e908a8894c649063535d2b586bde9dffd90",
+      "size_bytes": 2365
+    },
+    "results\\per_node.csv": {
+      "sha256": "860221c1066617cde7cea6497b8c107d1b2ac1c9d5706085225d2505dbcb97ef",
+      "size_bytes": 575189
+    },
+    "results\\report.md": {
+      "sha256": "35a32e8be2374bfc5f2f84a6cc9cd61723ccd51e3a4f2bc52cbe384867fde113",
+      "size_bytes": 10445
+    },
+    "results\\shuffle_null.csv": {
+      "sha256": "686d7d44a651b8889ce50dad514572bad4065799b855ed89d629f5ce0278a7b9",
+      "size_bytes": 24045
+    },
+    "results\\structural_diagnostics.csv": {
+      "sha256": "a97e23da21a509425dbcb29c296090a7ae72481323bf5de3065b0289cdfa600d",
+      "size_bytes": 24289
+    },
+    "results\\summary.csv": {
+      "sha256": "97e55d1410a6dcb328fbd972e1881acb3afe47bc7ec839757582019f333c09b2",
+      "size_bytes": 14503
+    }
+  },
+  "runner_path": "D:\\research\\translate latent variables\\graph-semantics\\task3_v2\\scripts\\run_e0_bridge.py",
+  "schema_version": "task3.e0_prime.run_manifest.v1",
+  "started_at_utc": "2026-07-27T13:08:30.993871Z",
+  "working_directory": "D:\\research\\translate latent variables\\graph-semantics"
+}

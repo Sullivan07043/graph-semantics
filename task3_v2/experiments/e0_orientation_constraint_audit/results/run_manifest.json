@@ -1,0 +1,115 @@
+{
+  "artifacts": [
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bigfive2_marginal_pearson.npy",
+      "sha256": "07100429e38de8424ab2ee71cbba1308790495cade1fd02de64ddb8211d46637",
+      "size_bytes": 10128
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bootstrap_summary.csv",
+      "sha256": "05ef444d2a562999f68b896c7d985f641bb978557c99d9b8211921f7b75c07cb",
+      "size_bytes": 55449
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bundle_judge_requests.jsonl",
+      "sha256": "492134ff1b94ecad1e0cec1a0f5229eaf31950510bae85ce506d65d57d9236d2",
+      "size_bytes": 132952
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bundle_per_node.csv",
+      "sha256": "989f30c5fe4b6b853d919634aed73aaa4c9199fbe0ea91eae875a4acbb173e20",
+      "size_bytes": 95461
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bundle_replication.csv",
+      "sha256": "5ea558eb5e4ba4cffb934abaea2cf24cffbd767b6548ad4088045da00593dc8b",
+      "size_bytes": 1895
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bundle_replication.json",
+      "sha256": "ebeead99c79498c70ac7e073f67aa1da27d5572d6f66a464cb252c84833851de",
+      "size_bytes": 11621
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\config_resolved.json",
+      "sha256": "57af4dd1cc9496835bb42f409a1c567b967124f29b29513780b0dad64052ba74",
+      "size_bytes": 15592
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\decision.json",
+      "sha256": "ead5d11b8315d4af346326a41f344b1711973fa813d6b7c02350cb95b9d8534e",
+      "size_bytes": 1999
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\embeddings.npz",
+      "sha256": "8cfc774f015d267299544b033981378caf677a767096efaa44e8135270d4ee8b",
+      "size_bytes": 7187234
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\gradient_norms.csv",
+      "sha256": "cfebf05a7e1d76008657577a4537246eac5db0808f9bbd06cf95b3730177711b",
+      "size_bytes": 1760744
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\graph_arm_metadata.json",
+      "sha256": "76e3c6fd673653f25de7c1e713c19dd76c5407d08d47fb049a699035ff3f6a7e",
+      "size_bytes": 36214
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\judge_requests.jsonl",
+      "sha256": "5f28e3619ac5571ff4216f73a0e2ba8d2446887842a6358f48ccdedd2d125d3c",
+      "size_bytes": 915012
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\loss_terms.csv",
+      "sha256": "83b658ff3101b6263bae4e24ae5fd9bce859063086e57859ccbd0ad58d942e0f",
+      "size_bytes": 527323
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\orientation_audit.json",
+      "sha256": "95acc4dff0567f0bc92b43f541f46c9f42a9468d8f10ea87e9c13c02afc2faca",
+      "size_bytes": 3603
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\paired_deltas.csv",
+      "sha256": "ae875e038ed374c7c94fc134c4c674f4425dce509b3e41a75fd8629bdf4756e5",
+      "size_bytes": 2010983
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\parity_gate.json",
+      "sha256": "e0ecd285e6498c7196b7e0ced09de016ebb08abf01818c904d23818918a25506",
+      "size_bytes": 26371
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\per_arm.csv",
+      "sha256": "ea35c39518af3993e96f51aee10a8c1c294211339f7221758548600d798d9104",
+      "size_bytes": 9454
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\per_group.csv",
+      "sha256": "941434314ebbe8e4f4e82d05774b3d4969470a2268f7ac9c38018c05036c66f6",
+      "size_bytes": 11924
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\per_node_audit.csv",
+      "sha256": "3837cf0c7e71eb78264c50c44b0b3e357e419edb68d3bd4de664db980d9d2cf3",
+      "size_bytes": 1665276
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\provenance.json",
+      "sha256": "0812a5f74ceb016d007fdaac688383234a2a3a92808b336a0047823cf8a4c2c6",
+      "size_bytes": 35674
+    },
+    {
+      "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\report.md",
+      "sha256": "63b8d888c68f77f6afcda16b9f6f5c84cd3708c07ae3dcd6ea6a40b7eafa8a93",
+      "size_bytes": 14790
+    }
+  ],
+  "created_at_utc": "2026-07-28T11:13:42.831830Z",
+  "decision": "F",
+  "failure_source": "broader_solver_or_metric_failure",
+  "formal_run": true,
+  "refinalized_from_existing_results": true,
+  "schema_version": "task3.e0_double_prime.run_manifest.v1"
+}

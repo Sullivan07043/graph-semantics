@@ -1,0 +1,1194 @@
+{
+  "metric_nodes": 60,
+  "metric_rows": [
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_00",
+      "node_id": "node_000",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_00",
+      "node_id": "node_007",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_00",
+      "node_id": "node_012",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_00",
+      "node_id": "node_018",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_00",
+      "node_id": "node_001",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_00",
+      "node_id": "node_008",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_00",
+      "node_id": "node_013",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_00",
+      "node_id": "node_019",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_00",
+      "node_id": "node_002",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_00",
+      "node_id": "node_009",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_00",
+      "node_id": "node_014",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_00",
+      "node_id": "node_015",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_00",
+      "node_id": "node_003",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_00",
+      "node_id": "node_005",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_00",
+      "node_id": "node_010",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_00",
+      "node_id": "node_016",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_00",
+      "node_id": "node_004",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_00",
+      "node_id": "node_006",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_00",
+      "node_id": "node_011",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_00",
+      "node_id": "node_017",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_01",
+      "node_id": "node_000",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_01",
+      "node_id": "node_006",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_01",
+      "node_id": "node_013",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_01",
+      "node_id": "node_019",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_01",
+      "node_id": "node_001",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_01",
+      "node_id": "node_007",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_01",
+      "node_id": "node_014",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_01",
+      "node_id": "node_017",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_01",
+      "node_id": "node_002",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_01",
+      "node_id": "node_008",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_01",
+      "node_id": "node_012",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_01",
+      "node_id": "node_018",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_01",
+      "node_id": "node_003",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_01",
+      "node_id": "node_009",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_01",
+      "node_id": "node_015",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_01",
+      "node_id": "node_016",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_01",
+      "node_id": "node_004",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_01",
+      "node_id": "node_005",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_01",
+      "node_id": "node_010",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_01",
+      "node_id": "node_011",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_02",
+      "node_id": "node_000",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_02",
+      "node_id": "node_008",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_02",
+      "node_id": "node_014",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 0,
+      "graph_id": "graph_02",
+      "node_id": "node_019",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_02",
+      "node_id": "node_001",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_02",
+      "node_id": "node_009",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_02",
+      "node_id": "node_015",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 1,
+      "graph_id": "graph_02",
+      "node_id": "node_017",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_02",
+      "node_id": "node_002",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_02",
+      "node_id": "node_010",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_02",
+      "node_id": "node_013",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 2,
+      "graph_id": "graph_02",
+      "node_id": "node_018",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_02",
+      "node_id": "node_003",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_02",
+      "node_id": "node_006",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_02",
+      "node_id": "node_012",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 3,
+      "graph_id": "graph_02",
+      "node_id": "node_016",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_02",
+      "node_id": "node_004",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_02",
+      "node_id": "node_005",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_02",
+      "node_id": "node_007",
+      "passed": true
+    },
+    {
+      "continuous_abs_differences": {
+        "gold_cosine": 0.0,
+        "mrr": 0.0
+      },
+      "discrete_equal": {
+        "exact": true,
+        "match_acc": true,
+        "rank": true,
+        "recall_at_1": true,
+        "recall_at_5": true
+      },
+      "fold": 4,
+      "graph_id": "graph_02",
+      "node_id": "node_011",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "solver_rows": [
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 0,
+      "graph_id": "graph_00",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.312816604899126e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 1,
+      "graph_id": "graph_00",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 3.443356710874923e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 2,
+      "graph_id": "graph_00",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.8216318170848353e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 3,
+      "graph_id": "graph_00",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 3.5551561694546763e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 4,
+      "graph_id": "graph_00",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.3172574969976267e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 0,
+      "graph_id": "graph_01",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 3.01292324422775e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 1,
+      "graph_id": "graph_01",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.5925928071046656e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 2,
+      "graph_id": "graph_01",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.1804780203638074e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 3,
+      "graph_id": "graph_01",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.37476704967321e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 4,
+      "graph_id": "graph_01",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.2423174428354287e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 0,
+      "graph_id": "graph_02",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.8851365740933943e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 1,
+      "graph_id": "graph_02",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 4.6805892495171975e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 2,
+      "graph_id": "graph_02",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 3.1079583351356632e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 3,
+      "graph_id": "graph_02",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 2.8578250876876155e-12,
+      "passed": true,
+      "rtol": 1e-05
+    },
+    {
+      "allclose": true,
+      "allowed_max_row_cosine_error": 1e-07,
+      "atol": 1e-06,
+      "fold": 4,
+      "graph_id": "graph_02",
+      "max_abs_difference": 0.0,
+      "max_row_cosine_error": 1.7499335314141717e-12,
+      "passed": true,
+      "rtol": 1e-05
+    }
+  ],
+  "solver_scopes": 15
+}

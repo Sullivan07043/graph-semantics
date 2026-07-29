@@ -1,0 +1,190 @@
+{
+  "schema_version": "task3.e0_prime.graph.v1",
+  "graph_id": "graph_01",
+  "world": "logistics_and_delivery_system",
+  "graph_seed": 3201,
+  "observed_only": true,
+  "hidden_confounders": false,
+  "effect_sign": "positive_monotone",
+  "modules": [
+    "supply_and_inventory",
+    "warehouse_operations",
+    "transport_and_attempt",
+    "recovery_and_customer"
+  ],
+  "nodes": [
+    {
+      "id": "node_000",
+      "gold_label": "supplier delay risk",
+      "causal_description": "Risk that inbound materials arrive later than planned.",
+      "module": "supply_and_inventory"
+    },
+    {
+      "id": "node_001",
+      "gold_label": "order surge intensity",
+      "causal_description": "Intensity of a sudden increase in customer orders.",
+      "module": "supply_and_inventory"
+    },
+    {
+      "id": "node_002",
+      "gold_label": "warehouse staffing shortage",
+      "causal_description": "Severity of insufficient staffing in warehouse operations.",
+      "module": "warehouse_operations"
+    },
+    {
+      "id": "node_003",
+      "gold_label": "traffic congestion severity",
+      "causal_description": "Severity of congestion on outbound delivery routes.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_004",
+      "gold_label": "weather disruption intensity",
+      "causal_description": "Intensity of weather conditions that disrupt transport.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_005",
+      "gold_label": "address error rate",
+      "causal_description": "Rate of incorrect or incomplete delivery addresses.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_006",
+      "gold_label": "procurement queue delay",
+      "causal_description": "Delay in clearing inbound procurement orders.",
+      "module": "supply_and_inventory"
+    },
+    {
+      "id": "node_007",
+      "gold_label": "inventory shortage risk",
+      "causal_description": "Risk that available inventory cannot meet demand.",
+      "module": "supply_and_inventory"
+    },
+    {
+      "id": "node_008",
+      "gold_label": "order handling workload intensity",
+      "causal_description": "Intensity of warehouse order-handling work created by order surges and inventory shortages.",
+      "module": "warehouse_operations"
+    },
+    {
+      "id": "node_009",
+      "gold_label": "packing delay",
+      "causal_description": "Delay in packing picked orders for dispatch.",
+      "module": "warehouse_operations"
+    },
+    {
+      "id": "node_010",
+      "gold_label": "dispatch backlog severity",
+      "causal_description": "Severity of orders waiting for outbound dispatch.",
+      "module": "warehouse_operations"
+    },
+    {
+      "id": "node_011",
+      "gold_label": "loading delay",
+      "causal_description": "Delay in loading prepared orders onto delivery vehicles.",
+      "module": "warehouse_operations"
+    },
+    {
+      "id": "node_012",
+      "gold_label": "route disruption risk",
+      "causal_description": "Risk that planned delivery routes become disrupted.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_013",
+      "gold_label": "outbound delivery delay",
+      "causal_description": "Delay in outbound delivery caused by route disruption and dispatch backlog.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_014",
+      "gold_label": "delivery attempt delay",
+      "causal_description": "Delay before a courier can complete a delivery attempt.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_015",
+      "gold_label": "missed delivery risk",
+      "causal_description": "Risk that the current delivery attempt is unsuccessful.",
+      "module": "transport_and_attempt"
+    },
+    {
+      "id": "node_016",
+      "gold_label": "redelivery workload intensity",
+      "causal_description": "Intensity of work created by orders requiring redelivery.",
+      "module": "recovery_and_customer"
+    },
+    {
+      "id": "node_017",
+      "gold_label": "depot processing backlog",
+      "causal_description": "Severity of parcels awaiting processing at the depot due to redelivery workload and loading delays.",
+      "module": "recovery_and_customer"
+    },
+    {
+      "id": "node_018",
+      "gold_label": "customer wait duration",
+      "causal_description": "Duration customers wait before receiving their orders.",
+      "module": "recovery_and_customer"
+    },
+    {
+      "id": "node_019",
+      "gold_label": "service complaint risk",
+      "causal_description": "Risk that a delayed customer files a service complaint.",
+      "module": "recovery_and_customer"
+    }
+  ],
+  "topological_order": [
+    "node_000",
+    "node_001",
+    "node_002",
+    "node_003",
+    "node_004",
+    "node_005",
+    "node_006",
+    "node_007",
+    "node_008",
+    "node_009",
+    "node_010",
+    "node_011",
+    "node_012",
+    "node_013",
+    "node_014",
+    "node_015",
+    "node_016",
+    "node_017",
+    "node_018",
+    "node_019"
+  ],
+  "edges": [
+    {"source": "node_000", "target": "node_006", "coefficient": 0.57},
+    {"source": "node_001", "target": "node_006", "coefficient": 0.46},
+    {"source": "node_000", "target": "node_007", "coefficient": 0.52},
+    {"source": "node_006", "target": "node_007", "coefficient": 0.63},
+    {"source": "node_001", "target": "node_008", "coefficient": 0.61},
+    {"source": "node_007", "target": "node_008", "coefficient": 0.49},
+    {"source": "node_002", "target": "node_009", "coefficient": 0.54},
+    {"source": "node_008", "target": "node_009", "coefficient": 0.58},
+    {"source": "node_009", "target": "node_010", "coefficient": 0.55},
+    {"source": "node_003", "target": "node_010", "coefficient": 0.42},
+    {"source": "node_002", "target": "node_011", "coefficient": 0.48},
+    {"source": "node_010", "target": "node_011", "coefficient": 0.60},
+    {"source": "node_003", "target": "node_012", "coefficient": 0.64},
+    {"source": "node_004", "target": "node_012", "coefficient": 0.51},
+    {"source": "node_012", "target": "node_013", "coefficient": 0.59},
+    {"source": "node_010", "target": "node_013", "coefficient": 0.45},
+    {"source": "node_005", "target": "node_014", "coefficient": 0.56},
+    {"source": "node_013", "target": "node_014", "coefficient": 0.62},
+    {"source": "node_004", "target": "node_015", "coefficient": 0.47},
+    {"source": "node_014", "target": "node_015", "coefficient": 0.65},
+    {"source": "node_015", "target": "node_016", "coefficient": 0.53},
+    {"source": "node_001", "target": "node_016", "coefficient": 0.44},
+    {"source": "node_016", "target": "node_017", "coefficient": 0.58},
+    {"source": "node_011", "target": "node_017", "coefficient": 0.50},
+    {"source": "node_007", "target": "node_018", "coefficient": 0.43},
+    {"source": "node_014", "target": "node_018", "coefficient": 0.61},
+    {"source": "node_017", "target": "node_018", "coefficient": 0.55},
+    {"source": "node_018", "target": "node_019", "coefficient": 0.66},
+    {"source": "node_015", "target": "node_019", "coefficient": 0.46}
+  ]
+}

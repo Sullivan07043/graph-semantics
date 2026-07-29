@@ -1,0 +1,638 @@
+{
+  "arms": [
+    "full_oracle",
+    "generation_only_oracle",
+    "oracle_without_generation",
+    "residual_only_oracle",
+    "independence_only_oracle",
+    "symmetrized_oracle",
+    "markov_blanket_oracle",
+    "same_module_graph",
+    "reversed_full",
+    "shuffled_full",
+    "raw_correlation",
+    "uniform"
+  ],
+  "bootstrap": {
+    "confidence_level": 0.95,
+    "draws": 10000,
+    "hierarchy": [
+      "graph",
+      "fold",
+      "masked_node"
+    ],
+    "seed": 88173,
+    "shuffled_leaf_value": "mean_over_20_fixed_permutations"
+  },
+  "bundle_replication": {
+    "datasets": {
+      "dev": "himi",
+      "heldout": "kims",
+      "hierarchy": "bigfive2"
+    },
+    "drift_rule": "checkpoint_or_bundle_drift is present when selected Task-1 core does not preserve its advantage over uniform, hierarchy latent constraints do not improve over hierarchy alone, or both selected-set and existing all-13 evidence lose the Week-6 qualitative trend. The absent original release artifacts remain a provenance limitation, but do not alone prove behavioral drift. Missing Judge verdicts remain pending.",
+    "hierarchy_arms": [
+      "latent_constraints_off",
+      "latent_constraints_on"
+    ],
+    "settings": {
+      "bridge": "pearson",
+      "folds": 5,
+      "k": 60,
+      "l2_arm": "mlp",
+      "lam_norm": 0.1,
+      "lam_res": 1,
+      "lam_zero": 0.3,
+      "negop": 1,
+      "residual": 1,
+      "task": 1
+    },
+    "week6_reference": {
+      "hierarchy_bigfive_match": {
+        "flat": 0.72,
+        "hierarchy_latent_constraints": 0.74,
+        "hierarchy_only": 0.66
+      },
+      "himi_match": {
+        "ours": 0.9,
+        "raw_correlation": 0.767,
+        "uniform": 0.567
+      },
+      "kims_match": {
+        "ours": 0.675,
+        "raw_correlation": 0.85,
+        "uniform": 0.154
+      },
+      "task1_all13_match": {
+        "ours": 0.751,
+        "raw_correlation": 0.83,
+        "uniform": 0.27
+      }
+    }
+  },
+  "code_authority": {
+    "checkout_or_merge_main": false,
+    "latest_main_commit_at_freeze": "8d58ee99855dbe7a44c26a2b5c8642d01ba736ac",
+    "latest_main_theory_blob": "0b0b4d4c69c05294bb06bc69ba9084320394bee3",
+    "main_usage": "read_only_theory_and_code_authority",
+    "v5_worktree_equals_latest_main": true,
+    "worktree_commit_at_freeze": "02f8112f88cc1dddc22d2b445fbe1a14480be542"
+  },
+  "decision_rules": {
+    "broader_failure": "same-module also fails against shuffled/uniform or local metrics conflict materially.",
+    "categories": {
+      "A": "orientation_interface_bug",
+      "B": "checkpoint_or_bundle_drift",
+      "C": "root_or_anchor_boundary",
+      "D": "generation_constraint_mismatch",
+      "E": "causal_graph_semantic_constraint_mismatch",
+      "F": "broader_solver_or_metric_failure"
+    },
+    "causal_semantic_mismatch": "orientation and bundle interfaces pass, non_root_visible_parent still fails, full oracle does not beat shuffled/no-graph, and same-module is a supported positive diagnostic on multiple semantic/ranking metrics.",
+    "generation_mismatch": "generation_only is the weakest semantic solver arm and oracle_without_generation improves over full_oracle with supported paired evidence on more than aggregate raw cosine alone.",
+    "root_boundary": "root/no-visible-parent strata explain the failure while non_root_visible_parent has supported full-oracle advantages.",
+    "supported_positive": "mean_gt_0_and_paired_ci_low_gt_0"
+  },
+  "derived_graphs": {
+    "cyclic_adapter_limitation": "Bidirected diagnostic graphs are not causal DAGs. v5 ancestor/trek operations reduce to connected-component reachability and are reported as an audit limitation.",
+    "markov_blanket_oracle": {
+      "adapter": "both_directions_per_unordered_pair",
+      "relation": "parents_children_and_coparents"
+    },
+    "same_module_graph": {
+      "adapter": "both_directions_per_unordered_pair",
+      "relation": "clique_within_each_frozen_module"
+    },
+    "symmetric_weight": {
+      "assigned_identically_to_both_directions": true,
+      "formula": "abs_train_dev_pearson"
+    },
+    "symmetrized_oracle": {
+      "adapter": "both_directions_per_unordered_pair",
+      "relation": "oracle_skeleton"
+    }
+  },
+  "evaluation": {
+    "centered_cosine_center": "all_20_gold_label_embedding_centroid_per_graph",
+    "decoder": "frozen_stage3_splice",
+    "decoder_alpha_fit": "visible_labels_only_per_fold",
+    "decoder_screen_k": 2000,
+    "decoder_target_l0": 8,
+    "decoder_top_k": 6,
+    "judge": {
+      "fabricated_results_forbidden": true,
+      "mode": "requests_only",
+      "model": "gpt-5.5"
+    },
+    "label_candidate_set": "all_20_gold_label_embeddings_within_graph",
+    "metrics": [
+      "gold_cosine",
+      "centered_cosine",
+      "prediction_margin",
+      "mrr",
+      "recall_at_1",
+      "recall_at_5",
+      "match_acc",
+      "exact"
+    ]
+  },
+  "execution": {
+    "deterministic_seed": 20260727,
+    "encoder_device": "cuda",
+    "full_decode": true,
+    "overwrite_results": true,
+    "solver_device": "cpu",
+    "torch_threads": 4
+  },
+  "experiment_id": "task3_e0_double_prime_orientation_constraint_audit",
+  "frozen_stage3": {
+    "artifact_training_commit": "70efde7ed488229667ae7958237116c7bdb40e45",
+    "calibrated_space": {
+      "alpha": 16,
+      "checkpoint": "v5/outputs/l3_lora.pt",
+      "method": "LoRA",
+      "rank": 8,
+      "sha256": "d90b024e7fb030e3ee1545c8d19606cf032cf810fc7f4a758749dfefc95a49d5",
+      "wrapped_last_layers": 2
+    },
+    "decode_dictionary": {
+      "path": "v5/outputs/concept_bank_l3.npz",
+      "sha256": "6da2de255dcb2fa559fa1c2a8bfba25fd0e4fcfecb5c768ecf229b6ce4e7bb9e"
+    },
+    "objective": {
+      "bridge": {
+        "kappa": 0.5,
+        "lam_upper": 0.3,
+        "measure": "train_dev_absolute_pearson",
+        "q": 0.7
+      },
+      "lam_norm": 0.1,
+      "lam_res": 1.0,
+      "lam_zero": 0.3,
+      "latent_constraints": true,
+      "observed_only_effect": "no_op",
+      "residual": 1.0
+    },
+    "retrain_in_e0_double_prime": false,
+    "semantic_encoder": "intfloat/e5-large-v2",
+    "semantic_encoder_snapshot_revision": "f169b11e22de13617baa190a028a32f3493550b6",
+    "semantic_negation": {
+      "checkpoint": "v5/outputs/negop.pt",
+      "sha256": "6f30f0d68ee653d52aef93bdae97feeac8abd17189e688ef49f594e18574690e"
+    },
+    "solver": {
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-08,
+      "arm": "mlp",
+      "checkpoint": "v5/outputs/l2_mlp.pt",
+      "inner_learning_rate": 0.02,
+      "inner_optimizer": "functional_adam",
+      "module": "WeightNet",
+      "sha256": "70ffc4fcf668b57d943240fde67a8b339c702fa0093a5594f34e3297a5c50bfd",
+      "unroll_steps": 60
+    }
+  },
+  "gradient_diagnostics": {
+    "explosion_norm_above": "1.0e3",
+    "near_zero_norm_at_or_below": 1e-10,
+    "nonfinite_is_failure": true
+  },
+  "graphs": [
+    {
+      "data_seed": 9101,
+      "graph_id": "graph_00",
+      "graph_seed": 3101,
+      "spec": "../e0_oracle_bridge/graphs/industrial_cooling_system.json",
+      "world": "industrial_cooling_system"
+    },
+    {
+      "data_seed": 9201,
+      "graph_id": "graph_01",
+      "graph_seed": 3201,
+      "spec": "../e0_oracle_bridge/graphs/logistics_and_delivery_system.json",
+      "world": "logistics_and_delivery_system"
+    },
+    {
+      "data_seed": 9301,
+      "graph_id": "graph_02",
+      "graph_seed": 3301,
+      "spec": "../e0_oracle_bridge/graphs/water_treatment_system.json",
+      "world": "water_treatment_system"
+    }
+  ],
+  "initialization": {
+    "baseline_reporting": "common_als_initial_to_closed_form_baseline_final",
+    "embedding_state": "oracle_estimated_weight_als_from_e0_prime",
+    "identical_for_every_arm": true,
+    "note": "The same masked-node embedding vectors initialize every arm. Residual vectors are internal nuisance variables and are mapped by node ID from one fixed RNG stream.",
+    "residual_state": "fixed_seed_common_node_map"
+  },
+  "loss_terms": {
+    "masks": {
+      "full_oracle": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "generation_only_oracle": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "independence_only_oracle": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        0
+      ],
+      "markov_blanket_oracle": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "oracle_without_generation": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "residual_only_oracle": [
+        0,
+        1,
+        1,
+        0,
+        0,
+        0
+      ],
+      "reversed_full": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "same_module_graph": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "shuffled_full": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "symmetrized_oracle": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "operational_notes": {
+      "generation_only": "The frozen residual vector remains inside the generation equation but loses its penalties. This intentional degeneracy is diagnosed, not fixed.",
+      "residual_only": "Residual penalties are mathematically disconnected from semantic embeddings without generation; zero embedding gradients are expected."
+    },
+    "order": [
+      "generation",
+      "residual_norm",
+      "residual_alignment",
+      "independence",
+      "bridge",
+      "norm"
+    ]
+  },
+  "masking": {
+    "assignments": {
+      "graph_00": [
+        [
+          "node_000",
+          "node_007",
+          "node_012",
+          "node_018"
+        ],
+        [
+          "node_001",
+          "node_008",
+          "node_013",
+          "node_019"
+        ],
+        [
+          "node_002",
+          "node_009",
+          "node_014",
+          "node_015"
+        ],
+        [
+          "node_003",
+          "node_005",
+          "node_010",
+          "node_016"
+        ],
+        [
+          "node_004",
+          "node_006",
+          "node_011",
+          "node_017"
+        ]
+      ],
+      "graph_01": [
+        [
+          "node_000",
+          "node_006",
+          "node_013",
+          "node_019"
+        ],
+        [
+          "node_001",
+          "node_007",
+          "node_014",
+          "node_017"
+        ],
+        [
+          "node_002",
+          "node_008",
+          "node_012",
+          "node_018"
+        ],
+        [
+          "node_003",
+          "node_009",
+          "node_015",
+          "node_016"
+        ],
+        [
+          "node_004",
+          "node_005",
+          "node_010",
+          "node_011"
+        ]
+      ],
+      "graph_02": [
+        [
+          "node_000",
+          "node_008",
+          "node_014",
+          "node_019"
+        ],
+        [
+          "node_001",
+          "node_009",
+          "node_015",
+          "node_017"
+        ],
+        [
+          "node_002",
+          "node_010",
+          "node_013",
+          "node_018"
+        ],
+        [
+          "node_003",
+          "node_006",
+          "node_012",
+          "node_016"
+        ],
+        [
+          "node_004",
+          "node_005",
+          "node_007",
+          "node_011"
+        ]
+      ]
+    },
+    "folds": 5,
+    "fraction": 0.2,
+    "masked_nodes_per_fold": 4
+  },
+  "motif": {
+    "multi_label_roles": [
+      "chain",
+      "fork",
+      "collider",
+      "mediator",
+      "other"
+    ],
+    "primary_precedence": [
+      "collider",
+      "fork",
+      "mediator",
+      "chain",
+      "other"
+    ]
+  },
+  "orientation_audit": {
+    "edges": [
+      {
+        "coefficient": 0.7,
+        "source": "A",
+        "target": "B"
+      },
+      {
+        "coefficient": 0.4,
+        "source": "B",
+        "target": "C"
+      }
+    ],
+    "fail_closed": true,
+    "graph": [
+      "A",
+      "B",
+      "C"
+    ],
+    "required_children": {
+      "A": [
+        "B"
+      ],
+      "B": [
+        "C"
+      ],
+      "C": []
+    },
+    "required_parents": {
+      "A": [],
+      "B": [
+        "A"
+      ],
+      "C": [
+        "B"
+      ]
+    },
+    "rerun_e0_prime_only_if_interface_bug": true,
+    "weighted_probe": {
+      "expected_gradient_z_B": [
+        -1.4,
+        -0.8
+      ],
+      "expected_loss": 1.49,
+      "z_A": [
+        1.0,
+        0.0
+      ],
+      "z_B": [
+        0.0,
+        0.0
+      ],
+      "z_C": [
+        0.0,
+        1.0
+      ]
+    }
+  },
+  "parity_gate": {
+    "abort_formal_audit_on_failure": true,
+    "atol": 1e-06,
+    "discrete_metrics_exact": true,
+    "e0_prime_continuous_metric_atol": 1e-06,
+    "max_row_cosine_error": 1e-07,
+    "rtol": 1e-05,
+    "scopes": "all_3_graphs_x_5_folds"
+  },
+  "purpose": "Diagnose the E0-prime NO-GO without changing labels, graphs, folds, seeds, frozen artifacts, objective coefficients, candidate dictionary, or decoder.",
+  "schema_version": "task3.e0_double_prime.v1",
+  "scm": {
+    "estimation_splits": [
+      "train",
+      "dev"
+    ],
+    "form": "linear_additive_gaussian",
+    "non_root_noise_standard_deviation": 0.65,
+    "samples_per_graph": 2000,
+    "split": {
+      "dev": 400,
+      "test": 400,
+      "train": 1200
+    },
+    "standardization_fit_split": "train",
+    "test_used_for_selection": false
+  },
+  "shuffle_null": {
+    "permutation_seeds": {
+      "graph_00": [
+        74101,
+        74102,
+        74103,
+        74104,
+        74105,
+        74106,
+        74107,
+        74108,
+        74109,
+        74110,
+        74111,
+        74112,
+        74113,
+        74114,
+        74115,
+        74116,
+        74117,
+        74118,
+        74119,
+        74120
+      ],
+      "graph_01": [
+        74201,
+        74202,
+        74203,
+        74204,
+        74205,
+        74206,
+        74207,
+        74208,
+        74209,
+        74210,
+        74211,
+        74212,
+        74213,
+        74214,
+        74215,
+        74216,
+        74217,
+        74218,
+        74219,
+        74220
+      ],
+      "graph_02": [
+        74301,
+        74302,
+        74303,
+        74304,
+        74305,
+        74306,
+        74307,
+        74308,
+        74309,
+        74310,
+        74311,
+        74312,
+        74313,
+        74314,
+        74315,
+        74316,
+        74317,
+        74318,
+        74319,
+        74320
+      ]
+    },
+    "permutations_per_graph": 20
+  },
+  "source_e0_prime": {
+    "config": "task3_v2/experiments/e0_oracle_bridge/config.yaml",
+    "config_sha256": "bc8004a8d288d8a3bddd00bef12c44eab26d372e276a106f4c95340a0d0a8a44",
+    "decision": "task3_v2/experiments/e0_oracle_bridge/results/decision.json",
+    "experiment_dir": "task3_v2/experiments/e0_oracle_bridge",
+    "per_node": "task3_v2/experiments/e0_oracle_bridge/results/per_node.csv",
+    "required_decision": "NO-GO",
+    "reuse": [
+      "three_oracle_graphs",
+      "scm_data_and_splits",
+      "five_masking_folds",
+      "graph_data_shuffle_and_bootstrap_seeds",
+      "semantic_encoder_and_lora",
+      "weightnet_and_negation_operator",
+      "candidate_dictionary_and_decoder",
+      "raw_correlation_and_uniform_baselines"
+    ]
+  },
+  "status": "frozen_before_formal_execution",
+  "structural_groups": {
+    "baselines": [
+      "reversed_full",
+      "shuffled_full",
+      "uniform",
+      "raw_correlation"
+    ],
+    "names": [
+      "root",
+      "non_root",
+      "non_root_visible_parent",
+      "no_visible_parent_visible_child",
+      "no_visible_structural_anchor"
+    ],
+    "same_module_is_recorded_separately": true,
+    "structural_anchor_definition": "visible_parent_or_visible_child"
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "als": {
+    "frozen_solver_value": [
+      0.6034477556484864,
+      0.3448272889419923
+    ],
+    "ideal_unregularized_closed_form": [
+      0.6034482758620688,
+      0.3448275862068965
+    ],
+    "implemented_ridge_closed_form": [
+      0.6034477556484864,
+      0.34482728894199227
+    ],
+    "max_abs_error_vs_implemented": 5.551115123125783e-17,
+    "ridge": 1e-06
+  },
+  "audit": "Task 3 E0'' orientation interface audit",
+  "generation": {
+    "expected_full_loss": 1.49,
+    "expected_gradient_dL_dz_B": [
+      -1.4,
+      -0.8
+    ],
+    "full_loss": 1.4900000095367432,
+    "generated_nodes": [
+      "B",
+      "C"
+    ],
+    "generation_parents": {
+      "B": [
+        "A"
+      ],
+      "C": [
+        "B"
+      ]
+    },
+    "gradient_dL_dz_B": [
+      -1.399999976158142,
+      -0.800000011920929
+    ],
+    "incoming_edges": [
+      [
+        "A",
+        "B"
+      ]
+    ],
+    "incoming_gradient": [
+      -1.399999976158142,
+      0.0
+    ],
+    "incoming_only_loss": 0.4899999797344208,
+    "interpretation": "z_B is pulled toward both its parent z_A and its child z_C",
+    "negative_gradient_descent_direction": [
+      1.399999976158142,
+      0.800000011920929
+    ],
+    "outgoing_edges": [
+      [
+        "B",
+        "C"
+      ]
+    ],
+    "outgoing_gradient": [
+      -0.0,
+      -0.800000011920929
+    ],
+    "outgoing_only_loss": 1.0,
+    "weight_A_to_B": 0.7,
+    "weight_B_to_C": 0.4,
+    "z_A": [
+      1.0,
+      0.0
+    ],
+    "z_B_at_evaluation": [
+      0.0,
+      0.0
+    ],
+    "z_C": [
+      0.0,
+      1.0
+    ]
+  },
+  "negative_control": {
+    "error": "ordered edge pairs mismatch: actual=[('B', 'A'), ('C', 'B')], expected=[('A', 'B'), ('B', 'C')]",
+    "fixture": "deliberately transposed A <- B <- C",
+    "rejected": true
+  },
+  "orientation": {
+    "adapter_edges": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "B",
+        "C"
+      ]
+    ],
+    "adapter_weight_keys": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "B",
+        "C"
+      ]
+    ],
+    "adapter_weights": {
+      "A->B": 0.7,
+      "B->C": 0.4
+    },
+    "adjacency": [
+      [
+        0.0,
+        0.7,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.4
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "adjacency_convention": "row=source,parent; column=target,child",
+    "children": {
+      "A": [
+        "B"
+      ],
+      "B": [
+        "C"
+      ],
+      "C": []
+    },
+    "json_edge_pairs": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "B",
+        "C"
+      ]
+    ],
+    "parents": {
+      "A": [],
+      "B": [
+        "A"
+      ],
+      "C": [
+        "B"
+      ]
+    }
+  },
+  "schema_version": 1,
+  "status": "passed",
+  "unit_weight_reverse_symmetry": {
+    "exactly_equal_within_tolerance": true,
+    "forward_gradient": [
+      -1.0,
+      -3.1999998092651367
+    ],
+    "forward_loss": 2.4049997329711914,
+    "interpretation": "each generation equation is a bidirectional quadratic compatibility factor during joint embedding completion",
+    "reversed_gradient": [
+      -1.0,
+      -3.1999998092651367
+    ],
+    "reversed_loss": 2.4049997329711914,
+    "z_B_at_evaluation": [
+      0.25,
+      -0.3
+    ]
+  },
+  "verdict": {
+    "finding": "source/target conventions are correct; the frozen generation energy propagates gradients through both endpoints",
+    "next_diagnostic": "continue frozen constraint decomposition without changing or rerunning E0' for an orientation repair",
+    "orientation_interface_bug": false,
+    "rerun_e0_prime_for_orientation_fix": false
+  }
+}

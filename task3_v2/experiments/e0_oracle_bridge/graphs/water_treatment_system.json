@@ -1,0 +1,190 @@
+{
+  "schema_version": "task3.e0_prime.graph.v1",
+  "graph_id": "graph_02",
+  "world": "water_treatment_system",
+  "graph_seed": 3301,
+  "observed_only": true,
+  "hidden_confounders": false,
+  "effect_sign": "positive_monotone",
+  "modules": [
+    "source_and_coagulation",
+    "settling_and_filtration",
+    "disinfection_and_control",
+    "compliance_and_service"
+  ],
+  "nodes": [
+    {
+      "id": "node_000",
+      "gold_label": "source turbidity severity",
+      "causal_description": "Severity of suspended solids in incoming source water.",
+      "module": "source_and_coagulation"
+    },
+    {
+      "id": "node_001",
+      "gold_label": "microbial load intensity",
+      "causal_description": "Intensity of microbial contamination in incoming water.",
+      "module": "source_and_coagulation"
+    },
+    {
+      "id": "node_002",
+      "gold_label": "chemical dosing shortage",
+      "causal_description": "Severity of insufficient treatment-chemical dosing capacity.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_003",
+      "gold_label": "filter fouling severity",
+      "causal_description": "Severity of accumulated fouling in filtration media.",
+      "module": "settling_and_filtration"
+    },
+    {
+      "id": "node_004",
+      "gold_label": "pump wear severity",
+      "causal_description": "Severity of mechanical wear in the treatment-flow pump.",
+      "module": "compliance_and_service"
+    },
+    {
+      "id": "node_005",
+      "gold_label": "quality sensor drift",
+      "causal_description": "Magnitude of calibration drift in the water-quality sensor.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_006",
+      "gold_label": "inlet contamination load",
+      "causal_description": "Combined contaminant load entering the treatment process.",
+      "module": "source_and_coagulation"
+    },
+    {
+      "id": "node_007",
+      "gold_label": "coagulant demand intensity",
+      "causal_description": "Intensity of coagulant demand created by incoming solids.",
+      "module": "source_and_coagulation"
+    },
+    {
+      "id": "node_008",
+      "gold_label": "coagulation deficit severity",
+      "causal_description": "Severity of inadequate contaminant coagulation.",
+      "module": "source_and_coagulation"
+    },
+    {
+      "id": "node_009",
+      "gold_label": "settling solids load",
+      "causal_description": "Load of poorly coagulated solids reaching the settling stage.",
+      "module": "settling_and_filtration"
+    },
+    {
+      "id": "node_010",
+      "gold_label": "filter overload severity",
+      "causal_description": "Severity of filter overload caused by fouling and excessive settling-solids load.",
+      "module": "settling_and_filtration"
+    },
+    {
+      "id": "node_011",
+      "gold_label": "filtration resistance",
+      "causal_description": "Resistance to water flow across the filtration stage.",
+      "module": "settling_and_filtration"
+    },
+    {
+      "id": "node_012",
+      "gold_label": "treatment capacity reduction",
+      "causal_description": "Reduction in treatment capacity caused by pump wear and filtration resistance.",
+      "module": "settling_and_filtration"
+    },
+    {
+      "id": "node_013",
+      "gold_label": "residual turbidity risk",
+      "causal_description": "Risk that excessive turbidity remains after filtration.",
+      "module": "compliance_and_service"
+    },
+    {
+      "id": "node_014",
+      "gold_label": "disinfection demand intensity",
+      "causal_description": "Intensity of disinfection needed for the treated water.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_015",
+      "gold_label": "disinfectant residual deficit",
+      "causal_description": "Deficit in protective disinfectant remaining after treatment.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_016",
+      "gold_label": "quality measurement unreliability",
+      "causal_description": "Unreliability of treated-water quality measurements caused by sensor drift and turbidity-related optical interference.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_017",
+      "gold_label": "control correction delay",
+      "causal_description": "Delay before treatment controls correct a quality problem.",
+      "module": "disinfection_and_control"
+    },
+    {
+      "id": "node_018",
+      "gold_label": "compliance failure risk",
+      "causal_description": "Risk that delivered water violates quality requirements.",
+      "module": "compliance_and_service"
+    },
+    {
+      "id": "node_019",
+      "gold_label": "distribution service delay",
+      "causal_description": "Delay in distributing treated water to customers.",
+      "module": "compliance_and_service"
+    }
+  ],
+  "topological_order": [
+    "node_000",
+    "node_001",
+    "node_002",
+    "node_003",
+    "node_004",
+    "node_005",
+    "node_006",
+    "node_007",
+    "node_008",
+    "node_009",
+    "node_010",
+    "node_011",
+    "node_012",
+    "node_013",
+    "node_014",
+    "node_015",
+    "node_016",
+    "node_017",
+    "node_018",
+    "node_019"
+  ],
+  "edges": [
+    {"source": "node_000", "target": "node_006", "coefficient": 0.60},
+    {"source": "node_001", "target": "node_006", "coefficient": 0.49},
+    {"source": "node_000", "target": "node_007", "coefficient": 0.55},
+    {"source": "node_006", "target": "node_007", "coefficient": 0.46},
+    {"source": "node_002", "target": "node_008", "coefficient": 0.58},
+    {"source": "node_007", "target": "node_008", "coefficient": 0.63},
+    {"source": "node_006", "target": "node_009", "coefficient": 0.51},
+    {"source": "node_008", "target": "node_009", "coefficient": 0.57},
+    {"source": "node_003", "target": "node_010", "coefficient": 0.48},
+    {"source": "node_009", "target": "node_010", "coefficient": 0.62},
+    {"source": "node_003", "target": "node_011", "coefficient": 0.52},
+    {"source": "node_010", "target": "node_011", "coefficient": 0.59},
+    {"source": "node_004", "target": "node_012", "coefficient": 0.43},
+    {"source": "node_011", "target": "node_012", "coefficient": 0.65},
+    {"source": "node_010", "target": "node_013", "coefficient": 0.54},
+    {"source": "node_012", "target": "node_013", "coefficient": 0.47},
+    {"source": "node_001", "target": "node_014", "coefficient": 0.56},
+    {"source": "node_013", "target": "node_014", "coefficient": 0.61},
+    {"source": "node_002", "target": "node_015", "coefficient": 0.50},
+    {"source": "node_014", "target": "node_015", "coefficient": 0.64},
+    {"source": "node_005", "target": "node_016", "coefficient": 0.58},
+    {"source": "node_013", "target": "node_016", "coefficient": 0.45},
+    {"source": "node_016", "target": "node_017", "coefficient": 0.53},
+    {"source": "node_015", "target": "node_017", "coefficient": 0.60},
+    {"source": "node_013", "target": "node_018", "coefficient": 0.44},
+    {"source": "node_015", "target": "node_018", "coefficient": 0.57},
+    {"source": "node_017", "target": "node_018", "coefficient": 0.66},
+    {"source": "node_012", "target": "node_019", "coefficient": 0.49},
+    {"source": "node_018", "target": "node_019", "coefficient": 0.62}
+  ]
+}

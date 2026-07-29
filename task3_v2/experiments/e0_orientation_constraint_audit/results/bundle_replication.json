@@ -1,0 +1,322 @@
+{
+  "api_free_limitations": {
+    "judge_acc": null,
+    "judge_trend": "not_evaluable_without_api",
+    "missing_judge_not_scored_as_zero": true
+  },
+  "behavioral_trend_reproduced": true,
+  "checkpoint_or_bundle_drift": false,
+  "created_at_utc": "2026-07-28T10:36:42.387310Z",
+  "hierarchy_latent_constraints_effective": true,
+  "hierarchy_match_delta_on_minus_off": 0.07999999999999996,
+  "himi_expected_order_core_gt_raw_gt_uniform": true,
+  "judge_trend_status": "not_evaluable_without_api",
+  "kims_expected_order_raw_gt_core_gt_uniform": true,
+  "probe_metadata": [
+    {
+      "data_shape": [
+        202,
+        17
+      ],
+      "dataset_sha256": "6878be0ff9d91d8c3fad8349c5330fbe4d70b45a9088665b092d1a56150ed124",
+      "dependence_cache": "v5\\outputs\\dependence\\himi_marginal_pearson.npy",
+      "dependence_cache_sha256": "537fe56132f976861a8d276148cac2f50f3c04888887923ddafd1072700413ff",
+      "dependence_cache_source": "existing_v5_formal_dependence_cache",
+      "edge_count": 17,
+      "latent_nodes": 6,
+      "observed_nodes": 17,
+      "probe_id": "himi",
+      "runtime_seconds": 1.7295136451721191
+    },
+    {
+      "data_shape": [
+        521,
+        39
+      ],
+      "dataset_sha256": "ff581d1c794e52584c065e7ec576acc71013f2fc20dc23ca90e09ae529189d09",
+      "dependence_cache": "v5\\outputs\\dependence\\kims_marginal_pearson.npy",
+      "dependence_cache_sha256": "0c39c008851b306d8632a3d621fb384a010e7319c3863d2f677ec45cbedf28cd",
+      "dependence_cache_source": "existing_v5_formal_dependence_cache",
+      "edge_count": 39,
+      "latent_nodes": 4,
+      "observed_nodes": 39,
+      "probe_id": "kims",
+      "runtime_seconds": 2.5695276260375977
+    },
+    {
+      "data_shape": [
+        3000,
+        50
+      ],
+      "dataset_sha256": "e4ff934844389be61b689fc33cf758a68f751a13761d55d33f8c51fd1765ea9c",
+      "dependence_cache": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bigfive2_marginal_pearson.npy",
+      "dependence_cache_sha256": "07100429e38de8424ab2ee71cbba1308790495cade1fd02de64ddb8211d46637",
+      "dependence_cache_source": "generated_in_audit_results_from_full_bigfive_observed_X",
+      "edge_count": 57,
+      "latent_nodes": 8,
+      "observed_nodes": 50,
+      "probe_id": "bigfive2__latcon0",
+      "runtime_seconds": 3.1565520763397217
+    },
+    {
+      "data_shape": [
+        3000,
+        50
+      ],
+      "dataset_sha256": "e4ff934844389be61b689fc33cf758a68f751a13761d55d33f8c51fd1765ea9c",
+      "dependence_cache": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\bigfive2_marginal_pearson.npy",
+      "dependence_cache_sha256": "07100429e38de8424ab2ee71cbba1308790495cade1fd02de64ddb8211d46637",
+      "dependence_cache_source": "generated_in_audit_results_from_full_bigfive_observed_X",
+      "edge_count": 57,
+      "latent_nodes": 8,
+      "observed_nodes": 50,
+      "probe_id": "bigfive2__latcon1",
+      "runtime_seconds": 3.1654462814331055
+    }
+  ],
+  "provenance": {
+    "bundle_artifacts": {
+      "dictionary": {
+        "embedding_shape": [
+          542705,
+          1024
+        ],
+        "lora_version": 1784798750.8526275,
+        "mtime": 1784798903.4541907,
+        "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\concept_bank_l3.npz",
+        "sha256": "6da2de255dcb2fa559fa1c2a8bfba25fd0e4fcfecb5c768ecf229b6ce4e7bb9e",
+        "size_bytes": 2230481041
+      },
+      "encoder": {
+        "model": "intfloat/e5-large-v2",
+        "offline": true,
+        "revision": "f169b11e22de13617baa190a028a32f3493550b6",
+        "snapshot": "D:\\research\\translate latent variables\\.hf_cache\\models--intfloat--e5-large-v2\\snapshots\\f169b11e22de13617baa190a028a32f3493550b6"
+      },
+      "lora": {
+        "mtime": 1784798750.8526275,
+        "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l3_lora.pt",
+        "sha256": "d90b024e7fb030e3ee1545c8d19606cf032cf810fc7f4a758749dfefc95a49d5",
+        "size_bytes": 265165
+      },
+      "negop": {
+        "mtime": 1784219501.1647224,
+        "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\negop.pt",
+        "sha256": "6f30f0d68ee653d52aef93bdae97feeac8abd17189e688ef49f594e18574690e",
+        "size_bytes": 8399113
+      },
+      "weightnet": {
+        "mtime": 1784798474.5637877,
+        "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l2_mlp.pt",
+        "sha256": "70ffc4fcf668b57d943240fde67a8b339c702fa0093a5594f34e3297a5c50bfd",
+        "size_bytes": 24073
+      }
+    },
+    "decoder_run": true,
+    "judge_api_called": false,
+    "judge_request_count": 268,
+    "local_bundle_origin": "locally retrained before E0-prime; see v5/outputs/reproduction_report.md",
+    "official_entrypoints_audited": [
+      "v5/main.py",
+      "v5/run_bigfive_hier.py"
+    ],
+    "original_release_bundle_present": false,
+    "retrained_in_replication": false,
+    "runner": "audit adapter over v5/run_task1.py protocol and frozen Stage-3 libraries",
+    "runtime_seconds": 225.97775030136108,
+    "source_bindings": {
+      "audit_config_path": "task3_v2/experiments/e0_orientation_constraint_audit/config.yaml",
+      "audit_config_sha256": "63138c31851ca22f31b5da6700d710a36ba6e6ee72a19b082b60d0c45b254664",
+      "basis": "pre-binding result hash matched the original formal run manifest before the runner was edited",
+      "binding_recorded_after_execution": true,
+      "bundle_runner_path": "task3_v2/scripts/run_e0_bundle_replication.py",
+      "bundle_runner_sha256_at_execution": "90ae20553bd38944fd3732e3d920de9676e7ea0eb6e73c971d60c733cc50c776",
+      "pre_binding_bundle_sha256": "75039eeb3b1b6358d885f249969e5c3eb0aaf16c4a9d69f8c8b628e6db23ddc4",
+      "source_e0_prime_config_path": "task3_v2/experiments/e0_oracle_bridge/config.yaml",
+      "source_e0_prime_config_sha256": "bc8004a8d288d8a3bddd00bef12c44eab26d372e276a106f4c95340a0d0a8a44"
+    }
+  },
+  "run_commands": [
+    ".\\.venv\\Scripts\\python.exe task3_v2\\scripts\\run_e0_bundle_replication.py"
+  ],
+  "schema_version": "task3.e0_double_prime.bundle_replication.v1",
+  "status": "formal_local_api_free",
+  "summary": [
+    {
+      "arm": "hierarchy_without_latent_constraints",
+      "centered_cosine": 0.17688700026057683,
+      "dataset": "bigfive",
+      "exact_acc": 0.06000000000000001,
+      "gold_cosine": 0.9190566642692616,
+      "implementation_dataset_id": "bigfive2",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": false,
+      "match_acc": 0.54,
+      "mrr": 0.26538059163059163,
+      "n_folds": 5,
+      "n_items": 50,
+      "prediction_margin": -0.02137763657458435,
+      "probe_id": "bigfive2__latcon0",
+      "recall_at_1": 0.06000000000000001,
+      "recall_at_5": 0.58,
+      "reference_match_acc": 0.66,
+      "reference_source": "Week-6 report",
+      "role": "hierarchy"
+    },
+    {
+      "arm": "hierarchy_with_latent_constraints",
+      "centered_cosine": 0.21475173821135657,
+      "dataset": "bigfive",
+      "exact_acc": 0.02,
+      "gold_cosine": 0.9244222096424595,
+      "implementation_dataset_id": "bigfive2",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.62,
+      "mrr": 0.2394621848739496,
+      "n_folds": 5,
+      "n_items": 50,
+      "prediction_margin": -0.02490442301300521,
+      "probe_id": "bigfive2__latcon1",
+      "recall_at_1": 0.02,
+      "recall_at_5": 0.54,
+      "reference_match_acc": 0.74,
+      "reference_source": "Week-6 report",
+      "role": "hierarchy"
+    },
+    {
+      "arm": "core",
+      "centered_cosine": 0.45703602691266615,
+      "dataset": "himi",
+      "exact_acc": 0.0,
+      "gold_cosine": 0.8810645343636734,
+      "implementation_dataset_id": "himi",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.8,
+      "mrr": 0.3805555555555555,
+      "n_folds": 5,
+      "n_items": 17,
+      "prediction_margin": -0.08187921461044499,
+      "probe_id": "himi",
+      "recall_at_1": 0.0,
+      "recall_at_5": 1.0,
+      "reference_match_acc": 0.9,
+      "reference_source": "Week-6 report",
+      "role": "dev"
+    },
+    {
+      "arm": "raw_correlation",
+      "centered_cosine": -0.08514454273503941,
+      "dataset": "himi",
+      "exact_acc": 0.0,
+      "gold_cosine": 0.9142150445594452,
+      "implementation_dataset_id": "himi",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.7666666666666667,
+      "mrr": 0.12480100373482728,
+      "n_folds": 5,
+      "n_items": 17,
+      "prediction_margin": -0.02772433972195577,
+      "probe_id": "himi",
+      "recall_at_1": 0.0,
+      "recall_at_5": 0.11666666666666665,
+      "reference_match_acc": 0.767,
+      "reference_source": "Week-6 report",
+      "role": "dev"
+    },
+    {
+      "arm": "uniform",
+      "centered_cosine": -0.5061576938584628,
+      "dataset": "himi",
+      "exact_acc": 0.0,
+      "gold_cosine": 0.9084564828926057,
+      "implementation_dataset_id": "himi",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.3833333333333333,
+      "mrr": 0.0792649425737661,
+      "n_folds": 5,
+      "n_items": 17,
+      "prediction_margin": -0.027816789468357427,
+      "probe_id": "himi",
+      "recall_at_1": 0.0,
+      "recall_at_5": 0.0,
+      "reference_match_acc": 0.567,
+      "reference_source": "Week-6 report",
+      "role": "dev"
+    },
+    {
+      "arm": "core",
+      "centered_cosine": 0.2579479060414724,
+      "dataset": "kims",
+      "exact_acc": 0.0,
+      "gold_cosine": 0.8062877789882646,
+      "implementation_dataset_id": "kims",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.6928571428571428,
+      "mrr": 0.158939300373833,
+      "n_folds": 5,
+      "n_items": 39,
+      "prediction_margin": -0.027724474552422506,
+      "probe_id": "kims",
+      "recall_at_1": 0.0,
+      "recall_at_5": 0.23214285714285712,
+      "reference_match_acc": 0.675,
+      "reference_source": "Week-6 report",
+      "role": "heldout"
+    },
+    {
+      "arm": "raw_correlation",
+      "centered_cosine": 0.23066481009656892,
+      "dataset": "kims",
+      "exact_acc": 0.05357142857142857,
+      "gold_cosine": 0.9403530872886716,
+      "implementation_dataset_id": "kims",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.9,
+      "mrr": 0.16039622212774846,
+      "n_folds": 5,
+      "n_items": 39,
+      "prediction_margin": -0.022036012548140155,
+      "probe_id": "kims",
+      "recall_at_1": 0.05357142857142857,
+      "recall_at_5": 0.23214285714285712,
+      "reference_match_acc": 0.85,
+      "reference_source": "Week-6 report",
+      "role": "heldout"
+    },
+    {
+      "arm": "uniform",
+      "centered_cosine": -0.323730323406942,
+      "dataset": "kims",
+      "exact_acc": 0.02857142857142857,
+      "gold_cosine": 0.9336958651880813,
+      "implementation_dataset_id": "kims",
+      "judge_acc": null,
+      "judge_status": "pending",
+      "latent_constraints": true,
+      "match_acc": 0.15357142857142855,
+      "mrr": 0.08215248593981732,
+      "n_folds": 5,
+      "n_items": 39,
+      "prediction_margin": -0.02363060567742598,
+      "probe_id": "kims",
+      "recall_at_1": 0.02857142857142857,
+      "recall_at_5": 0.05357142857142857,
+      "reference_match_acc": 0.154,
+      "reference_source": "Week-6 report",
+      "role": "heldout"
+    }
+  ]
+}

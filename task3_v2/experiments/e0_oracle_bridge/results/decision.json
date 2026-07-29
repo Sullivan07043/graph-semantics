@@ -1,0 +1,26 @@
+{
+  "consistent_positive_graph_count": 0,
+  "consistent_positive_graphs": [],
+  "criteria": {
+    "at_least_two_graphs_consistent": false,
+    "both_core_comparisons_unsupported": true,
+    "core_directionally_positive": false,
+    "oracle_vs_no_graph_ci_excludes_zero": false,
+    "oracle_vs_no_graph_mean_positive": false,
+    "oracle_vs_no_graph_supported_positive": false,
+    "oracle_vs_shuffle_ci_excludes_zero": false,
+    "oracle_vs_shuffle_mean_positive": true,
+    "oracle_vs_shuffle_supported_positive": false,
+    "reverse_mean_nonpositive": true,
+    "stable_oracle_advantage_over_reverse": false
+  },
+  "debug_skip_decode": false,
+  "decision": "NO-GO",
+  "e1_allowed": false,
+  "failure_source": "causal_graph_semantic_constraint_mismatch",
+  "formal_run": true,
+  "judge_acc_status": "pending",
+  "next_step": "diagnose graph-to-semantic constraint transfer; E1 is not allowed",
+  "operationalization": "Supported-positive means mean >0 and aggregate 95% CI lower bound >0. GO requires supported-positive oracle-vs-shuffle, oracle-vs-uniform, and oracle-vs-reverse effects, plus joint positive direction in >=2 graphs. NO-GO requires both core comparisons (oracle-vs-shuffle and oracle-vs-uniform) to be unsupported, reverse mean <=0, and the two core means not both positive. Directionally positive core means that miss CI or cross-graph requirements, and all other conflicting patterns, are INCONCLUSIVE.",
+  "primary_metric": "gold_embedding_cosine"
+}

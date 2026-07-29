@@ -1,0 +1,1343 @@
+{
+  "artifacts": {
+    "dictionary": {
+      "embedding_shape": [
+        542705,
+        1024
+      ],
+      "lora_version": 1784798750.8526275,
+      "mtime": 1784798903.4541907,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\concept_bank_l3.npz",
+      "sha256": "6da2de255dcb2fa559fa1c2a8bfba25fd0e4fcfecb5c768ecf229b6ce4e7bb9e",
+      "size_bytes": 2230481041
+    },
+    "encoder": {
+      "model": "intfloat/e5-large-v2",
+      "offline": true,
+      "revision": "f169b11e22de13617baa190a028a32f3493550b6",
+      "snapshot": "D:\\research\\translate latent variables\\.hf_cache\\models--intfloat--e5-large-v2\\snapshots\\f169b11e22de13617baa190a028a32f3493550b6"
+    },
+    "lora": {
+      "mtime": 1784798750.8526275,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l3_lora.pt",
+      "sha256": "d90b024e7fb030e3ee1545c8d19606cf032cf810fc7f4a758749dfefc95a49d5",
+      "size_bytes": 265165
+    },
+    "negop": {
+      "mtime": 1784219501.1647224,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\negop.pt",
+      "sha256": "6f30f0d68ee653d52aef93bdae97feeac8abd17189e688ef49f594e18574690e",
+      "size_bytes": 8399113
+    },
+    "weightnet": {
+      "mtime": 1784798474.5637877,
+      "path": "D:\\research\\translate latent variables\\graph-semantics\\v5\\outputs\\l2_mlp.pt",
+      "sha256": "70ffc4fcf668b57d943240fde67a8b339c702fa0093a5594f34e3297a5c50bfd",
+      "size_bytes": 24073
+    }
+  },
+  "bundle_commands": [
+    ".\\.venv\\Scripts\\python.exe task3_v2\\scripts\\run_e0_bundle_replication.py"
+  ],
+  "changed_labels_graphs_folds_or_seeds": false,
+  "changed_loss_coefficients": false,
+  "config_path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\config.yaml",
+  "config_sha256": "63138c31851ca22f31b5da6700d710a36ba6e6ee72a19b082b60d0c45b254664",
+  "created_at_utc": "2026-07-28T10:43:56.454202Z",
+  "debug_skip_decode": false,
+  "decision_refinalization": {
+    "archive_consistency_normalization": {
+      "basis": "initial/final float32 archive vectors and SHA-256 are identical",
+      "corrected_rows": 60,
+      "field": "residual_only_oracle.displacement_norm"
+    },
+    "at_utc": "2026-07-28T11:13:42.785109Z",
+    "bootstrap_summary_sha256": "05ef444d2a562999f68b896c7d985f641bb978557c99d9b8211921f7b75c07cb",
+    "command": "D:\\research\\translate latent variables\\graph-semantics\\.venv\\Scripts\\python.exe task3_v2\\scripts\\run_e0_audit.py --config task3_v2\\experiments\\e0_orientation_constraint_audit\\config.yaml --refinalize-existing",
+    "completed_solver_outputs_reused": true,
+    "current_main_commit": "9ec3e264fb43f824a276f965061f9c9bf464ef59",
+    "embedding_archive_sha256": "8cfc774f015d267299544b033981378caf677a767096efaa44e8135270d4ee8b",
+    "new_decision_schema": "task3.e0_double_prime.decision.v2",
+    "new_primary_category": "F",
+    "previous_decision_schema": "task3.e0_double_prime.decision.v1",
+    "previous_primary_category": "C",
+    "reason": "Correct the report-layer C/F consistency guard: supported positive cells cannot establish a stable advantage when the same comparison also has supported adverse cells, and a failed same-module positive control must select the frozen category-F branch.",
+    "solver_or_decoder_rerun": false,
+    "source_files": [
+      {
+        "path": "task3_v2\\scripts\\run_e0_audit.py",
+        "sha256": "c870d770068c42c48c71a540fb9fc61f93f61c23743ac40362d6add3407ff2a9",
+        "size_bytes": 122015
+      },
+      {
+        "path": "task3_v2\\scripts\\e0_audit_solver.py",
+        "sha256": "ac3a239350c6bc982d6fe51330eb81ee9c665d5d0b8c8545ce5a393c91eb4b7b",
+        "size_bytes": 33286
+      },
+      {
+        "path": "task3_v2\\scripts\\e0_orientation_audit.py",
+        "sha256": "cc0613ddee6e87e51183a998dcde0b7e909b8e1c3e044b49beb35be7aa1276cb",
+        "size_bytes": 16680
+      },
+      {
+        "path": "task3_v2\\scripts\\run_e0_bundle_replication.py",
+        "sha256": "c93b54532f948e4d2acbe10621cded0a73c5d13601e663bf5fe046cb0389473a",
+        "size_bytes": 27813
+      },
+      {
+        "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\config.yaml",
+        "sha256": "63138c31851ca22f31b5da6700d710a36ba6e6ee72a19b082b60d0c45b254664",
+        "size_bytes": 11344
+      }
+    ],
+    "source_git_status": "?? task3_v2/experiments/e0_orientation_constraint_audit/config.yaml\n?? task3_v2/scripts/e0_audit_solver.py\n?? task3_v2/scripts/e0_orientation_audit.py\n?? task3_v2/scripts/run_e0_audit.py\n?? task3_v2/scripts/run_e0_bundle_replication.py",
+    "working_v5_equal_to_current_main": true
+  },
+  "embedding_archive": {
+    "dtype": "float32",
+    "path": "task3_v2\\experiments\\e0_orientation_constraint_audit\\results\\embeddings.npz",
+    "sha256": "8cfc774f015d267299544b033981378caf677a767096efaa44e8135270d4ee8b",
+    "shape": [
+      1860,
+      1024
+    ]
+  },
+  "formal_command": ".\\.venv\\Scripts\\python.exe task3_v2\\scripts\\run_e0_audit.py --config task3_v2\\experiments\\e0_orientation_constraint_audit\\config.yaml",
+  "formal_run": true,
+  "judge_api_called": false,
+  "judge_request_count": 1860,
+  "judge_status": "pending",
+  "latest_main_commit": "b64ddd9bd9de3818714b49a31cc41bd93d39df6c",
+  "latest_main_v5_tree_equal": true,
+  "orientation_command": ".\\.venv\\Scripts\\python.exe task3_v2\\scripts\\e0_orientation_audit.py",
+  "parity_gate": {
+    "metric_nodes": 60,
+    "metric_rows": [
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_00",
+        "node_id": "node_000",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_00",
+        "node_id": "node_007",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_00",
+        "node_id": "node_012",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_00",
+        "node_id": "node_018",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_00",
+        "node_id": "node_001",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_00",
+        "node_id": "node_008",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_00",
+        "node_id": "node_013",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_00",
+        "node_id": "node_019",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_00",
+        "node_id": "node_002",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_00",
+        "node_id": "node_009",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_00",
+        "node_id": "node_014",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_00",
+        "node_id": "node_015",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_00",
+        "node_id": "node_003",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_00",
+        "node_id": "node_005",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_00",
+        "node_id": "node_010",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_00",
+        "node_id": "node_016",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_00",
+        "node_id": "node_004",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_00",
+        "node_id": "node_006",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_00",
+        "node_id": "node_011",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_00",
+        "node_id": "node_017",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_01",
+        "node_id": "node_000",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_01",
+        "node_id": "node_006",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_01",
+        "node_id": "node_013",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_01",
+        "node_id": "node_019",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_01",
+        "node_id": "node_001",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_01",
+        "node_id": "node_007",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_01",
+        "node_id": "node_014",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_01",
+        "node_id": "node_017",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_01",
+        "node_id": "node_002",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_01",
+        "node_id": "node_008",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_01",
+        "node_id": "node_012",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_01",
+        "node_id": "node_018",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_01",
+        "node_id": "node_003",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_01",
+        "node_id": "node_009",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_01",
+        "node_id": "node_015",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_01",
+        "node_id": "node_016",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_01",
+        "node_id": "node_004",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_01",
+        "node_id": "node_005",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_01",
+        "node_id": "node_010",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_01",
+        "node_id": "node_011",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_02",
+        "node_id": "node_000",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_02",
+        "node_id": "node_008",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_02",
+        "node_id": "node_014",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 0,
+        "graph_id": "graph_02",
+        "node_id": "node_019",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_02",
+        "node_id": "node_001",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_02",
+        "node_id": "node_009",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_02",
+        "node_id": "node_015",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 1,
+        "graph_id": "graph_02",
+        "node_id": "node_017",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_02",
+        "node_id": "node_002",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_02",
+        "node_id": "node_010",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_02",
+        "node_id": "node_013",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 2,
+        "graph_id": "graph_02",
+        "node_id": "node_018",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_02",
+        "node_id": "node_003",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_02",
+        "node_id": "node_006",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_02",
+        "node_id": "node_012",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 3,
+        "graph_id": "graph_02",
+        "node_id": "node_016",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_02",
+        "node_id": "node_004",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_02",
+        "node_id": "node_005",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_02",
+        "node_id": "node_007",
+        "passed": true
+      },
+      {
+        "continuous_abs_differences": {
+          "gold_cosine": 0.0,
+          "mrr": 0.0
+        },
+        "discrete_equal": {
+          "exact": true,
+          "match_acc": true,
+          "rank": true,
+          "recall_at_1": true,
+          "recall_at_5": true
+        },
+        "fold": 4,
+        "graph_id": "graph_02",
+        "node_id": "node_011",
+        "passed": true
+      }
+    ],
+    "passed": true,
+    "solver_rows": [
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 0,
+        "graph_id": "graph_00",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.312816604899126e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 1,
+        "graph_id": "graph_00",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 3.443356710874923e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 2,
+        "graph_id": "graph_00",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.8216318170848353e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 3,
+        "graph_id": "graph_00",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 3.5551561694546763e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 4,
+        "graph_id": "graph_00",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.3172574969976267e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 0,
+        "graph_id": "graph_01",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 3.01292324422775e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 1,
+        "graph_id": "graph_01",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.5925928071046656e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 2,
+        "graph_id": "graph_01",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.1804780203638074e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 3,
+        "graph_id": "graph_01",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.37476704967321e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 4,
+        "graph_id": "graph_01",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.2423174428354287e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 0,
+        "graph_id": "graph_02",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.8851365740933943e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 1,
+        "graph_id": "graph_02",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 4.6805892495171975e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 2,
+        "graph_id": "graph_02",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 3.1079583351356632e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 3,
+        "graph_id": "graph_02",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 2.8578250876876155e-12,
+        "passed": true,
+        "rtol": 1e-05
+      },
+      {
+        "allclose": true,
+        "allowed_max_row_cosine_error": 1e-07,
+        "atol": 1e-06,
+        "fold": 4,
+        "graph_id": "graph_02",
+        "max_abs_difference": 0.0,
+        "max_row_cosine_error": 1.7499335314141717e-12,
+        "passed": true,
+        "rtol": 1e-05
+      }
+    ],
+    "solver_scopes": 15
+  },
+  "prohibited_components_run": [],
+  "repository_root": "D:\\research\\translate latent variables\\graph-semantics",
+  "retrained_any_artifact": false,
+  "row_counts": {
+    "bootstrap_summary": 272,
+    "gradient_norms": 11160,
+    "judge_requests": 1860,
+    "loss_terms": 2790,
+    "paired_deltas": 10560,
+    "per_arm": 48,
+    "per_group": 60,
+    "per_node_audit": 1860
+  },
+  "schema_version": "task3.e0_double_prime.provenance.v1",
+  "source_data_files": [
+    {
+      "graph_id": "graph_00",
+      "path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_00.npz",
+      "sha256": "264477b50971cbb72c5f379fc698673723e4346173708003db7b1bfea1804b3f"
+    },
+    {
+      "graph_id": "graph_01",
+      "path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_01.npz",
+      "sha256": "61d6b6c7cd869222a8f72ac919560c7731e2dc36354f689fa083b77c9af259c6"
+    },
+    {
+      "graph_id": "graph_02",
+      "path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_02.npz",
+      "sha256": "9b8534cccb7ce3004c1db20a0c2eace4ce907af70d878930fb483b3a7ee48bb2"
+    }
+  ],
+  "source_data_manifest_sha256": "ae54e23196e7a2e0aafd755b7fd1507e5489650b75d9ca829d97d0bddf8c7af6",
+  "source_e0_prime_config_path": "task3_v2/experiments/e0_oracle_bridge/config.yaml",
+  "source_e0_prime_config_sha256": "bc8004a8d288d8a3bddd00bef12c44eab26d372e276a106f4c95340a0d0a8a44",
+  "test_split_used_for_estimation": false,
+  "worktree_commit": "02f8112f88cc1dddc22d2b445fbe1a14480be542"
+}

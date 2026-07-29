@@ -1,0 +1,187 @@
+{
+  "config_path": "D:\\research\\translate latent variables\\graph-semantics\\task3_v2\\experiments\\e0_oracle_bridge\\config.yaml",
+  "config_sha256": "e89b2c74721b8fb9f34728987dfdc1bb9ebb1eb0b1ac25c5714af0605d8605ea",
+  "created_at_utc": "2026-07-27T13:08:31.109271Z",
+  "graphs": [
+    {
+      "data_path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_00.npz",
+      "data_seed": 9101,
+      "data_sha256": "264477b50971cbb72c5f379fc698673723e4346173708003db7b1bfea1804b3f",
+      "data_size_bytes": 925487,
+      "graph_id": "graph_00",
+      "noise_std": 0.65,
+      "qa": {
+        "all_edge_parent_child_corr_positive": true,
+        "edge_parent_child_corr_max": 0.7909690997185788,
+        "edge_parent_child_corr_min": 0.42522697167018164,
+        "finite_raw": true,
+        "finite_standardized": true,
+        "raw_column_std_max": 1.4136200549647793,
+        "raw_column_std_min": 0.7893540866714037,
+        "test_rows_excluded_from_estimation": true,
+        "train_zscore_max_abs_mean": 4.94974431812049e-17,
+        "train_zscore_max_abs_std_error": 1.1102230246251565e-15
+      },
+      "root_std": 1.0,
+      "schema_version": "task3.e0_prime.scm.v1",
+      "shape": [
+        2000,
+        20
+      ],
+      "spec_path": "task3_v2\\experiments\\e0_oracle_bridge\\graphs\\industrial_cooling_system.json",
+      "spec_sha256": "8b73d23c40f79b39c562810daf38feea63a90ddc9df19d202ad6cc637f124378",
+      "split_indices": {
+        "dev": [
+          1200,
+          1600
+        ],
+        "test": [
+          1600,
+          2000
+        ],
+        "train": [
+          0,
+          1200
+        ]
+      },
+      "standardization_fit_split": "train",
+      "test_used_for_estimation": false,
+      "world": "industrial_cooling_system"
+    },
+    {
+      "data_path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_01.npz",
+      "data_seed": 9201,
+      "data_sha256": "61d6b6c7cd869222a8f72ac919560c7731e2dc36354f689fa083b77c9af259c6",
+      "data_size_bytes": 925657,
+      "graph_id": "graph_01",
+      "noise_std": 0.65,
+      "qa": {
+        "all_edge_parent_child_corr_positive": true,
+        "edge_parent_child_corr_max": 0.8299726036421299,
+        "edge_parent_child_corr_min": 0.4312642562825454,
+        "finite_raw": true,
+        "finite_standardized": true,
+        "raw_column_std_max": 1.4115200937925954,
+        "raw_column_std_min": 0.972126243638552,
+        "test_rows_excluded_from_estimation": true,
+        "train_zscore_max_abs_mean": 6.446232436729815e-17,
+        "train_zscore_max_abs_std_error": 8.881784197001252e-16
+      },
+      "root_std": 1.0,
+      "schema_version": "task3.e0_prime.scm.v1",
+      "shape": [
+        2000,
+        20
+      ],
+      "spec_path": "task3_v2\\experiments\\e0_oracle_bridge\\graphs\\logistics_and_delivery_system.json",
+      "spec_sha256": "a04448b36356047858c41e956b5269d6905bb501e35b6c08ce852d0978b10d7d",
+      "split_indices": {
+        "dev": [
+          1200,
+          1600
+        ],
+        "test": [
+          1600,
+          2000
+        ],
+        "train": [
+          0,
+          1200
+        ]
+      },
+      "standardization_fit_split": "train",
+      "test_used_for_estimation": false,
+      "world": "logistics_and_delivery_system"
+    },
+    {
+      "data_path": "task3_v2\\experiments\\e0_oracle_bridge\\data\\graph_02.npz",
+      "data_seed": 9301,
+      "data_sha256": "9b8534cccb7ce3004c1db20a0c2eace4ce907af70d878930fb483b3a7ee48bb2",
+      "data_size_bytes": 925722,
+      "graph_id": "graph_02",
+      "noise_std": 0.65,
+      "qa": {
+        "all_edge_parent_child_corr_positive": true,
+        "edge_parent_child_corr_max": 0.8593877171140559,
+        "edge_parent_child_corr_min": 0.4218067013244295,
+        "finite_raw": true,
+        "finite_standardized": true,
+        "raw_column_std_max": 1.748733825121749,
+        "raw_column_std_min": 0.9802970773990787,
+        "test_rows_excluded_from_estimation": true,
+        "train_zscore_max_abs_mean": 8.400687552997018e-17,
+        "train_zscore_max_abs_std_error": 1.7763568394002505e-15
+      },
+      "root_std": 1.0,
+      "schema_version": "task3.e0_prime.scm.v1",
+      "shape": [
+        2000,
+        20
+      ],
+      "spec_path": "task3_v2\\experiments\\e0_oracle_bridge\\graphs\\water_treatment_system.json",
+      "spec_sha256": "8c3566cdf9cc1aa93bd4cefbe08750e98c4c4f508db48c5b951aded97e0cb98f",
+      "split_indices": {
+        "dev": [
+          1200,
+          1600
+        ],
+        "test": [
+          1600,
+          2000
+        ],
+        "train": [
+          0,
+          1200
+        ]
+      },
+      "standardization_fit_split": "train",
+      "test_used_for_estimation": false,
+      "world": "water_treatment_system"
+    }
+  ],
+  "qa_passed": true,
+  "schema_version": "task3.e0_prime.data_manifest.v1",
+  "scm": {
+    "coefficient_bounds": [
+      0.4,
+      0.9
+    ],
+    "coefficient_source": "explicit_fixed_values_in_graph_specs",
+    "edge_weight_estimation": {
+      "fit_splits": [
+        "train",
+        "dev"
+      ],
+      "implementation": "v5.graph.Graph.estimate_weights",
+      "test_used_for_selection": false
+    },
+    "form": "linear_additive_gaussian",
+    "non_root_noise": {
+      "family": "normal",
+      "mean": 0.0,
+      "standard_deviation": 0.65
+    },
+    "require_positive_coefficients": true,
+    "root_distribution": {
+      "family": "normal",
+      "mean": 0.0,
+      "standard_deviation": 1.0
+    },
+    "samples_per_graph": 2000,
+    "split": {
+      "dev": 400,
+      "shuffle_before_split": false,
+      "test": 400,
+      "train": 1200
+    },
+    "standardization": {
+      "applied_to": [
+        "train",
+        "dev",
+        "test"
+      ],
+      "fit_split": "train",
+      "method": "zscore"
+    }
+  }
+}

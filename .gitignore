@@ -5,6 +5,8 @@ records*.json
 *.npz
 *.sav
 *.csv
+!task3_v2/experiments/e0_oracle_bridge/results/*.csv
+!task3_v2/experiments/e0_orientation_constraint_audit/results/*.csv
 *.log
 data_cache/*.sav
 data_cache/
