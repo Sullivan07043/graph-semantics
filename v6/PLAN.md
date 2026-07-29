@@ -233,8 +233,17 @@ faithfully, then ask what to verify.
 - Free screens before any judge spend; judge cache on; OPENAI_API_KEY explicitly blanked for
   free runs; CUDA_VISIBLE_DEVICES always explicit; ≤15 concurrent eval processes.
 
-## NEXT PHASE (user 2026-07-28: "留着下一步")
-Active structure DISCOVERY + structure VALIDATION on the small graphs: propose structure
-(seeded by adequacy.propose_repairs / V(G,X) per-pair localization, e.g. himi common-EF
-factor, hexaco correlated-factor/hierarchy), then test the proposed structure under the same
-completion protocol. Until then the given-graph contract stands.
+## NEXT PHASE (user 2026-07-28, CORRECTED same day: NO GIVEN GRAPH)
+Structure discovery FROM DATA ALONE: input = X (+ partial labels), output = the full causal
+structure (number of latents, latent-observed assignment, latent-latent structure, directions
+where identifiable), then completion + translation on the DISCOVERED graph. This returns to
+the original 2026-06-30 task scope (discovery was postponed at the 2026-07-02 meeting).
+- Discovery layer: established algorithms first (FOFC/BPC/RLCD-family rank/tetrad clustering,
+  causal-learn implementations; latent-latent on estimated scores).
+- Validation layer: published scoring keys are NOT ground truth (V(G,X): 79-100% marginal
+  violations) — the TASK is the judge: run the same mask-20% completion protocol on the
+  discovered graph vs the published graph; higher label recovery wins. V(G,X) = internal fit.
+- Translation layer: the v6 pipeline unchanged on top of the discovered graph = the full
+  no-human-structure loop, and the small-scale rehearsal of Task 3's three-layer composition.
+- adequacy.propose_repairs demoted to an auxiliary signal (it assumes a starting graph).
+Until this phase starts, the given-graph contract stands.
