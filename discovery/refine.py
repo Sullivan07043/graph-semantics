@@ -44,7 +44,46 @@ def v_and_proposals(g, X, oi):
     ci_full = TF.ci_table(g, X, oi, score, nl=mats, mode="full")
     adq = adequacy.compute(g, X, oi, score, ci=ci_full)
     props = adequacy.propose_repairs(g, ci_full)
-    return adq, props
+    return adq, props, mats
+
+
+def next_lat(g):
+    return f"L{1 + max([int(L[1:]) for L in g.latents], default=0)}"
+
+
+def cand_add(edges, g, props):
+    """ADD: one new latent over the top violating component's roots."""
+    if not props:
+        return None
+    comp = props[0]["nodes"]
+    comp_set = set(comp)
+    roots = [n for n in comp if not any(p in comp_set for p in g.parents(n))]
+    L = next_lat(g)
+    return edges + [(L, r) for r in roots], {"op": "add", "latent": L, "over": roots}
+
+
+def cand_merge(edges, g, mats):
+    """MERGE: collapse the most score-dependent latent pair into one latent."""
+    lats = [L for L in g.latents if L in mats["idx"]]
+    if len(lats) < 2:
+        return None
+    best, bv = None, -1.0
+    for i, a in enumerate(lats):
+        for b in lats[i + 1:]:
+            v = mats["marg_dcor"][mats["idx"][a], mats["idx"][b]]
+            if v > bv:
+                best, bv = (a, b), v
+    a, b = best
+    M = next_lat(g)
+    new_edges, seen = [], set()
+    for (u, v) in edges:
+        u2 = M if u in (a, b) else u
+        v2 = M if v in (a, b) else v
+        if u2 == v2 or (u2, v2) in seen:
+            continue
+        seen.add((u2, v2))
+        new_edges.append((u2, v2))
+    return new_edges, {"op": "merge", "merged": [a, b], "as": M, "dcor": round(float(bv), 3)}
 
 
 def main():
@@ -58,29 +97,28 @@ def main():
 
     g = build(edges, obs)
     added, traj = [], []
-    prev_edges = None
     for it in range(10):
-        adq, props = v_and_proposals(g, X, oi)
+        adq, props, mats = v_and_proposals(g, X, oi)
         vt = adq["V_marginal"] + adq["V_conditional"]
+        traj.append(round(vt, 3))
         print(f"[{name}] iter {it}: V_total={vt:.2f} (marg {adq['V_marginal']:.2f} + "
               f"cond {adq['V_conditional']:.2f}), latents={g.latents}", flush=True)
-        if traj and vt >= traj[-1]:
-            edges = prev_edges                        # last edit did not reduce V: revert
-            added.pop()
-            print(f"[{name}] stop: V not decreasing — last edit reverted", flush=True)
+        cands = [c for c in (cand_add(edges, g, props), cand_merge(edges, g, mats)) if c]
+        best_edges, best_edit, best_v = None, None, vt
+        for cand_edges, edit in cands:
+            g_c = build(cand_edges, obs)
+            adq_c, _, _ = v_and_proposals(g_c, X, oi)
+            v_c = adq_c["V_marginal"] + adq_c["V_conditional"]
+            print(f"[{name}]   candidate {edit['op']}: "
+                  f"{edit.get('latent', edit.get('as'))} V={v_c:.2f}", flush=True)
+            if v_c < best_v:
+                best_edges, best_edit, best_v = cand_edges, edit, v_c
+        if best_edit is None:
+            print(f"[{name}] stop: no candidate reduces V", flush=True)
             break
-        traj.append(round(vt, 3))
-        if not props:
-            print(f"[{name}] stop: no proposals", flush=True)
-            break
-        comp = props[0]["nodes"]
-        comp_set = set(comp)
-        roots = [n for n in comp if not any(p in comp_set for p in g.parents(n))]
-        new_lat = f"L{1 + max([int(L[1:]) for L in g.latents], default=0)}"
-        prev_edges = list(edges)
-        edges = edges + [(new_lat, r) for r in roots]
-        added.append({"latent": new_lat, "over_roots": roots, "mass": props[0]["mass"]})
-        print(f"[{name}]   apply: {new_lat} -> {roots}", flush=True)
+        edges = best_edges
+        added.append(best_edit)
+        print(f"[{name}]   apply: {best_edit}", flush=True)
         g = build(edges, obs)
 
     out = dict(dataset=name, directed=[list(e) for e in edges], undirected=[],

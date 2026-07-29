@@ -11,9 +11,10 @@ Usage: [GRAPHSEM_ENCODER=e5-large] python build_dictionary.py [out.npz]
 """
 import gzip, os, re, sys
 import numpy as np
-import encode
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # v6 (script lives in tools/)
+sys.path.insert(0, HERE)
+import encode
 DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", "data")))
 NB = os.environ.get("GRAPHSEM_NB", os.path.join(DATA, "numberbatch-en-19.08.txt.gz"))
 WN_BANK = os.path.join(os.path.dirname(encode.DICT_PATH), "concept_bank_wn.npz")

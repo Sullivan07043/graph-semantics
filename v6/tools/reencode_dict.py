@@ -8,7 +8,7 @@ import time
 import numpy as np
 import torch
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # v6 (script lives in tools/)
 sys.path.insert(0, HERE)
 import encode                                                         # noqa: E402
 import lora                                       # noqa: E402
