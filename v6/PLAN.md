@@ -238,8 +238,15 @@ Structure discovery FROM DATA ALONE: input = X (+ partial labels), output = the 
 structure (number of latents, latent-observed assignment, latent-latent structure, directions
 where identifiable), then completion + translation on the DISCOVERED graph. This returns to
 the original 2026-06-30 task scope (discovery was postponed at the 2026-07-02 meeting).
-- Discovery layer: established algorithms first (FOFC/BPC/RLCD-family rank/tetrad clustering,
-  causal-learn implementations; latent-latent on estimated scores).
+- Discovery layer (user 2026-07-28: RLCD is the method): PRIMARY = RLCD rank-deficiency
+  framework — tetrad is its rank-1 special case; it covers the full target class (latent
+  hierarchies, latent-latent edges) that FOFC/BPC (flat one-factor clusters) cannot, and it
+  is the project's own lineage (RLCD -> Markov-blanket-optimize; RLCD+MI variants).
+  FOFC/BPC demoted to sanity baselines. The V(G,X) loop + bootstrap = finite-sample
+  REFINEMENT on top of RLCD's output, not the primary search.
+  Declared division: STRUCTURE decisions (discrete) ride linear rank statistics (that is
+  where the identifiability theorems live); CONTINUOUS targets (weights, anchors) stay on
+  the nonlinear ndep stack. Different jobs, both inside their zones of justification.
 - Validation design (user's intent, clarified 2026-07-28): the DIAGNOSTICS ARE THE INNER
   LOOP of discovery — discover a candidate, then P2/P3/P5 decide "is it right, keep
   expanding?":
