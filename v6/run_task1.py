@@ -34,7 +34,7 @@ SHRINK = os.environ.get("SHRINK", "0") == "1"            # graph-zero blend for 
 LAM_DEP = float(os.environ.get("LAM_DEP", 0.0))          # faithfulness dependence floor
 LAM_COLL = float(os.environ.get("LAM_COLL", 0.0))        # explaining-away at v-structures
 NLDEP = os.environ.get("NLDEP", "1") == "1"      # TRUNK-4a: dcor targets + GBR residualization
-POLFIX = os.environ.get("POLFIX", "1") == "1"    # decode-side polarity correction (2026-07-28)
+POLFIX = os.environ.get("POLFIX", "0") == "1"    # polarity correction: default OFF after test (never moved judge; match +/-; real defect = f_neg semantic fidelity on abstract constructs)
 NEGOP = os.environ.get("NEGOP", "0") == "1"
 BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
