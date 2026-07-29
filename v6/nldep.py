@@ -65,10 +65,24 @@ def residual_signals(g, X, oi, score, names, M):
 
 
 def matrices(g, X, oi, score, name):
-    """-> dict(names, idx, marg_dcor, res_dcor, marg_pear, res_pear). dcor matrices cached."""
+    """-> dict(names, idx, marg_dcor, res_dcor, marg_pear, res_pear). dcor matrices cached;
+    name=None computes WITHOUT caching (for graphs that change every iteration, e.g. the
+    discovery refine loop)."""
     names, M = joint_signals(g, X, oi, score)
     rng = np.random.default_rng(0)
     sel = rng.choice(M.shape[0], SUB, replace=False) if M.shape[0] > SUB else slice(None)
+    if name is None:
+        R = residual_signals(g, X, oi, score, names, M)
+        marg_dcor = dep.dcor_mat(M[sel])
+        res_dcor = dep.dcor_mat(R[sel])
+        marg_pear = np.corrcoef(M.T)
+        res_pear = np.corrcoef(R.T)
+        np.fill_diagonal(marg_pear, 0.0)
+        np.fill_diagonal(res_pear, 0.0)
+        return dict(names=names, idx={n: i for i, n in enumerate(names)},
+                    marg_dcor=np.asarray(marg_dcor, float),
+                    res_dcor=np.asarray(res_dcor, float),
+                    marg_pear=marg_pear, res_pear=res_pear, n_samples=X.shape[0])
     os.makedirs(dep.OUT, exist_ok=True)
     pj = os.path.join(dep.OUT, f"{name}_nljoint_dcor.npy")
     pr = os.path.join(dep.OUT, f"{name}_nlres_dcor.npy")
