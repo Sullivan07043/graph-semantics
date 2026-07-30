@@ -81,9 +81,18 @@ def encode_grad(st, texts, device, max_len=64):
     """Encode WITH gradients through LoRA: tokenize -> transformer -> mean pool -> L2 normalize.
     e5 requires the 'query: ' prefix (matches encode.py)."""
     feats = st.tokenize(["query: " + t for t in texts])
-    feats = {k: v.to(device) for k, v in feats.items()}
+    # SentenceTransformers >=5 adds non-tensor routing metadata (for example,
+    # modality="text") to this mapping. Move/slice tensor inputs only while
+    # preserving metadata for the module forward pass.
+    feats = {
+        k: (v.to(device) if torch.is_tensor(v) else v)
+        for k, v in feats.items()
+    }
     if feats["input_ids"].shape[1] > max_len:
-        feats = {k: v[:, :max_len] for k, v in feats.items()}
+        feats = {
+            k: (v[:, :max_len] if torch.is_tensor(v) and v.ndim >= 2 else v)
+            for k, v in feats.items()
+        }
     out = st._first_module()(feats)
     tok, mask = out["token_embeddings"], out["attention_mask"].unsqueeze(-1).float()
     emb = (tok * mask).sum(1) / mask.sum(1).clamp(min=1e-9)

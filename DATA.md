@@ -35,6 +35,8 @@ The classic 24-test cognitive battery; available e.g. as `HolzingerSwineford1939
 - `Final_Multitasking_Data.sav` — Himi Multitasking study data, OSF project `tn6hp`.
 - `multitasking_alpha0.05_rtscale1_N-1.dot`, `multitasking_description.json` — released with
   the TLVD paper's code (`https://github.com/HYJ9999/TLVD.git`).
+  `archive/fetch_tlvd.sh` downloads these two metadata files into this directory (and honors
+  `GRAPHSEM_DATA`).
 
 ## 4. Dictionary sources
 

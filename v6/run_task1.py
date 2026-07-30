@@ -1,13 +1,13 @@
 """Task 1 — complete the semantics of unlabeled OBSERVED variables, given the causal graph + a labeled subset.
 Protocol: FOLDS-fold masking over observed labels (labels hidden; data kept; the graph is GIVEN and fixed).
-Arms (same three metrics each): uniform / raw-corr baselines (no graph), and CORE = graph-constrained
-embedding optimization (optimize.py). Full per-item records -> RECORDS_OUT."""
+Arms (same three metrics each): uniform / raw-corr (no graph), Feature Propagation, optional GraphMAE,
+and CORE = graph-constrained embedding optimization (optimize.py). Full per-item records -> RECORDS_OUT."""
 import os, sys, json, time
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import testbeds, pool, encode, metrics, optimize
+import testbeds, pool, encode, metrics, optimize, external_baselines
 import judge as judge_mod
 
 ALL_LOADERS = {**testbeds.LOADERS, **pool.LOADERS}
@@ -38,6 +38,17 @@ POLFIX = os.environ.get("POLFIX", "0") == "1"    # polarity correction: default 
 NEGOP = os.environ.get("NEGOP", "0") == "1"
 BRIDGE = os.environ.get("BRIDGE", "")             # "pearson" = frozen upper-tail bridge (2026-07-15)          # semantic negation operator on negative edges
 GNN_ARM = os.environ.get("GNN_ARM", "0") == "1"          # line-B zero-shot arm (needs outputs/gnn.pt)
+FP_ARM = os.environ.get("FP_ARM", "0") == "1"            # training-free Feature Propagation
+GRAPHMAE_ARM = os.environ.get("GRAPHMAE_ARM", "0") == "1"  # dev-trained external arm
+GRAPHMAE_ALLOW_TRAIN_EVAL = os.environ.get("GRAPHMAE_ALLOW_TRAIN_EVAL", "0") == "1"
+
+
+RUN_METADATA = {
+    "protocol_version": "visible-label-folds-v2",
+    "folds": FOLDS,
+    "decode_alpha": "selected separately per fold from visible labels only",
+    "graphmae": {},
+}
 
 
 NEG_OP = None
@@ -103,7 +114,6 @@ def run_dataset(ds, C, cwords, records):
     oi = {o: k for k, o in enumerate(obs)}
     T = encode.embed([labels[o] for o in obs])
     Tn = metrics.norm_rows(T)
-    alpha = metrics.pick_alpha(T, C)
     W, score = g.estimate_weights(X, oi)
     if LATCON:
         import latent_constraints as _LC
@@ -139,7 +149,62 @@ def run_dataset(ds, C, cwords, records):
     rng = np.random.default_rng(0)
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
-    arm_names = ["uniform", "rawcorr", "core"] + (["gnn"] if GNN_ARM else [])
+    graphmae_ctx = None
+    graphmae_arm_name = None
+    graphmae_audit = None
+    if GRAPHMAE_ARM:
+        import graphmae as graphmae_mod
+
+        checkpoint = os.environ.get("GRAPHMAE_CKPT", graphmae_mod.DEFAULT_CKPT)
+        graphmae_ctx = graphmae_mod.GraphMAEBaseline.load_checkpoint(
+            checkpoint, device=os.environ.get("GRAPHMAE_DEVICE", "auto")
+        )
+        train_names = set(graphmae_ctx.metadata_.get("train_datasets", []))
+        if not train_names:
+            raise RuntimeError("GraphMAE checkpoint lacks audited train_datasets metadata")
+        outside_dev = train_names - set(pool.DEV)
+        if outside_dev:
+            raise RuntimeError(
+                "GraphMAE checkpoint used data outside pool.DEV: "
+                + ", ".join(sorted(outside_dev))
+            )
+        train_overlap = ds["name"] in train_names
+        if train_overlap and not GRAPHMAE_ALLOW_TRAIN_EVAL:
+            raise RuntimeError(
+                f"GraphMAE train/eval overlap on {ds['name']!r}; "
+                "set GRAPHMAE_ALLOW_TRAIN_EVAL=1 only for an explicitly tagged diagnostic"
+            )
+        current_lora = os.path.join(HERE, "outputs", "l3_lora.pt")
+        if not os.path.isfile(current_lora):
+            raise FileNotFoundError(f"missing L3 LoRA checkpoint: {current_lora}")
+        saved_hash = graphmae_ctx.metadata_.get("lora_sha256")
+        current_hash = graphmae_mod.file_sha256(current_lora)
+        if saved_hash is None or saved_hash != current_hash:
+            raise RuntimeError("GraphMAE checkpoint was trained in a different L3 embedding space")
+        saved_encoder = graphmae_ctx.metadata_.get("encoder")
+        if saved_encoder is None or saved_encoder != encode.ENCODER:
+            raise RuntimeError(
+                f"GraphMAE encoder mismatch: checkpoint={saved_encoder!r}, current={encode.ENCODER!r}"
+            )
+        graphmae_arm_name = (
+            "graphmae_gcn_in_sample" if train_overlap else "graphmae_gcn"
+        )
+        graphmae_audit = {
+            "arm": graphmae_arm_name,
+            "checkpoint": os.path.basename(checkpoint),
+            "method": graphmae_ctx.metadata_.get("method"),
+            "method_version": graphmae_ctx.metadata_.get("method_version"),
+            "train_datasets": sorted(train_names),
+            "train_overlap": bool(train_overlap),
+            "encoder": saved_encoder,
+            "lora_sha256": saved_hash,
+        }
+        RUN_METADATA["graphmae"][ds["name"]] = graphmae_audit
+    arm_names = (["uniform", "rawcorr"]
+                 + (["feature_prop"] if FP_ARM else [])
+                 + ([graphmae_arm_name] if graphmae_arm_name else [])
+                 + ["core"]
+                 + (["gnn"] if GNN_ARM else []))
     gnn_ctx = None
     if GNN_ARM:
         import torch, gnn as gnn_mod
@@ -149,12 +214,13 @@ def run_dataset(ds, C, cwords, records):
         gnn_ctx = (gnn_mod, gmodel, gnn_mod.graph_tensors(ds))
     arms = {a: {"judge": [], "match": [], "exact": []} for a in arm_names}
     print(f"[{ts()}] {ds['name']}: {X.shape[0]}x{len(obs)} | graph: {len(g.latents)} latents, "
-          f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha={alpha:.2e}", flush=True)
+          f"{len(g.edges)} edges, {len(g.independent_pairs())} independent pairs | alpha=visible-only/fold", flush=True)
 
     for fno, fold in enumerate(folds):
         masked = sorted(int(i) for i in fold)
         visible = [i for i in range(len(obs)) if i not in set(masked)]
         vis_emb = {obs[i]: T[i] for i in visible}
+        alpha = metrics.fold_alpha(T, C, visible)
         # baselines: affinity-weighted mean of visible labels
         preds = {}
         for name, A in (("uniform", np.ones_like(Craw)), ("rawcorr", np.clip(Craw, 0, None))):
@@ -165,6 +231,13 @@ def run_dataset(ds, C, cwords, records):
                     w[visible] = 1.0
                 P[r] = (w / w.sum()) @ T
             preds[name] = P
+        if FP_ARM:
+            fp = external_baselines.feature_propagation(g, vis_emb)
+            preds["feature_prop"] = np.stack([fp[obs[i]] for i in masked])
+        if graphmae_ctx is not None:
+            targets = [obs[i] for i in masked]
+            graphmae_pred = graphmae_ctx.infer(g, vis_emb, missing_nodes=targets)
+            preds[graphmae_arm_name] = np.stack([graphmae_pred[node] for node in targets])
         # CORE: graph-constrained embedding optimization
         emb = optimize.optimize_embeddings(g, W, vis_emb, d=T.shape[1], steps=STEPS,
                                            lam_zero=LAM_ZERO, lam_norm=LAM_NORM, seed=fno,
@@ -195,10 +268,17 @@ def run_dataset(ds, C, cwords, records):
             if jacc is not None:
                 arms[a]["judge"].append(jacc)
             for r, i in enumerate(masked):
-                records.append({"task": 1, "dataset": ds["name"], "fold": fno, "arm": a,
-                                "var": obs[i], "true_label": labels[obs[i]],
-                                "decoded_words": (words[r] if words else None),
-                                "judge": (bool(verd[r]) if verd and verd[r] is not None else None)})
+                record = {"task": 1, "dataset": ds["name"], "fold": fno, "arm": a,
+                          "var": obs[i], "true_label": labels[obs[i]],
+                          "decode_alpha": float(alpha),
+                          "decoded_words": (words[r] if words else None),
+                          "judge": (bool(verd[r]) if verd and verd[r] is not None else None)}
+                if a == "feature_prop":
+                    record["method_version"] = external_baselines.FEATURE_PROP_VERSION
+                elif graphmae_arm_name is not None and a == graphmae_arm_name:
+                    record["method_version"] = graphmae_audit["method_version"]
+                    record["train_overlap"] = graphmae_audit["train_overlap"]
+                records.append(record)
         print(f"[{ts()}]   fold {fno + 1}/{FOLDS} done", flush=True)
 
     print(f"\n[{ts()}] === Task 1 results: {ds['name']} ===   judge   match(chance~{1/len(folds[0]):.2f})   exact",
@@ -219,7 +299,8 @@ def main():
         summary[n] = run_dataset(ALL_LOADERS[n](), C, cwords, records)
     out = os.environ.get("RECORDS_OUT", os.path.join(HERE, "outputs", "task1_records.json"))
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    json.dump({"summary": summary, "records": records}, open(out, "w"), ensure_ascii=False, indent=1)
+    json.dump({"summary": summary, "records": records, "run_metadata": RUN_METADATA},
+              open(out, "w"), ensure_ascii=False, indent=1)
     print(f"[saved {out} ({len(records)} items)]", flush=True)
 
 

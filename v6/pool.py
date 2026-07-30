@@ -44,7 +44,11 @@ def _codebook_items(path, pattern):
 def _load_matrix(path, cols, sep, vmin=1, cap=CAP, seed=0):
     df = pd.read_csv(path, sep=sep, low_memory=False)
     df.columns = [str(c).strip().strip('"') for c in df.columns]
-    R = df[cols].apply(pd.to_numeric, errors="coerce").to_numpy(float)
+    # pandas Copy-on-Write may expose a read-only NumPy view here. The
+    # cleaning below is intentionally in-place, so request an owned buffer.
+    R = df[cols].apply(pd.to_numeric, errors="coerce").to_numpy(
+        dtype=float, copy=True
+    )
     R[R < vmin] = np.nan
     R = R[~np.isnan(R).any(1)]
     if len(R) > cap:

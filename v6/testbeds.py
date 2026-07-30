@@ -6,7 +6,7 @@ Each loader returns a dict:
   latent_gt  : dict latent_name -> ground-truth description text (for Task 2 judging)
   name       : dataset name
 Data locations: env GRAPHSEM_DATA (default ../data relative to this file's parent project);
-TLVD graph/description files cached by fetch_tlvd.sh into data_cache/.
+TLVD graph/description files live with the public data under data/TLVD/; a legacy data_cache link is supported.
 """
 import os, json
 import numpy as np
@@ -17,6 +17,40 @@ DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", 
 CACHE = os.path.join(HERE, "data_cache")
 
 
+def _tlvd_metadata_file(filename):
+    """Resolve released TLVD metadata, preferring the documented data layout."""
+    roots = []
+    override = os.environ.get("GRAPHSEM_TLVD_META")
+    if override:
+        roots.append(os.path.abspath(override))
+    roots.append(os.path.join(DATA, "TLVD"))
+
+    # Backward compatibility with v6/data_cache. On Windows a Git symlink may
+    # materialize as a small text file containing its relative target.
+    if os.path.isdir(CACHE):
+        roots.append(CACHE)
+    elif os.path.islink(CACHE):
+        roots.append(os.path.realpath(CACHE))
+    elif os.path.isfile(CACHE):
+        try:
+            target = open(CACHE, encoding="utf-8").read().strip()
+            if target:
+                roots.append(os.path.abspath(os.path.join(HERE, target)))
+        except (OSError, UnicodeError):
+            pass
+
+    checked = []
+    for root in roots:
+        path = os.path.join(root, filename)
+        checked.append(path)
+        if os.path.isfile(path):
+            return path
+    raise FileNotFoundError(
+        f"missing TLVD metadata file {filename!r}; checked: " + "; ".join(checked)
+        + ". Run archive/fetch_tlvd.sh or follow DATA.md."
+    )
+
+
 def z(a):
     a = np.asarray(a, float)
     return (a - a.mean(0)) / (a.std(0) + 1e-9)
@@ -25,8 +59,9 @@ def z(a):
 # --------------------------------------------------------------------------- TLVD Multitasking (given .dot)
 def tlvd():
     import pyreadstat
-    g = G.from_dot(os.path.join(CACHE, "multitasking_alpha0.05_rtscale1_N-1.dot"))
-    desc = json.load(open(os.path.join(CACHE, "multitasking_description.json")))
+    g = G.from_dot(_tlvd_metadata_file("multitasking_alpha0.05_rtscale1_N-1.dot"))
+    with open(_tlvd_metadata_file("multitasking_description.json"), encoding="utf-8") as f:
+        desc = json.load(f)
     labels = {o: desc[o]["description"] for o in g.observed}
     df, _ = pyreadstat.read_sav(os.path.join(DATA, "TLVD", "Final_Multitasking_Data.sav"))
     cols = {o: (o[2:] if o.startswith("X_") else o) for o in g.observed}

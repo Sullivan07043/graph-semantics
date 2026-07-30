@@ -66,6 +66,13 @@ def _chat(prompt, model=None):
     raise RuntimeError("judge API unreachable")
 
 
+def chat(prompt, model=None):
+    """Public deterministic chat helper shared by auditable LLM baselines."""
+    if not available():
+        raise RuntimeError("OPENAI_API_KEY is not set")
+    return _chat(prompt, model=model)
+
+
 def _k(mode, rec, tgt):
     rec_s = ", ".join(rec) if isinstance(rec, (list, tuple)) else str(rec)
     return (mode, rec_s, str(tgt))

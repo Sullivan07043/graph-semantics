@@ -17,6 +17,17 @@ def pick_alpha(E, C, target_l0=8):
     return splice.auto_alpha(E, C, target_l0=target_l0)
 
 
+def fold_alpha(E, C, visible_indices, target_l0=8):
+    """Choose decode sparsity using this fold's visible label embeddings only."""
+    E = np.asarray(E)
+    visible = np.asarray(list(visible_indices), dtype=int)
+    if visible.ndim != 1 or visible.size == 0:
+        raise ValueError("fold_alpha requires at least one visible label")
+    if np.any(visible < 0) or np.any(visible >= E.shape[0]):
+        raise IndexError("visible label index is outside the embedding matrix")
+    return pick_alpha(E[visible], C, target_l0=target_l0)
+
+
 def decode_words(V, C, cwords, alpha, topk=6):
     # Negative-loading direction: a node generated with net-negative weight points OPPOSITE its parent in
     # embedding space, and nonnegative SpLiCE selects no concept for such vectors. When the straight decode
