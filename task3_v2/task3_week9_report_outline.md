@@ -73,81 +73,53 @@ J-space measurements + CauScale graph
 
 | Result | Meaning |
 |---|---|
-| E0′ fails | Current semantic constraints do not transfer to generic causal DAGs |
+| E0′ fails | The unchanged local solver is not validated for this causal-DAG bridge; diagnose before E1/E2 |
 | E0′ passes, E1 fails | J-space measurement is the bottleneck |
 | E0′ and E1 pass, E2 fails | CauScale graph discovery is the bottleneck |
 | All pass | The full Task 3 pipeline is supported |
 
-> E0′ returned NO-GO, so E0″ was added before E1/E2 to audit the cause of failure.
+> E0′ returned NO-GO; E0″ classified the failure as Category F, so E1/E2 remain paused.
 
 ---
 
-# Slide 4｜E0′: Oracle Causal-Graph Bridge Test
+# Slide 4｜E0′: Oracle Graph Gives No Stable Advantage
 
 ## Research question
 
-> Can the frozen Stage-3 Task-1 solver use a correct causal DAG to improve masked semantic recovery?
+> Can the frozen local solver use a correct causal DAG to improve masked semantic recovery?
 
-### Three causal micro-worlds
+### Test
 
-- Industrial cooling system
-- Logistics and delivery system
-- Water-treatment system
+- Three hand/LLM-designed synthetic linear-Gaussian SCM worlds: industrial cooling, logistics, and water treatment.
+- 20 observed nodes per graph; 26–29 edges; no latent nodes or hidden confounders.
+- 2,000 samples per graph; 5 folds with 4 of 20 labels masked.
+- Oracle estimated/true weights vs shuffled, reversed, raw correlation, and uniform.
 
-### Experimental setup
+> **Bundle:** Frozen local reproduction; original release artifacts unavailable.
 
-| Item | Setting |
-|---|---|
-| Graphs | 3 |
-| Observed nodes | 20 per graph |
-| Directed edges | 24–32 per graph |
-| Latent nodes | None |
-| Hidden confounders | None |
-| SCM samples | 2,000 per graph |
-| Masking | 5 folds; 4 of 20 labels masked per fold |
+### Primary gold-embedding cosine
 
-### Experimental arms
+| Comparison | Delta |
+|---|---:|
+| Oracle vs shuffled | +0.0131 |
+| Oracle vs reversed | -0.1305 |
+| Oracle vs uniform | -0.1698 |
+| Oracle vs raw correlation | -0.1704 |
 
-- Oracle graph + estimated weights
-- Oracle graph + true weights
-- Shuffled graph
-- Reversed graph
-- Raw correlation
-- Uniform baseline
+### Result
 
----
-
-# Slide 5｜E0′ Result: NO-GO
-
-## Primary cosine comparison
-
-| Comparison | Delta | 95% CI |
-|---|---:|---:|
-| Oracle vs shuffled | +0.0131 | [-0.1106, 0.0868] |
-| Oracle vs reversed | -0.1305 | [-0.2747, -0.0484] |
-| Oracle vs uniform | -0.1698 | [-0.3295, -0.0826] |
-| Oracle vs raw correlation | -0.1704 | [-0.3287, -0.0839] |
-
-### Main observations
-
-- Oracle graph had **no stable advantage** over shuffled graphs.
-- Reversed graph performed significantly better than oracle.
-- Uniform and raw correlation also performed significantly better.
-- The oracle advantage was positive on **0 of 3 graphs**.
+- No stable oracle advantage over shuffled graphs; consistent advantage on **0 of 3 graphs**.
+- Reversed and no-graph baselines achieved higher primary cosine.
 
 \[
-\boxed{\text{NO-GO}}
+\boxed{\text{NO-GO — E1 blocked}}
 \]
-
-### Decision
-
-> Do not proceed directly to E1.
 
 ---
 
-# Slide 6｜Initial E0′ Hypothesis: Graph-Type Mismatch
+# Slide 5｜Initial E0′ Hypothesis: Graph-Type Mismatch
 
-## Tasks 1 and 2 used a different type of graph
+## Tasks 1 and 2 predominantly used measurement/keying graphs
 
 Their datasets mainly use:
 
@@ -163,7 +135,11 @@ Connected nodes often belong to the same semantic family.
 | Task | Ours | Best comparison |
 |---|---:|---:|
 | Task 1 Judge-ACC, all 13 datasets | 0.717 | Raw correlation: 0.610 |
-| Task 2 Judge-ACC, mean | 0.930 | LLM naming: 0.695 |
+| Task 2 Judge-ACC, mean over 7 datasets | 0.930 | LLM naming: 0.695 |
+
+### Scope of existing evidence
+
+> Task 1/2 evidence is mainly measurement/keying. TLVD is a mixed directed exception but stays semantically narrow; gains are not universal. Transfer of the unchanged solver to semantically diverse mechanism DAGs is unvalidated.
 
 ## E0′ used mechanism-level causal edges
 
@@ -179,69 +155,37 @@ Example:
 \text{shutdown}
 \]
 
-A causal edge does not imply that two node meanings should be close in embedding space:
+The unchanged solver imposes an embedding-space generation equation:
 
 \[
-\text{causal relation}
-\neq
-\text{semantic composition}
+e_{\text{child}}
+\approx
+\sum_p w_{p,c}e_p
 \]
+
+For mechanism-level edges, causal influence does not necessarily imply this semantic composition.
 
 ### Initial interpretation after E0′
 
 - Tasks 1 and 2 are **not disproved**.
 - J-space and CauScale are **not disproved**.
-- The failed route is:
+- The unsupported direct-transfer route is:
 
 \[
 \boxed{
-\text{CauScale causal graph}
+\text{mechanism-style directed graph}
 \rightarrow
 \text{unchanged Task 1/2 solver}
 }
 \]
 
-### Initial proposed next step
+### Relevance to Task 3
 
-> Redesign how causal structure constrains semantic embeddings, instead of treating every causal edge as a semantic-generation edge.
-
-The graphs are structurally related but semantically different.
-Task 1/2 mainly use measurement and hierarchy graphs, where connected nodes usually share a semantic family. E0 uses mechanism-level causal DAGs, where causal influence does not imply semantic similarity. This graph-type shift was the leading explanation after E0′, but E0′ alone could not establish that it was the main cause. E0″ therefore tests whether this explanation is sufficient.
-The CauScale graph is closer to E0’s mechanism-level causal DAG than to the measurement and hierarchy graphs used in Tasks 1/2. In the current J-space setting, it is more safely interpreted as a directed dependency graph over internal coordinates, so it should not be passed unchanged into the existing semantic solver.
-
-causcale: causal sufficiency, not guaranteed in jspace
+> The planned J-space/CauScale output is closer in role to a mechanism-style directed dependency graph than to a measurement hierarchy. Because causal sufficiency in J-space is not established, it should not yet be treated as a validated causal DAG.
 
 ---
 
-# Slide 7｜E0″ Audit: Validity Passes, but Controls Conflict
-
-## Validity checks
-
-| Check | Result |
-|---|---|
-| Orientation from JSON → adapter → SCM/ALS/generation | Pass |
-| Solver and metric parity | 15/15 solves; 60/60 node metrics |
-| Selected Stage-3 bundle behavior | Reproduced |
-
-## Key diagnostic evidence
-
-| Test | Main result | Interpretation |
-|---|---|---|
-| Roots | 18 roots explain **83.67%** of reversal's cosine advantage | Important, but not sufficient |
-| Visible-parent nodes | Gold cosine **-0.0656**; centered cosine **+0.5101**; MRR **+0.1027** vs uniform | Material metric conflict |
-| Generation ablation | Removing generation changes gold cosine by **-0.4443** | Generation is not the isolated failure |
-| Same-module control | Centered/retrieval gains coexist with adverse cosine/margin | Positive control fails |
-
-### Audit scope
-
-- Same E0′ graphs, folds, checkpoints, solver, and decoder.
-- No retraining, coefficient tuning, J-space, CauScale, or E1.
-
-> Orientation error, bundle drift, root-only, generation-only, and causal-graph-only explanations are all insufficient.
-
----
-
-# Slide 8｜E0″ Final Result: Category F
+# Slide 6｜E0″ Conclusion: Pause Task 3
 
 \[
 \boxed{
@@ -249,20 +193,27 @@ causcale: causal sufficiency, not guaranteed in jspace
 }
 \]
 
+## Why?
+
+| Audit finding | Result |
+|---|---|
+| Orientation and E0′ parity | Pass: 15/15 canonical solves; 60/60 oracle node metrics match |
+| Bundle check | Selected API-free trend reproduced; Judge pending |
+| Root effect | Roots explain **83.67%** of reversal's cosine advantage, but not the full failure |
+| Metric/control diagnosis | Visible-parent metrics conflict; generation is not isolated; same-module positive control fails |
+
 ### Updated conclusion
 
 - E0′ remains a **NO-GO for the frozen local solver/evaluation stack** on three synthetic causal DAGs.
-- Orientation and bundle checks pass, but local semantic and retrieval metrics disagree.
-- The graph-type shift may contribute, but it is not a sufficient explanation.
+- E0″ does not support graph-type mismatch as a sufficient explanation.
+- Material cross-metric conflict and the failed positive control lead to **Category F: broader solver or metric failure**.
 
-### What this does not show
-
-> Tasks 1 and 2, J-space, CauScale, and causal graphs in general are not disproved.
+> Tasks 1 and 2, J-space, CauScale, and causal graphs in general are **not** disproved.
 
 ### Decision
 
-> **No E0′ rerun, no old E1, and no S0. Pause Task 3 and audit the solver/evaluation stack.**
+> **Pause Task 3: no E0′ rerun, no old E1, and no S0.**
 
 ### Next step
 
-> Reconcile gold cosine with centered/retrieval metrics and establish a passing positive control before redesigning causal constraints or returning to J-space.
+> **Near term:** return to Tasks 1 and 2. Before reviving Task 3 or reusing the unchanged solver on mechanism-style DAGs, audit the solver/evaluation stack and require a passing positive control.

@@ -4,6 +4,13 @@ Last updated: 2026-07-27
 
 Version: **V1 baseline**. Future redesign work belongs in `task3_v2`.
 
+> **Historical branch — paused.** This token-anchored Stage 1 overview is
+> preserved as an independent V1 audit record. The results and numerical
+> claims below are unchanged; sections describing a “next step” record the old
+> branch plan and are not the active Task 3 plan. The completed E0′ oracle
+> causal-graph bridge is documented in
+> [`../../task3_v2/`](../../task3_v2/).
+
 This is the main overview of Task 3. It contains the task definition, complete
 experimental stages, current small-scale experiment, results, and next
 decision. Task 1/2 remain documented in the repository root `README.md`.
