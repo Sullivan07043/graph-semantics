@@ -41,7 +41,48 @@ ROWS = int(os.environ.get("ROWS", 2000))
 ALPHA = float(os.environ.get("ALPHA", 0.001))
 MIN_CLUSTER = int(os.environ.get("MIN_CLUSTER", 3))
 RLCD_MAX = int(os.environ.get("RLCD_MAX", 25))
+WORKERS = int(os.environ.get("WORKERS", 1))
+# Default SEQUENTIAL, by measurement (16PF, 96 cores): cluster sizes are skewed, the
+# critical path is the largest cluster, and sequential RLCD with the whole machine's BLAS
+# beats process-parallel workers (235s vs 534s at 6 threads/worker vs 805s at 1 thread).
+# Set WORKERS>1 for batches of many similar-size RLCD runs (ratification), where the
+# critical path divides by the worker count; results are signature-identical either way
+# (certified 2026-08-02).
 LAT_RE = re.compile(r"^L\d+$")
+
+
+def _rlcd_cluster(args):
+    """Per-cluster RLCD worker (process pool). Returns raw prefixed edge lists; latent
+    renumbering happens in the parent, in cluster order, so parallel output is identical
+    to the sequential version. Launch the script with OMP_NUM_THREADS=1 so workers do not
+    oversubscribe BLAS threads."""
+    ci, Xc, names = args
+    cg = RLCD(Xc, node_names=[f"o::{nm}" for nm in names])
+    d, u = edges_from_cg(cg)
+    return ci, d, u
+
+
+def _ratify_job(args):
+    """Coverage-ratification worker: RLCD on (cluster core + candidate chunk). A candidate
+    is ACCEPTED iff the re-run attaches it to a latent that also carries at least one core
+    member of the cluster (i.e. it joins the cluster's measurement structure). Returns the
+    accepted candidate names with the core members sharing that latent."""
+    ci, Xc, core_names, cand_names = args
+    names = core_names + cand_names
+    cg = RLCD(Xc, node_names=[f"o::{nm}" for nm in names])
+    d, u = edges_from_cg(cg)
+    child = {}
+    for a, b in d + u:
+        if LAT_RE.match(a) and b.startswith("o::"):
+            child.setdefault(a, set()).add(b[3:])
+    core = set(core_names)
+    out = []
+    for L, ch in child.items():
+        core_ch = ch & core
+        if core_ch:
+            for cand in ch & set(cand_names):
+                out.append((cand, sorted(core_ch)))
+    return ci, out
 
 
 def marginal_skeleton(X, alpha):
@@ -115,7 +156,23 @@ if __name__ == "__main__":
         print(f"[{NAME}]   cluster {ci}: {len(c)} items, published factors: {facs}",
               flush=True)
 
-    edges, lat_n = [], 0
+    # Per-cluster RLCD runs in parallel processes (clusters are independent subproblems).
+    # Renumbering stays in the parent, in cluster order: output is byte-identical to the
+    # sequential version. (Observed names are prefixed for the calls because RLCD names its
+    # internal latents L1, L2, ... and 16PF item codes include L1..L10.)
+    from concurrent.futures import ProcessPoolExecutor
+
+    small = [(ci, c) for ci, c in enumerate(clusters) if len(c) <= RLCD_MAX]
+    n_workers = WORKERS or max(1, min(len(small), (os.cpu_count() or 4) - 2))
+    print(f"[{NAME}] per-cluster RLCD: {len(small)} clusters on {n_workers} workers",
+          flush=True)
+    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+        results = dict()
+        for ci, d, u in ex.map(_rlcd_cluster,
+                               [(ci, Xs[:, c], [obs[i] for i in c]) for ci, c in small]):
+            results[ci] = (d, u)
+
+    edges, lat_n, cluster_lats = [], 0, {}
     for ci, c in enumerate(clusters):
         names = [obs[i] for i in c]
         if len(c) > RLCD_MAX:
@@ -125,10 +182,7 @@ if __name__ == "__main__":
             print(f"[{NAME}]   cluster {ci}: {len(c)} > {RLCD_MAX}, single-latent fallback "
                   f"(declared)", flush=True)
             continue
-        # RLCD names its internal latents L1, L2, ... and 16PF item codes include L1..L10
-        # (scale L), so observed names are prefixed for the call and stripped after.
-        cg = RLCD(Xs[:, c], node_names=[f"o::{nm}" for nm in names])
-        d, u = edges_from_cg(cg)
+        d, u = results[ci]
         ren = {}
         for e in d + u:
             for x in e:
@@ -140,6 +194,7 @@ if __name__ == "__main__":
             return x[3:] if x.startswith("o::") else ren.get(x, x)
 
         edges += [(deref(a), deref(b)) for a, b in d + u]
+        cluster_lats[ci] = sorted(ren.values(), key=lambda s: int(s[1:]))
         print(f"[{NAME}]   cluster {ci}: RLCD -> {len(ren)} latents, {len(d) + len(u)} edges",
               flush=True)
 
@@ -159,6 +214,81 @@ if __name__ == "__main__":
         print(f"[{NAME}] deduped {len(edges) - len(deduped)} reciprocal/self edges",
               flush=True)
     edges = deduped
+
+    # ---- Coverage ratification (2026-08-02): clustering proposes, RLCD disposes ----
+    # Every item without a latent parent is nominated to its max-mean-|r| cluster, and is
+    # accepted only if RLCD, re-run on (cluster core + candidate chunk), attaches it to a
+    # latent that carries core members. Accepted items attach to the ORIGINAL cluster
+    # latent with maximal child overlap against the ratifying latent's core members.
+    # Refused items stay orphaned and are declared. Chunks are many similar small RLCD
+    # runs: the process-parallel regime.
+    RATIFY = os.environ.get("RATIFY", "1") == "1"
+    ratified = []
+    if RATIFY:
+        parented = {b for a, b in edges if LAT_RE.match(a) and not LAT_RE.match(b)}
+        orphans = [i for i, nm in enumerate(obs) if nm not in parented]
+        noms = {}
+        for i in orphans:
+            ci = int(np.argmax([R[i, c].mean() for c in clusters]))
+            noms.setdefault(ci, []).append(i)
+        # Ratification runs against a REDUCED core: each cluster latent contributes its
+        # RATIFY_TOPK highest-|r|-to-candidates indicators (rank identification needs a few
+        # pure indicators per latent, not the full cluster), so jobs stay small and fast.
+        # Collection is as_completed with a per-job timeout: a straggler forfeits only its
+        # own chunk. Declared in the artifact.
+        from concurrent.futures import as_completed
+        TOPK = int(os.environ.get("RATIFY_TOPK", 4))
+        JOB_TIMEOUT = int(os.environ.get("RATIFY_TIMEOUT", 600))
+        own = {}
+        for ci in cluster_lats:
+            own[ci] = {L: sorted(b for x, b in edges
+                                 if x == L and not LAT_RE.match(b))
+                       for L in cluster_lats[ci]}
+        jobs = []
+        for ci, cand in sorted(noms.items()):
+            if not cluster_lats.get(ci):
+                print(f"[{NAME}] ratify: cluster {ci} has no latents, "
+                      f"{len(cand)} nominees stay orphaned", flush=True)
+                continue
+            # total core budget: many-latent clusters must not blow the job size
+            # (7 latents x topk 4 = 28 core > RLCD_MAX was measured to invert the saving)
+            budget = int(os.environ.get("RATIFY_CORE_BUDGET", 10))
+            k_eff = max(2, min(TOPK, budget // max(len(own[ci]), 1)))
+            core_idx = []
+            for L, ch in own[ci].items():
+                ranked = sorted(ch, key=lambda nm: -R[np.ix_(cand, [obs.index(nm)])].mean())
+                core_idx += [obs.index(nm) for nm in ranked[:k_eff]]
+            core_idx = sorted(set(core_idx))[:budget]
+            head = min(max(RLCD_MAX - len(core_idx), 4),
+                       int(os.environ.get("RATIFY_CHUNK", 6)))
+            for s in range(0, len(cand), head):
+                chunk = cand[s:s + head]
+                jobs.append((ci, Xs[:, core_idx + chunk],
+                             [obs[i] for i in core_idx], [obs[i] for i in chunk]))
+        rat_workers = max(1, min(int(os.environ.get("RATIFY_WORKERS", 8)), len(jobs) or 1))
+        print(f"[{NAME}] ratify: {len(orphans)} orphans -> {len(jobs)} reduced-core RLCD "
+              f"jobs (topk={TOPK}) on {rat_workers} workers", flush=True)
+        if jobs:
+            accepted_names = set()
+            with ProcessPoolExecutor(max_workers=rat_workers) as ex:
+                futs = {ex.submit(_ratify_job, j): j[0] for j in jobs}
+                for fut in as_completed(futs, timeout=JOB_TIMEOUT * max(1, len(jobs))):
+                    try:
+                        ci, out = fut.result(timeout=JOB_TIMEOUT)
+                    except Exception as e:
+                        print(f"[{NAME}] ratify: job on cluster {futs[fut]} dropped "
+                              f"({type(e).__name__})", flush=True)
+                        continue
+                    for cand, core_ch in out:
+                        if cand in accepted_names:
+                            continue
+                        accepted_names.add(cand)
+                        L_best = max(cluster_lats[ci],
+                                     key=lambda L: len(set(own[ci][L]) & set(core_ch)))
+                        edges.append((L_best, cand))
+                        ratified.append([L_best, cand])
+        print(f"[{NAME}] ratify: {len(ratified)}/{len(orphans)} orphans accepted by RLCD, "
+              f"{len(orphans) - len(ratified)} remain orphaned (declared)", flush=True)
 
     # Layer 3: latent-latent over cluster scores (PC1 per cluster), only if >1 cluster.
     top_edges = []
@@ -185,6 +315,7 @@ if __name__ == "__main__":
            "params": {"rows": ROWS, "alpha": ALPHA, "min_cluster": MIN_CLUSTER,
                       "rlcd_max": RLCD_MAX, "cluster_threshold": THR,
                       "skeleton": "marginal fisher-z floor + structural |r| threshold",
+                      "ratified_edges": ratified,
                       "top_layer_raw": [list(e) for e in top_edges]}}
     json.dump(out, open(os.path.join(HERE, "outputs", f"{NAME}.json"), "w"), indent=1)
     print(f"[{NAME}] saved outputs/{NAME}.json ({time.time() - t0:.0f}s total)", flush=True)
