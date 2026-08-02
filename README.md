@@ -91,14 +91,16 @@ latent judged correct against the reference construct). cfcs surfaced a real def
   builders under `v6/tools/`; canon `v6/THEORY.md` + `v6/PLAN.md`).
 - **`discovery/`** — structure discovery: `run_discovery.py` (RLCD → unchanged passthrough +
   read-only V report), `run_downstream.py` (loader injection into the official runners).
-- **`v5/`** — frozen previous main line (v6 symlinks its frozen artifacts).
 - **`archive/`** — superseded code + logs; older states via `git checkout pre-v5`.
+- v5 (the frozen previous main line) was removed from the repository on 2026-08-02 and is
+  kept locally only; its history remains reachable through old commits.
 
 ## Run
 
 ```
-# certified configuration (add OPENAI_API_KEY + JUDGE_MODEL=gpt-5.5 for judged runs;
-# without a key the run is free: match/exact only)
+# certified configuration (add OPENAI_API_KEY for judged runs; the judge defaults to
+# gpt-5.5; via OpenRouter: JUDGE_BASE_URL=https://openrouter.ai/api/v1 JUDGE_MODEL=openai/gpt-5.5.
+# Without a key the run is free: match/exact only)
 TASK=1 DATASET=heldout L2_ARM=mlp RESIDUAL=1.0 LAM_RES=1.0 BRIDGE=pearson python v6/main.py
 TASK=2 DATASET=heldout L2_ARM=mlp RESIDUAL=1.0 LAM_RES=1.0 BRIDGE=pearson python v6/main.py
 
@@ -114,8 +116,8 @@ BASE=rse TASK=2 python discovery/run_downstream.py
 ```
 
 Env knobs: `DATASET FOLDS RESIDUAL LAM_RES BRIDGE CI_MODE NLDEP GENOP RCHAN POLFIX
-GRAPHSEM_DICT JUDGE_MODEL JUDGE_CACHE RECORDS_OUT L2_ARM L2_CKPT GENOP_CKPT NEGOP_CKPT K
-TORCH_THREADS` (pin it), `CUDA_VISIBLE_DEVICES` (always explicit).
+GRAPHSEM_DICT JUDGE_MODEL JUDGE_BASE_URL NAMING_MODEL JUDGE_CACHE RECORDS_OUT L2_ARM L2_CKPT
+GENOP_CKPT NEGOP_CKPT K TORCH_THREADS` (pin it), `CUDA_VISIBLE_DEVICES` (always explicit).
 
 ## Reproduce
 
@@ -148,9 +150,11 @@ TORCH_THREADS` (pin it), `CUDA_VISIBLE_DEVICES` (always explicit).
 
 ## Honest notes
 
-- Judge model matters: an unset `JUDGE_MODEL` silently falls back to gpt-4o-mini and produces
-  incomparable numbers (measured: .412 vs .752 on identical outputs). The certified numbers
-  are gpt-5.5.
+- Judge model matters: the certified numbers are gpt-5.5, and since 2026-08-02 the code
+  defaults are the certified ones (judge gpt-5.5, solver loads the certified v6 pair). Before
+  that, an unset `JUDGE_MODEL` fell back to gpt-4o-mini (measured: .412 vs .752 on identical
+  outputs) and the solver default loaded the v5 WeightNet — check both if reproducing with an
+  older checkout.
 - Single-factor scales with direction-critical wording (cfcs class) are the method's weakest
   spot (open item 1); rse-class single-factor scales are fine.
 - Discovered-fragment structures can beat published keys on completion while their latents

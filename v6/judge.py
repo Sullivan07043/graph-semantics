@@ -11,7 +11,9 @@ import os, json
 import urllib.request
 
 _CACHE = {}
-MODEL = os.environ.get("JUDGE_MODEL", "gpt-4o-mini")
+MODEL = os.environ.get("JUDGE_MODEL", "gpt-5.5")   # default = the ONLY sanctioned judge
+# (user ruling 2026-08-01: 5.5 everywhere; the old gpt-4o-mini default was the .412-vs-.752
+# incomparability trap and must never come back)
 
 # Disk-backed cache (added 2026-07-16 after the L2 eval re-judged identical baseline decodes 3x).
 # Keyed by (model, mode, recovered, target); JUDGE_CACHE=0 disables. Verdicts only (True/False),
@@ -45,12 +47,18 @@ def available():
     return bool(os.environ.get("OPENAI_API_KEY"))
 
 
+BASE_URL = os.environ.get("JUDGE_BASE_URL", "https://api.openai.com/v1")
+# OpenRouter: JUDGE_BASE_URL=https://openrouter.ai/api/v1 + vendor-prefixed JUDGE_MODEL
+# (openai/gpt-5.5) + OPENAI_API_KEY=$OPENROUTER_API_KEY (from ~/.secrets/env.sh). Cache is
+# keyed by the model STRING, so OpenRouter verdicts live under their own namespace.
+
+
 def _chat(prompt, model=None):
     key = os.environ["OPENAI_API_KEY"]
     payload = {"model": model or MODEL, "temperature": 0,
                "messages": [{"role": "user", "content": prompt}]}
     for attempt in range(2):
-        req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
+        req = urllib.request.Request(f"{BASE_URL}/chat/completions",
                                      data=json.dumps(payload).encode(),
                                      headers={"Authorization": f"Bearer {key}",
                                               "Content-Type": "application/json"})

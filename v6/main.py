@@ -58,7 +58,10 @@ if ARM == "mlp":
     import optimize                                                   # noqa: E402
     import core                                                       # noqa: E402
     import l2_modules as LM                    # noqa: E402
-    _MODULE = LM.load(os.environ.get("L2_CKPT", os.path.join(HERE, "outputs", "l2_mlp.pt")))
+    _MODULE = LM.load(os.environ.get("L2_CKPT",             # default = the CERTIFIED v6 pair
+                                     os.path.join(HERE, "outputs", "l2_mlp_v6.pt")))
+    # (was l2_mlp.pt = the v5 WeightNet, a pre-certification leftover that made unconfigured
+    #  third-party runs silently score as v5; fixed 2026-08-02)
     K = int(os.environ.get("K", 60))
 
     def _l2_solve(g, W, labeled_emb, d, steps=400, lr=2e-2, lam_zero=0.3, lam_norm=0.1,

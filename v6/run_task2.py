@@ -46,24 +46,35 @@ def ts():
     return time.strftime("%H:%M:%S")
 
 
-def llm_name(child_labels, model="gpt-4o-mini"):
+def llm_name(child_labels, model=None):
     import urllib.request
     key = os.environ.get("OPENAI_API_KEY")
     if not key:
         return None
+    # Naming model and endpoint follow the judge's base URL (NAMING_MODEL overrides), so the
+    # baseline runs through OpenRouter too instead of silently skipping on a 401.
+    model = model or os.environ.get("NAMING_MODEL", "gpt-4o-mini")  # baseline naming stays
+    # 4o-mini (historical baseline identity); the JUDGE is 5.5-only (user ruling 2026-08-01)
+    base = os.environ.get("JUDGE_BASE_URL", "https://api.openai.com/v1")
     prompt = ("The following observed measures all load on one hidden latent factor:\n- "
               + "\n- ".join(child_labels) +
               "\n\nName the single construct this latent factor represents, in 1-4 words. "
               "Answer with only the name.")
     body = json.dumps({"model": model, "temperature": 0,
                        "messages": [{"role": "user", "content": prompt}]}).encode()
-    req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body,
+    req = urllib.request.Request(f"{base}/chat/completions", data=body,
                                  headers={"Authorization": f"Bearer {key}",
                                           "Content-Type": "application/json"})
     try:
         r = json.loads(urllib.request.urlopen(req, timeout=60).read())
         return r["choices"][0]["message"]["content"].strip()
-    except Exception:
+    except Exception as e:
+        # NEVER silent (2026-08-01: a silent None here skipped the baseline on all 19 datasets
+        # and cost an hour of forensics — same lesson as "no success-shaped empty fallbacks")
+        msg = getattr(e, "read", lambda: b"")()
+        print(f"[llm_name FAILED] {type(e).__name__}: {str(e)[:200]} "
+              f"{msg[:200] if isinstance(msg, bytes) else ''} (model={model} base={base})",
+              flush=True)
         return None
 
 

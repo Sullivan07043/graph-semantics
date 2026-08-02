@@ -4,12 +4,14 @@ Loader injection only (run_bigfive_hier pattern): the RLCD structure from
 discovery/outputs/<BASE>.json is registered as dataset "<BASE>rlcd" and run_task1/run_task2
 run their standard protocol on it — same solver, checkpoints, targets, metrics, judge.
 
-Judge targets for discovered latents: rse and cfcs are single-construct scales, so every
-discovered latent's reference is the published construct description (the alignment step is
-trivial here by construction; declared).
+Judge targets for discovered latents: each discovered latent's reference is the published
+construct whose item set overlaps its observed children the most (majority overlap; ties by
+first). On single-construct scales (rse, cfcs) this reduces to the published construct
+description by construction. The published key is a CLUSTER-LEVEL REFERENCE for judging,
+never an input to discovery (declared).
 
-Env: BASE (rse|cfcs), TASK=1|2, RECORDS_OUT, and the usual v6 knobs. JUDGE_MODEL must be set
-explicitly for judged runs (official: gpt-5.5).
+Env: BASE (any dataset with a discovery/outputs/<BASE>.json), TASK=1|2, RECORDS_OUT, and the
+usual v6 knobs. JUDGE_MODEL must be set explicitly for judged runs (official: gpt-5.5).
 """
 import json
 import os
@@ -96,8 +98,28 @@ if __name__ == "__main__":
         nodes = {x for e in edges for x in e}
         lats = sorted((n for n in nodes if LAT_RE.match(n)), key=lambda s: int(s[1:]))
         g = G.Graph(lats, list(base["graph"].observed), edges)
-        gt_texts = list(base["latent_gt"].values())
-        gt = {L: gt_texts[0] for L in lats} if gt_texts else {}
+        g_pub = base["graph"]
+        fac_of = {o: F for F in g_pub.latents for o in g_pub.children(F)
+                  if not g_pub.is_latent(o)}
+
+        def obs_leaves(gr, node, seen=None):
+            seen = seen if seen is not None else set()
+            out = []
+            for c in gr.children(node):
+                if c in seen:
+                    continue
+                seen.add(c)
+                out += obs_leaves(gr, c, seen) if gr.is_latent(c) else [c]
+            return out
+
+        gt = {}
+        for L in lats:
+            votes = [fac_of[o] for o in obs_leaves(g, L) if o in fac_of]
+            if votes:
+                top = max(sorted(set(votes)), key=votes.count)
+                gt[L] = base["latent_gt"].get(top, next(iter(base["latent_gt"].values()), ""))
+            elif base["latent_gt"]:
+                gt[L] = next(iter(base["latent_gt"].values()))
         return dict(name=f"{BASE}rlcd", graph=g, X=base["X"], labels=base["labels"],
                     latent_gt=gt)
 

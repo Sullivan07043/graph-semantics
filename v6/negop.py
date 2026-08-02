@@ -61,13 +61,16 @@ def wordnet_pairs():
     return sorted(pairs)
 
 
-def dev_pole_pairs(item_level=False):
+def dev_pole_pairs(item_level=False, split=False):
     """Factor-level pole pairs (v1). item_level=True (V2, 2026-07-29 cfcs fix): additionally
     every (positive-item, negative-item) label-embedding pair per bipolar dev latent —
     in-domain supervision for abstract construct antonymy that WordNet lemmas and the coarse
-    factor means do not cover. Dev pool only; held-out untouched."""
+    factor means do not cover. Dev pool only; held-out untouched.
+    split=True (V3 balanced): return (factor_pairs, item_pairs) separately so training can
+    weight the two supervision levels independently — v2 failed certification because the
+    ~3300 item pairs swamped the ~30 construct-direction pairs (held-out T2 .874->.742)."""
     from run_task1 import ALL_LOADERS
-    out = []
+    fac, itm = [], []
     for name in pool.DEV:
         ds = ALL_LOADERS[name]()
         g, X, labels = ds["graph"], ds["X"], ds["labels"]
@@ -81,14 +84,16 @@ def dev_pole_pairs(item_level=False):
             if len(pos) >= 2 and len(neg) >= 2:
                 vp = T[pos].mean(0); vp /= np.linalg.norm(vp) + 1e-9
                 vn = T[neg].mean(0); vn /= np.linalg.norm(vn) + 1e-9
-                out.append((vp, vn))
-                if item_level:
+                fac.append((vp, vn))
+                if item_level or split:
                     for i in pos:
                         for j in neg:
                             ti = T[i] / (np.linalg.norm(T[i]) + 1e-9)
                             tj = T[j] / (np.linalg.norm(T[j]) + 1e-9)
-                            out.append((ti, tj))
-    return out
+                            itm.append((ti, tj))
+    if split:
+        return fac, itm
+    return fac + itm if item_level else fac
 
 
 def train():
@@ -102,13 +107,27 @@ def train():
     val_n = max(1, len(wpairs) // 10)
     val_idx, tr_idx = perm[:val_n], perm[val_n:]
     A = np.stack([E[widx[a]] for a, b in wpairs]); B = np.stack([E[widx[b]] for a, b in wpairs])
-    dev = dev_pole_pairs(item_level=os.environ.get("NEGOP_V2", "0") == "1")
+    v3 = os.environ.get("NEGOP_V3", "0") == "1"
+    if v3:
+        fac, itm = dev_pole_pairs(split=True)
+        dev, item_dev = fac, itm
+    else:
+        dev = dev_pole_pairs(item_level=os.environ.get("NEGOP_V2", "0") == "1")
+        item_dev = []
     print(f"[{time.strftime('%H:%M:%S')}] wordnet pairs={len(wpairs)} (val {val_n}), "
-          f"dev pole pairs={len(dev)}, d={E.shape[1]}", flush=True)
+          f"dev pole pairs={len(dev)} (+{len(item_dev)} item-level at "
+          f"weight {os.environ.get('NEGOP_ITEM_WEIGHT', '0.5') if v3 else 'n/a'}), "
+          f"d={E.shape[1]}", flush=True)
     Dp = torch.tensor(np.stack([p for p, q in dev] + [q for p, q in dev]), dtype=torch.float32,
                       device=DEVICE)
     Dq = torch.tensor(np.stack([q for p, q in dev] + [p for p, q in dev]), dtype=torch.float32,
                       device=DEVICE)
+    if item_dev:
+        Ip = torch.tensor(np.stack([p for p, q in item_dev] + [q for p, q in item_dev]),
+                          dtype=torch.float32, device=DEVICE)
+        Iq = torch.tensor(np.stack([q for p, q in item_dev] + [p for p, q in item_dev]),
+                          dtype=torch.float32, device=DEVICE)
+        IW = float(os.environ.get("NEGOP_ITEM_WEIGHT", 0.5))
     At = torch.tensor(np.concatenate([A[tr_idx], B[tr_idx]]), dtype=torch.float32, device=DEVICE)
     Bt = torch.tensor(np.concatenate([B[tr_idx], A[tr_idx]]), dtype=torch.float32, device=DEVICE)
     Av = torch.tensor(np.concatenate([A[val_idx], B[val_idx]]), dtype=torch.float32, device=DEVICE)
@@ -123,15 +142,19 @@ def train():
         loss = (1 - F.cosine_similarity(m(x), y, dim=1)).mean()
         loss = loss + 0.3 * (1 - F.cosine_similarity(m(m(x)), x, dim=1)).mean()   # involution
         loss = loss + DEV_WEIGHT * (1 - F.cosine_similarity(m(Dp), Dq, dim=1)).mean()
+        if item_dev:
+            idx_i = torch.randint(len(Ip), (256,), generator=g).to(DEVICE)
+            loss = loss + IW * (1 - F.cosine_similarity(m(Ip[idx_i]), Iq[idx_i], dim=1)).mean()
         opt.zero_grad(); loss.backward(); opt.step()
         if step % 500 == 0 or step == STEPS - 1:
             with torch.no_grad():
                 vc = F.cosine_similarity(m(Av), Bv, dim=1).mean()
                 dc = F.cosine_similarity(m(Dp), Dq, dim=1).mean()
+                ic = F.cosine_similarity(m(Ip), Iq, dim=1).mean() if item_dev else float("nan")
                 base = F.cosine_similarity(Av, Bv, dim=1).mean()
             print(f"[{time.strftime('%H:%M:%S')}] step {step} loss={float(loss):.4f} "
                   f"val_cos={float(vc):.3f} (raw antonym cos={float(base):.3f}) "
-                  f"dev_pole_cos={float(dc):.3f}", flush=True)
+                  f"dev_pole_cos={float(dc):.3f} item_pole_cos={float(ic):.3f}", flush=True)
     out = os.environ.get("NEGOP_OUT", CKPT)     # separate save target: training a v2 must not
     torch.save({"state": m.state_dict(), "d": E.shape[1]}, out)   # redirect runtime loads
     print(f"saved {out}", flush=True)
