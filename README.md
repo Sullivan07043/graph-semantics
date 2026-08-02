@@ -78,19 +78,6 @@ wording, not a property of its group.
 | **group mean** | | | | .392 | .428 | .750 | .550 |
 | **pool mean (19)** | | | | .673 | .722 | **.884** | .664 |
 
-Post-freeze evaluation on a new domain, reported separately so the certified pool above stays
-a fixed record. The method, checkpoints and dictionary are unchanged.
-
-| Dataset | items | lats | i/L | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
-|---|---|---|---|---|---|---|---|---|
-| dass (clinical) | 42 | 3 | 14.0 | **.817** | .906 | .600 | **1.000** | .800 |
-
-DASS-42 leaves the personality-questionnaire domain and carries a mildly impure key (two
-anxiety items cross-load onto stress). The Task 1 structure dividend is +.217 over raw
-correlation, the largest in the multi-factor regime, and Task 2 is perfect against .800 for
-LLM naming. Match sits below raw correlation (.906 vs .950), so the gain is in picking the
-right sense of a symptom, not in picking the right neighbourhood.
-
 In short: the structure dividend is monotone in structure richness (Task 1: +.116 over raw
 correlation in the multi-factor group, zero at low i/L, negative at high i/L — a task
 boundary, not a defect), and structure-derived translation wins Task 2 on 15 of 19 datasets
@@ -100,6 +87,24 @@ T1 judge .752 / match .708 vs v5's .698/.658, T2 .874 vs LLM-naming .820; re-run
 on 2026-07-29 and reproduced digit for digit. Untrained, the rebuilt objective reproduces
 v5's .658 exactly (implementation certificate) and the removed duplicated conditional
 channel measured .422.
+
+### New domain, evaluated after the freeze
+
+Reported separately so the certified pool above stays a fixed record. Method, checkpoints and
+dictionary are unchanged. Loader in `v6/pool_ext.py`, selected with `DATASET=evalnew`.
+
+| Dataset | items | lats | i/L | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
+|---|---|---|---|---|---|---|---|---|
+| dass (clinical) | 42 | 3 | 14.0 | **.817** | .906 | .600 | **1.000** | .800 |
+
+DASS-42 leaves the personality-questionnaire domain and carries a mildly impure key: two
+anxiety items cross-load onto stress, which the published key keeps on anxiety. The Task 1
+structure dividend is +.217 over raw correlation, the largest in the multi-factor regime, and
+Task 2 is perfect against .800 for LLM naming. Match sits below raw correlation (.906 vs
+.950), so the gain is in picking the right sense of a symptom, not the right neighbourhood.
+The published 3x14 subscale key was checked against two independent scoring sources, and
+empirically 40 of 42 items correlate most with their own scale. Clinical vocabulary needed no
+dictionary extension. Records in `v6/outputs/t{1,2}_dass_v6cert.json`.
 
 Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
 adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP
@@ -125,13 +130,40 @@ latents; 21 latents total). First end-to-end: T1 .414/.272 and T2 .495 vs the pu
 .771/.698 and .900 — the gap is cluster coverage (items inside clusters complete at .656,
 outside at .255; 87/162 unclustered), not cluster quality.
 
+Three coverage repairs were tried and all three failed. GIN clustering fails because its
+criterion is a higher-order independence, the weakest signal in Likert data with correlated
+factors (a GPU-batched HSIC backend under `causal-learn/gpu/` made the test 300x faster and
+certified it to 1e-14 against the official one, so this is a criterion result, not a speed
+result). Argmax assignment was rejected as non-causal. RLCD-ratified attachment was measured
+harmful: accepted items completed at .205, worse than the .255 they scored as orphans, and
+they dragged natively clustered items from .656 to .531. A latent embedding is a compromise
+over its children, so weak attachment dilutes it and back-propagates onto the good children.
+Coverage cannot be bought this way. Engineering is frozen pending method selection.
+
+**Rank-test calibration (`rank_test_calibration.py`).** RLCD builds `Chi2RankTest` by default
+and we never override it, so every rank decision in both tracks runs through it. That test
+standardizes the raw columns and runs a CCA Wilks chi-square, i.e. Pearson correlations of
+discretized data. Measured type I error on a true null (one-factor model, any split has true
+rank 1, 300 reps): continuous, symmetric 5-point and symmetric 4-point data are calibrated
+(.030 to .067 at a nominal .05), but skewed 5-point data rejects at .310 for a nominal .05 and
+.127 for a nominal .01. The inflation grows with n and with the number of variables per side,
+which is the direction the >25-item regime moves in. Exposure is partial and conditional:
+mean absolute item skew is .271 on dass, .485 on 16PF, but 1.193 on wpi and .893 on tma. Only
+the tracks that test raw item columns are exposed (direct RLCD and per-cluster RLCD); the
+marginal skeleton uses Fisher-z and the top layer tests continuous cluster scores. The
+given-graph pipeline does not use this test at all, so no Task 1 or Task 2 result is affected.
+Method selection for >25 items is gated on repeating this measurement with a polychoric or
+permutation null, since both surveyed candidates rest on the same second-order tests
+(survey: `report/discovery_methods_survey.md`).
+
 ## Layout
 
 - **`v6/`** — THE pipeline (entry `v6/main.py`; file map in `v6/README.md`; one-time
   builders under `v6/tools/`; canon `v6/THEORY.md` + `v6/PLAN.md`).
 - **`discovery/`** — structure discovery: `run_discovery.py` (≤25 items, RLCD → unchanged
   passthrough + read-only V report), `run_discovery_large.py` (>25 items, layered),
-  `run_downstream.py` (loader injection into the official runners).
+  `run_downstream.py` (loader injection into the official runners),
+  `rank_test_calibration.py` (type I error of the rank test under discretization).
 - **`archive/`** — superseded code + logs; older states via `git checkout pre-v5`.
 - v5 (the frozen previous main line) was removed from the repository on 2026-08-02 and is
   kept locally only; its history remains reachable through old commits.
@@ -154,6 +186,9 @@ python v6/run_diagnostics.py
 # discovery: structure from data alone, then downstream through the official runners
 DATASET=rse,cfcs python discovery/run_discovery.py
 BASE=rse TASK=2 python discovery/run_downstream.py
+
+# rank-test calibration under Likert discretization (no API, ~10 min)
+REPS=300 python discovery/rank_test_calibration.py
 ```
 
 Env knobs: `DATASET FOLDS RESIDUAL LAM_RES BRIDGE CI_MODE NLDEP GENOP RCHAN POLFIX
