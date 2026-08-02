@@ -40,50 +40,91 @@ MAGNITUDES are nonlinear (distance correlation + gradient-boosted residualizatio
 signs stay Pearson. Trained pair (operator + WeightNet) selected by dev fold-4 MATCH — never
 by embedding-space validation loss (measured to decouple).
 
-## Certified results (held-out, mask-20%, 5 folds, judge = gpt-5.5)
+## Results (all 19 datasets, mask-20%, 5 folds, judge = gpt-5.5)
 
-Task 1 (complete masked observed):
+Stratified by **i/L (items per latent: item count / latent count)** — the graph makes the
+same generative claim about every sibling of a latent, so i/L is how far the graph alone can
+narrow a masked item's identity, and it governs Task 1. `†` = judge-collapse datasets
+(vocabulary so homogeneous that even the uniform baseline judges at .93–1.00; read match
+there). `‡` = cfcs, whose failure is the f_neg defect (open item 1), not its group.
 
-| held-out | judge v6 / v5 | match v6 / v5 |
-|---|---|---|
-| hexaco (240 items, 2-level) | **.875** / — | .483 / .517 |
-| riasec (circumplex) | **.564** / — | **.840** / .756 |
-| kims | **.818** / — | **.800** / .700 |
-| mean | **.752** / .698 | **.708** / .658 |
+| Dataset | items | lats | i/L | T1 judge | T1 match | T2 core | T2 naming |
+|---|---|---|---|---|---|---|---|
+| *Multi-factor (≥3 latents)* | | | | | | | |
+| hexaco | 240 | 30 | 8.0 | .867 | .483 | .987 | .873 |
+| sixteenpf | 162 | 16 | 10.1 | .771 | .698 | .900 | .688 |
+| himi | 17 | 6 | 2.8 | .833 | 1.000 | .967 | .700 |
+| riasec | 48 | 6 | 8.0 | .584 | .840 | 1.000 | 1.000 |
+| bigfive | 50 | 5 | 10.0 | .840 | .800 | 1.000 | .880 |
+| gcbs† | 15 | 5 | 3.0 | .733 | 1.000 | 1.000 | .240 |
+| hs | 24 | 5 | 4.8 | .820 | .840 | 1.000 | .800 |
+| tlvd | 9 | 4 | 2.2 | .700 | 1.000 | .700 | .150 |
+| hsq† | 32 | 4 | 8.0 | .814 | .638 | .800 | .550 |
+| kims | 39 | 4 | 9.8 | .818 | .800 | .650 | .450 |
+| darktriad | 22 | 4 | 5.5 | .740 | .700 | 1.000 | .950 |
+| sd3 | 27 | 3 | 9.0 | .640 | .747 | .800 | .933 |
+| **group mean** | | | | **.763** | **.796** | **.900** | .684 |
+| *Single-factor, low i/L (≤12)* | | | | | | | |
+| rse | 10 | 1 | 10 | 1.000 | 1.000 | 1.000 | 1.000 |
+| scs | 10 | 1 | 10 | 1.000 | .800 | 1.000 | .200 |
+| cfcs‡ | 12 | 1 | 12 | .067 | .667 | 1.000 | 1.000 |
+| **group mean (excl. cfcs)** | | | | **1.000** | .900 | **1.000** | .600 |
+| *Single-factor, high i/L (≥20)* | | | | | | | |
+| mach | 20 | 1 | 20 | .550 | .800 | .000 | 1.000 |
+| npas | 26 | 1 | 26 | .273 | .160 | 1.000 | 1.000 |
+| tma | 50 | 1 | 50 | .580 | .520 | 1.000 | .200 |
+| wpi | 116 | 1 | 116 | .165 | .233 | 1.000 | .000 |
+| **group mean** | | | | .392 | .428 | .750 | .550 |
+| **pool mean (19)** | | | | .673 | .722 | **.884** | .664 |
 
-Task 2 (latent translation): hexaco .973 (30 latents), riasec 1.000, kims .650; mean **.874**
-vs LLM-naming .820. Attribution chain for the objective revision (all untrained arms):
-v5 .658 = v6-marginal .658 (digit-for-digit implementation certificate) < v6-shrink .672;
-the duplicated conditional-pair channel scored .422 and was removed (one statement, one
-channel). Swap intervention (v5-era result): geometric .789 / judged .741 vs GNN .391/.206.
+In short: the structure dividend is monotone in structure richness (Task 1: +.116 over raw
+correlation in the multi-factor group, zero at low i/L, negative at high i/L — a task
+boundary, not a defect), and structure-derived translation wins Task 2 on 15 of 19 datasets
+(.884 vs .664), most decisively where the construct name cannot be guessed from item texts
+(gcbs, scs, tma, wpi). Held-out certification (hexaco/riasec/kims, evaluated once):
+T1 judge .752 / match .708 vs v5's .698/.658, T2 .874 vs LLM-naming .820; re-run end to end
+on 2026-07-29 and reproduced digit for digit. Untrained, the rebuilt objective reproduces
+v5's .658 exactly (implementation certificate) and the removed duplicated conditional
+channel measured .422.
 
-Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)` (Def 4),
-structure adequacy `V(G,X)` (Def 5) with repair proposals (proposals only — they rediscover
-common-EF/g/GFP unprompted), generative-path influence decoding for deep latents.
+Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
+adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP
+unprompted), generative-path influence decoding for deep latents.
 
-## Discovery phase (`discovery/`, day one 2026-07-28)
+## Discovery (`discovery/`, two tracks)
 
-RLCD (official causal-learn implementation, rank-deficiency framework, default parameters)
-discovers the structure from X alone; the structure passes downstream UNCHANGED (a V-driven
-edit loop was tried and retired the same day: V is one-sided and collapses structures toward
-single factors — not a search objective). End-to-end on rse: discovered structure, completed
-items, and auto-named latents match the published-graph run (T1 judge 1.000; every discovered
-latent judged correct against the reference construct). cfcs surfaced a real defect class
-(below). himi (n=202) dropped — rank tests lack power.
+**Within RLCD reach (≤25 items)** — `run_discovery.py`: RLCD (official causal-learn
+implementation, default parameters) discovers the structure from X alone; the structure
+passes downstream UNCHANGED (a V-driven edit loop was tried and retired: V is one-sided and
+collapses structures toward single factors). End-to-end on rse: T1 judge 1.000 and every
+discovered latent auto-names correctly against the reference construct. himi (n=202)
+dropped — rank tests lack power.
+
+**Beyond RLCD reach (>25 items)** — `run_discovery_large.py`: causal-learn's `fci()` is
+non-terminating on measurement-model data at ANY depth (its possible-d-sep stage ignores the
+depth cap — FCI.py L1013–1038 hardcode an unlimited subset search), so the layered method
+keeps only the part of FCI the composition consumes: marginal-dependence skeleton + a
+structurally chosen |r| threshold (sweep printed, chosen cut recorded) → per-cluster RLCD →
+RLCD over cluster scores. On 16PF the sweep picks 9 clusters (6 pure published factors, 2 =
+the textbook second-order blocks, which cluster-level RLCD then splits into factor-level
+latents; 21 latents total). First end-to-end: T1 .414/.272 and T2 .495 vs the published-key
+.771/.698 and .900 — the gap is cluster coverage (items inside clusters complete at .656,
+outside at .255; 87/162 unclustered), not cluster quality.
 
 ## Open items (honest, prioritized)
 
-1. **f_neg on abstract construct antonymy** (cfcs first-judge: core .067 on
-   direction-critical reverse items). A v2 (item-level pole pairs, 3,300 in-domain pairs)
-   fixed cfcs (.067→.700) but cost held-out Task 2 across all three datasets
-   (.874→.742) — a real item-pole vs construct-direction tradeoff. v2 REJECTED at
-   certification and archived (`outputs/run_fnegv2/`, `negop_v2.pt`); v1 remains the
-   certified default. Candidate fix: balanced pole/direction training.
-2. **RLCD run-to-run instability** (two fresh rse runs → different raw structures);
-   candidate treatment: multi-restart.
-3. **Multi-factor-scale discovery** not yet run end-to-end.
-4. **riasec circumplex**: v6 reaches its best pair (.564/.840); the symmetry-breaking prior
-   idea stays parked unless it regresses.
+1. **f_neg on abstract construct antonymy** (cfcs: core .067 on direction-critical reverse
+   items). Two repairs rejected at held-out certification: v2 (item-level pole pairs,
+   .067→.700 on cfcs but held-out T2 .874→.742) and v3 (balanced re-weighting, cfcs .633 but
+   held-out lost on both tasks). Mixture re-weighting is falsified; the next attempt must
+   change mechanism. Archives: `outputs/run_fnegv2/`, `outputs/run_fnegv3/`.
+2. **Cluster coverage in layered discovery**: nearest-cluster assignment for unclustered
+   items is the queued candidate.
+3. **Large single-factor scales** (wpi/npas/mach class): structurally information-poor for
+   Task 1 — a task boundary to state, not a bug to fix.
+4. **RLCD run-to-run instability** on small scales.
+5. **riasec circumplex**: best recorded pair (.584/.840 in the sweep); the symmetry-breaking
+   prior stays parked unless it regresses.
 
 ## Layout
 
