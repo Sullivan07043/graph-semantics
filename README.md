@@ -78,6 +78,19 @@ wording, not a property of its group.
 | **group mean** | | | | .392 | .428 | .750 | .550 |
 | **pool mean (19)** | | | | .673 | .722 | **.884** | .664 |
 
+Post-freeze evaluation on a new domain, reported separately so the certified pool above stays
+a fixed record. The method, checkpoints and dictionary are unchanged.
+
+| Dataset | items | lats | i/L | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
+|---|---|---|---|---|---|---|---|---|
+| dass (clinical) | 42 | 3 | 14.0 | **.817** | .906 | .600 | **1.000** | .800 |
+
+DASS-42 leaves the personality-questionnaire domain and carries a mildly impure key (two
+anxiety items cross-load onto stress). The Task 1 structure dividend is +.217 over raw
+correlation, the largest in the multi-factor regime, and Task 2 is perfect against .800 for
+LLM naming. Match sits below raw correlation (.906 vs .950), so the gain is in picking the
+right sense of a symptom, not in picking the right neighbourhood.
+
 In short: the structure dividend is monotone in structure richness (Task 1: +.116 over raw
 correlation in the multi-factor group, zero at low i/L, negative at high i/L — a task
 boundary, not a defect), and structure-derived translation wins Task 2 on 15 of 19 datasets

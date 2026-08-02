@@ -7,10 +7,10 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import testbeds, pool, encode, metrics, optimize
+import testbeds, pool, pool_ext, encode, metrics, optimize
 import judge as judge_mod
 
-ALL_LOADERS = {**testbeds.LOADERS, **pool.LOADERS}
+ALL_LOADERS = {**testbeds.LOADERS, **pool.LOADERS, **pool_ext.LOADERS}
 
 
 def select_datasets(which):
@@ -20,6 +20,8 @@ def select_datasets(which):
         return list(pool.DEV)
     if which == "heldout":
         return list(pool.HELDOUT)
+    if which == "evalnew":
+        return list(pool_ext.EVAL_NEW)
     return [w.strip() for w in which.split(",")]
 
 FOLDS = int(os.environ.get("FOLDS", 5))
