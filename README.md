@@ -90,21 +90,16 @@ channel measured .422.
 
 ### New domain, evaluated after the freeze
 
-Reported separately so the certified pool above stays a fixed record. Method, checkpoints and
-dictionary are unchanged. Loader in `v6/pool_ext.py`, selected with `DATASET=evalnew`.
+Kept out of the pool above so the certified record stays fixed. Method and checkpoints
+unchanged. Loader `v6/pool_ext.py`, run with `DATASET=evalnew`, records in
+`v6/outputs/t{1,2}_dass_v6cert.json`.
 
 | Dataset | items | lats | i/L | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
 |---|---|---|---|---|---|---|---|---|
 | dass (clinical) | 42 | 3 | 14.0 | **.817** | .906 | .600 | **1.000** | .800 |
 
-DASS-42 leaves the personality-questionnaire domain and carries a mildly impure key: two
-anxiety items cross-load onto stress, which the published key keeps on anxiety. The Task 1
-structure dividend is +.217 over raw correlation, the largest in the multi-factor regime, and
-Task 2 is perfect against .800 for LLM naming. Match sits below raw correlation (.906 vs
-.950), so the gain is in picking the right sense of a symptom, not the right neighbourhood.
-The published 3x14 subscale key was checked against two independent scoring sources, and
-empirically 40 of 42 items correlate most with their own scale. Clinical vocabulary needed no
-dictionary extension. Records in `v6/outputs/t{1,2}_dass_v6cert.json`.
+Clinical scale, mildly impure key (two anxiety items cross-load onto stress). Needed no
+dictionary extension.
 
 Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
 adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP
@@ -112,49 +107,20 @@ unprompted), generative-path influence decoding for deep latents.
 
 ## Discovery (`discovery/`, two tracks)
 
-**Within RLCD reach (≤25 items)** — `run_discovery.py`: RLCD (official causal-learn
-implementation, default parameters) discovers the structure from X alone; the structure
-passes downstream UNCHANGED (a V-driven edit loop was tried and retired: V is one-sided and
-collapses structures toward single factors). End-to-end on rse: T1 judge 1.000 and every
-discovered latent auto-names correctly against the reference construct. himi (n=202)
-dropped — rank tests lack power.
+**≤25 items** — `run_discovery.py`: RLCD from X alone, structure passes downstream unchanged.
+rse end to end: T1 judge 1.000. himi (n=202) dropped, rank tests lack power.
 
-**Beyond RLCD reach (>25 items)** — `run_discovery_large.py`: causal-learn's `fci()` is
-non-terminating on measurement-model data at ANY depth (its possible-d-sep stage ignores the
-depth cap — FCI.py L1013–1038 hardcode an unlimited subset search), so the layered method
-keeps only the part of FCI the composition consumes: marginal-dependence skeleton + a
-structurally chosen |r| threshold (sweep printed, chosen cut recorded) → per-cluster RLCD →
-RLCD over cluster scores. On 16PF the sweep picks 9 clusters (6 pure published factors, 2 =
-the textbook second-order blocks, which cluster-level RLCD then splits into factor-level
-latents; 21 latents total). First end-to-end: T1 .414/.272 and T2 .495 vs the published-key
-.771/.698 and .900 — the gap is cluster coverage (items inside clusters complete at .656,
-outside at .255; 87/162 unclustered), not cluster quality.
+**>25 items** — `run_discovery_large.py`: marginal-dependence skeleton, structurally chosen
+|r| cut, per-cluster RLCD, then RLCD over cluster scores. `fci()` is not usable here, it does
+not terminate at any depth (FCI.py L1013–1038). 16PF end to end: T1 .414/.272, T2 .495, vs
+.771/.698 and .900 from the published key. Gap is coverage, 87/162 items fall outside clusters.
 
-Three coverage repairs were tried and all three failed. GIN clustering fails because its
-criterion is a higher-order independence, the weakest signal in Likert data with correlated
-factors (a GPU-batched HSIC backend under `causal-learn/gpu/` made the test 300x faster and
-certified it to 1e-14 against the official one, so this is a criterion result, not a speed
-result). Argmax assignment was rejected as non-causal. RLCD-ratified attachment was measured
-harmful: accepted items completed at .205, worse than the .255 they scored as orphans, and
-they dragged natively clustered items from .656 to .531. A latent embedding is a compromise
-over its children, so weak attachment dilutes it and back-propagates onto the good children.
-Coverage cannot be bought this way. Engineering is frozen pending method selection.
+Coverage repairs tried and rejected: GIN clustering, argmax assignment, RLCD-ratified
+attachment (measured harmful). Engineering frozen pending method selection.
 
-**Rank-test calibration (`rank_test_calibration.py`).** RLCD builds `Chi2RankTest` by default
-and we never override it, so every rank decision in both tracks runs through it. That test
-standardizes the raw columns and runs a CCA Wilks chi-square, i.e. Pearson correlations of
-discretized data. Measured type I error on a true null (one-factor model, any split has true
-rank 1, 300 reps): continuous, symmetric 5-point and symmetric 4-point data are calibrated
-(.030 to .067 at a nominal .05), but skewed 5-point data rejects at .310 for a nominal .05 and
-.127 for a nominal .01. The inflation grows with n and with the number of variables per side,
-which is the direction the >25-item regime moves in. Exposure is partial and conditional:
-mean absolute item skew is .271 on dass, .485 on 16PF, but 1.193 on wpi and .893 on tma. Only
-the tracks that test raw item columns are exposed (direct RLCD and per-cluster RLCD); the
-marginal skeleton uses Fisher-z and the top layer tests continuous cluster scores. The
-given-graph pipeline does not use this test at all, so no Task 1 or Task 2 result is affected.
-Method selection for >25 items is gated on repeating this measurement with a polychoric or
-permutation null, since both surveyed candidates rest on the same second-order tests
-(survey: `report/discovery_methods_survey.md`).
+`rank_test_calibration.py` — type I error of RLCD's default rank test under Likert
+discretization. Calibrated on continuous and symmetric data, inflated on skewed items
+(.310 at a nominal .05). Affects the discovery tracks only, not Task 1 or Task 2.
 
 ## Layout
 
