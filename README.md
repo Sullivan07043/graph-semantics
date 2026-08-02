@@ -46,7 +46,8 @@ Stratified by **i/L (items per latent: item count / latent count)** — the grap
 same generative claim about every sibling of a latent, so i/L is how far the graph alone can
 narrow a masked item's identity, and it governs Task 1. `†` = judge-collapse datasets
 (vocabulary so homogeneous that even the uniform baseline judges at .93–1.00; read match
-there). `‡` = cfcs, whose failure is the f_neg defect (open item 1), not its group.
+there). `‡` = cfcs, whose failure is a known f_neg defect on direction-critical reverse
+wording, not a property of its group.
 
 | Dataset | items | lats | i/L | T1 judge | T1 match | T2 core | T2 naming |
 |---|---|---|---|---|---|---|---|
@@ -111,27 +112,13 @@ latents; 21 latents total). First end-to-end: T1 .414/.272 and T2 .495 vs the pu
 .771/.698 and .900 — the gap is cluster coverage (items inside clusters complete at .656,
 outside at .255; 87/162 unclustered), not cluster quality.
 
-## Open items (honest, prioritized)
-
-1. **f_neg on abstract construct antonymy** (cfcs: core .067 on direction-critical reverse
-   items). Two repairs rejected at held-out certification: v2 (item-level pole pairs,
-   .067→.700 on cfcs but held-out T2 .874→.742) and v3 (balanced re-weighting, cfcs .633 but
-   held-out lost on both tasks). Mixture re-weighting is falsified; the next attempt must
-   change mechanism. Archives: `outputs/run_fnegv2/`, `outputs/run_fnegv3/`.
-2. **Cluster coverage in layered discovery**: nearest-cluster assignment for unclustered
-   items is the queued candidate.
-3. **Large single-factor scales** (wpi/npas/mach class): structurally information-poor for
-   Task 1 — a task boundary to state, not a bug to fix.
-4. **RLCD run-to-run instability** on small scales.
-5. **riasec circumplex**: best recorded pair (.584/.840 in the sweep); the symmetry-breaking
-   prior stays parked unless it regresses.
-
 ## Layout
 
 - **`v6/`** — THE pipeline (entry `v6/main.py`; file map in `v6/README.md`; one-time
   builders under `v6/tools/`; canon `v6/THEORY.md` + `v6/PLAN.md`).
-- **`discovery/`** — structure discovery: `run_discovery.py` (RLCD → unchanged passthrough +
-  read-only V report), `run_downstream.py` (loader injection into the official runners).
+- **`discovery/`** — structure discovery: `run_discovery.py` (≤25 items, RLCD → unchanged
+  passthrough + read-only V report), `run_discovery_large.py` (>25 items, layered),
+  `run_downstream.py` (loader injection into the official runners).
 - **`archive/`** — superseded code + logs; older states via `git checkout pre-v5`.
 - v5 (the frozen previous main line) was removed from the repository on 2026-08-02 and is
   kept locally only; its history remains reachable through old commits.
@@ -189,19 +176,3 @@ GENOP_CKPT NEGOP_CKPT K TORCH_THREADS` (pin it), `CUDA_VISIBLE_DEVICES` (always 
   raw-correlation wins match while losing judge).
 - **exact**: nearest neighbour over all labels must be itself.
 
-## Honest notes
-
-- Judge model matters: the certified numbers are gpt-5.5, and since 2026-08-02 the code
-  defaults are the certified ones (judge gpt-5.5, solver loads the certified v6 pair). Before
-  that, an unset `JUDGE_MODEL` fell back to gpt-4o-mini (measured: .412 vs .752 on identical
-  outputs) and the solver default loaded the v5 WeightNet — check both if reproducing with an
-  older checkout.
-- Single-factor scales with direction-critical wording (cfcs class) are the method's weakest
-  spot (open item 1); rse-class single-factor scales are fine.
-- Discovered-fragment structures can beat published keys on completion while their latents
-  translate poorly — prediction-optimal and semantically-true structures diverge; both facts
-  are reported, neither is hidden.
-- The solver is deterministic within a process; cross-process float noise moves weakly
-  constrained directions (riasec class).
-- Data: openpsychometrics.org `_rawdata` + TLVD OSF release; nothing under `data/` is
-  committed; held-out label texts never enter any training.
