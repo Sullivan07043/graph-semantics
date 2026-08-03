@@ -49,34 +49,39 @@ narrow a masked item's identity, and it governs Task 1. `†` = judge-collapse d
 there). `‡` = cfcs, whose failure is a known f_neg defect on direction-critical reverse
 wording, not a property of its group.
 
-| Dataset | items | lats | i/L | T1 judge | T1 match | T2 core | T2 naming |
-|---|---|---|---|---|---|---|---|
-| *Multi-factor (≥3 latents)* | | | | | | | |
-| hexaco | 240 | 30 | 8.0 | .867 | .483 | .987 | .873 |
-| sixteenpf | 162 | 16 | 10.1 | .771 | .698 | .900 | .688 |
-| himi | 17 | 6 | 2.8 | .833 | 1.000 | .967 | .700 |
-| riasec | 48 | 6 | 8.0 | .584 | .840 | 1.000 | 1.000 |
-| bigfive | 50 | 5 | 10.0 | .840 | .800 | 1.000 | .880 |
-| gcbs† | 15 | 5 | 3.0 | .733 | 1.000 | 1.000 | .240 |
-| hs | 24 | 5 | 4.8 | .820 | .840 | 1.000 | .800 |
-| tlvd | 9 | 4 | 2.2 | .700 | 1.000 | .700 | .150 |
-| hsq† | 32 | 4 | 8.0 | .814 | .638 | .800 | .550 |
-| kims | 39 | 4 | 9.8 | .818 | .800 | .650 | .450 |
-| darktriad | 22 | 4 | 5.5 | .740 | .700 | 1.000 | .950 |
-| sd3 | 27 | 3 | 9.0 | .640 | .747 | .800 | .933 |
-| **group mean** | | | | **.763** | **.796** | **.900** | .684 |
-| *Single-factor, low i/L (≤12)* | | | | | | | |
-| rse | 10 | 1 | 10 | 1.000 | 1.000 | 1.000 | 1.000 |
-| scs | 10 | 1 | 10 | 1.000 | .800 | 1.000 | .200 |
-| cfcs‡ | 12 | 1 | 12 | .067 | .667 | 1.000 | 1.000 |
-| **group mean (excl. cfcs)** | | | | **1.000** | .900 | **1.000** | .600 |
-| *Single-factor, high i/L (≥20)* | | | | | | | |
-| mach | 20 | 1 | 20 | .550 | .800 | .000 | 1.000 |
-| npas | 26 | 1 | 26 | .273 | .160 | 1.000 | 1.000 |
-| tma | 50 | 1 | 50 | .580 | .520 | 1.000 | .200 |
-| wpi | 116 | 1 | 116 | .165 | .233 | 1.000 | .000 |
-| **group mean** | | | | .392 | .428 | .750 | .550 |
-| **pool mean (19)** | | | | .673 | .722 | **.884** | .664 |
+Both tasks carry a **match** column that passes through no LLM and no dictionary: an optimal
+assignment between the recovered embeddings and the true label embeddings, scored by how many
+land on their own target. Task 2's match is undefined for a single-latent dataset, hence `n/a`
+in two of the three groups.
+
+| Dataset | items | lats | i/L | T1 judge | T1 match | T2 judge | T2 match | T2 naming |
+|---|---|---|---|---|---|---|---|---|
+| *Multi-factor (≥3 latents)* |  |  |  |  |  |  |  |  |
+| hexaco | 240 | 30 | 8.0 | .867 | .483 | .987 | .593 | .873 |
+| sixteenpf | 162 | 16 | 10.1 | .771 | .698 | .900 | .412 | .688 |
+| himi | 17 | 6 | 2.8 | .833 | 1.000 | .967 | 1.000 | .700 |
+| riasec | 48 | 6 | 8.0 | .584 | .840 | 1.000 | .867 | 1.000 |
+| bigfive | 50 | 5 | 10.0 | .840 | .800 | 1.000 | .440 | .880 |
+| gcbs† | 15 | 5 | 3.0 | .733 | 1.000 | 1.000 | .920 | .240 |
+| hs | 24 | 5 | 4.8 | .820 | .840 | 1.000 | 1.000 | .800 |
+| tlvd | 9 | 4 | 2.2 | .700 | 1.000 | .700 | .500 | .150 |
+| hsq† | 32 | 4 | 8.0 | .814 | .638 | .800 | 1.000 | .550 |
+| kims | 39 | 4 | 9.8 | .818 | .800 | .650 | 1.000 | .450 |
+| darktriad | 22 | 4 | 5.5 | .740 | .700 | 1.000 | 1.000 | .950 |
+| sd3 | 27 | 3 | 9.0 | .640 | .747 | .800 | 1.000 | .933 |
+| **group mean** |  |  |  | **.763** | **.796** | **.900** | **.811** | .684 |
+| *Single-factor, low i/L (≤12)* |  |  |  |  |  |  |  |  |
+| rse | 10 | 1 | 10 | 1.000 | 1.000 | 1.000 | n/a | 1.000 |
+| scs | 10 | 1 | 10 | 1.000 | .800 | 1.000 | n/a | .200 |
+| cfcs‡ | 12 | 1 | 12 | .067 | .667 | 1.000 | n/a | 1.000 |
+| **group mean (excl. cfcs)** |  |  |  | **1.000** | .900 | **1.000** | n/a | .600 |
+| *Single-factor, high i/L (≥20)* |  |  |  |  |  |  |  |  |
+| mach | 20 | 1 | 20 | .550 | .800 | .000 | n/a | 1.000 |
+| npas | 26 | 1 | 26 | .273 | .160 | 1.000 | n/a | 1.000 |
+| tma | 50 | 1 | 50 | .580 | .520 | 1.000 | n/a | .200 |
+| wpi | 116 | 1 | 116 | .165 | .233 | 1.000 | n/a | .000 |
+| **group mean** |  |  |  | .392 | .428 | .750 | n/a | .550 |
+| **pool mean (19)** |  |  |  | .673 | .722 | **.884** | **.811** | .664 |
 
 In short: the structure dividend is monotone in structure richness (Task 1: +.116 over raw
 correlation in the multi-factor group, zero at low i/L, negative at high i/L — a task
@@ -88,6 +93,13 @@ on 2026-07-29 and reproduced digit for digit. Untrained, the rebuilt objective r
 v5's .658 exactly (implementation certificate) and the removed duplicated conditional
 channel measured .422.
 
+Where the two Task 2 metrics disagree they point at different stages. Judge far above match on
+the large personality inventories (bigfive +.560, sixteenpf +.488, hexaco +.394): the judge
+verifies one candidate against one target, while match must place every latent at once, and
+neighbouring traits compete for each other's slots. Match above judge on kims (-.350), hsq and
+sd3 (-.200 each): the embeddings land on the right latent, so what is lost sits in the decode
+or in the judge, not in the optimization.
+
 ### New domain, evaluated after the freeze
 
 Domains outside the personality questionnaires the pool is built from. Kept separate so the
@@ -97,10 +109,10 @@ certified record stays fixed. Method, checkpoints and dictionary unchanged. Load
 Admission requires published latent labels, not just published groupings, and a key check: the
 count of observed variables whose highest mean correlation is with their own published latent.
 
-| Dataset | items | lats | i/L | key | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
-|---|---|---|---|---|---|---|---|---|---|
-| dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | .800 |
-| wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .400 |
+| Dataset | items | lats | i/L | key | T1 judge | T1 match | T1 rawcorr | T2 judge | T2 match | T2 naming |
+|---|---|---|---|---|---|---|---|---|---|---|
+| dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | **1.000** | .800 |
+| wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .733 | .400 |
 
 DASS takes both the grouping and the scale names from the instrument's own scoring key. WVS
 takes them from Welzel's published recode syntax, with item label texts read off the source
