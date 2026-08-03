@@ -214,4 +214,7 @@ def wvs():
 
 LOADERS = {"dass": dass, "nhanes": nhanes, "wvs": wvs}
 
-EVAL_NEW = ["dass", "nhanes", "wvs"]
+# NHANES is deliberately OUT of EVAL_NEW: its panels are clinical ordering conventions with no
+# published latent names, so its latent descriptions would be ours rather than the field's. The
+# loader stays for probing; it is not part of the reported evidence.
+EVAL_NEW = ["dass", "wvs"]

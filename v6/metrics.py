@@ -60,6 +60,17 @@ def judge_completion(words_list, true_texts):
     return (float(np.mean(ok)), v) if ok else (None, None)
 
 
+def latent_match_acc(pred, gt_emb):
+    """Task 2's dictionary-free counterpart of match_acc, and its only metric that does not go
+    through an LLM. Optimal assignment between the recovered latent embeddings and the embedded
+    ground-truth descriptions of this dataset's latents; the score is the fraction assigned to
+    their own latent. Chance is 1/len(pred)."""
+    from scipy.optimize import linear_sum_assignment
+    S = norm_rows(pred) @ norm_rows(gt_emb).T
+    _, c = linear_sum_assignment(-S)
+    return float(np.mean(c == np.arange(len(pred))))
+
+
 def judge_latents(words_list, gt_texts):
     if not judge.available():
         return None, None

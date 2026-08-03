@@ -90,29 +90,30 @@ channel measured .422.
 
 ### New domain, evaluated after the freeze
 
-Three domains outside the personality questionnaires the pool is built from. Kept separate so
-the certified record stays fixed. Method, checkpoints and dictionary unchanged. Loaders in
+Domains outside the personality questionnaires the pool is built from. Kept separate so the
+certified record stays fixed. Method, checkpoints and dictionary unchanged. Loaders in
 `v6/pool_ext.py`, run with `DATASET=evalnew`, records in `v6/outputs/t{1,2}_<name>_v6cert.json`.
 
-`key` is the published-key check every new testbed must pass before a run: the count of
-observed variables whose highest mean correlation is with their own published latent.
+Admission requires published latent labels, not just published groupings, and a key check: the
+count of observed variables whose highest mean correlation is with their own published latent.
 
 | Dataset | items | lats | i/L | key | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
 |---|---|---|---|---|---|---|---|---|---|
 | dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | .800 |
 | wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .400 |
-| nhanes (lab panels) | 38 | 10 | 3.8 | 20/38 | .211 | .736 | .232 | **.980** | .800 |
 
-Task 1 tracks the key check, not i/L: the structure dividend over raw correlation is +.217,
-+.150 and -.021 as the key check falls from 40/42 to 16/21 to 20/38, while i/L is 14.0, 3.0
-and 3.8. A graph the data does not support misleads the optimization it constrains. Task 2
-stays high across all three, since translating a latent needs only what its children share.
+DASS takes both the grouping and the scale names from the instrument's own scoring key. WVS
+takes them from Welzel's published recode syntax, with item label texts read off the source
+questions because the shipped labels name their own parent construct.
 
-Provenance differs and is not equal. DASS uses the instrument's own scoring key. WVS uses
-Welzel's published recode syntax, with label texts taken from the source questions because the
-shipped item labels name their own parent construct. NHANES has no shipped key at all: the
-panels are clinical ordering conventions, which is why the key check finds only 20 of 38, and
-its Task 1 failures are sibling swaps within a panel (ALT decoded as AST, and so on).
+Task 1 tracks the key check rather than i/L: the structure dividend over raw correlation is
++.217 at 40/42 and +.150 at 16/21, while i/L moves the other way, 14.0 then 3.0. A graph the
+data does not support misleads the optimization it constrains. Task 2 stays high on both, since
+translating a latent needs only what its children share.
+
+A NHANES laboratory-panel loader also exists in `v6/pool_ext.py` and is not reported here. Its
+panels are clinical ordering conventions with no published latent names, so its latent
+descriptions would be ours rather than the field's, which is not the same kind of evidence.
 
 Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
 adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP

@@ -120,7 +120,7 @@ def run_dataset(ds, C, cwords, records):
     perm = rng.permutation(len(obs))
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     lat_names = [L for L in g.latents if L in gt]
-    core_accs, qual, llm_accs = [], [], []
+    core_accs, qual, llm_accs, core_match = [], [], [], []
     gnn_ctx, gnn_accs, jac_accs, gen_accs = None, [], [], []
     if GNN_ARM or GNN_JAC or GNN_GEN:
         import torch, gnn as gnn_mod
@@ -142,6 +142,11 @@ def run_dataset(ds, C, cwords, records):
                                            lam_coll=LAM_COLL, neg_op=NEG_OP, bridge=br,
                                            gen_op=GEN_OP, ci=ci)
         U = np.stack([emb[L] for L in lat_names])
+        # dictionary-free, LLM-free counterpart of Task 1's match: assign recovered latent
+        # embeddings to the embedded ground-truth descriptions and count self-assignments
+        if len(lat_names) > 1:
+            core_match.append(metrics.latent_match_acc(
+                U, encode.embed([gt[L] for L in lat_names])))
         words = metrics.decode_words(U, C, cwords, alpha)
         jacc, verd = metrics.judge_latents(words, [gt[L] for L in lat_names])
         if jacc is not None:
@@ -217,6 +222,9 @@ def run_dataset(ds, C, cwords, records):
     print(f"\n[{ts()}] === Task 2 results: {ds['name']} (latent judge-ACC) ===", flush=True)
     print(f"  core (graph-optimized embeddings): "
           f"{np.mean(core_accs):.3f}" if core_accs else "  core: (judge off)", flush=True)
+    if core_match:
+        print(f"  core match (no dictionary, no LLM): {np.mean(core_match):.3f}"
+              f"   chance~{1.0 / max(len(lat_names), 1):.3f}", flush=True)
     if gnn_accs:
         print(f"  gnn (trained completion operator): {np.mean(gnn_accs):.3f}", flush=True)
     if jac_accs:
@@ -228,7 +236,9 @@ def run_dataset(ds, C, cwords, records):
     for L, w_, ok in qual:
         print(f"    {L} (gt: {ds['latent_gt'][L][:50]}...) <- {', '.join(w_)}"
               f"  [{'OK' if ok else 'X'}]" if ok is not None else "", flush=True)
-    return {"core": (float(np.mean(core_accs)) if core_accs else None), "llm_name": base_acc,
+    return {"core": (float(np.mean(core_accs)) if core_accs else None),
+            "core_match": (float(np.mean(core_match)) if core_match else None),
+            "llm_name": base_acc,
             "gnn": (float(np.mean(gnn_accs)) if gnn_accs else None),
             "gnn_jacread": (float(np.mean(jac_accs)) if jac_accs else None),
             "gnn_genhead": (float(np.mean(gen_accs)) if gen_accs else None)}
