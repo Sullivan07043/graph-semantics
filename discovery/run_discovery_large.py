@@ -32,9 +32,13 @@ sys.path.insert(0, V6)
 import numpy as np                                                    # noqa: E402
 from scipy.stats import norm                                          # noqa: E402
 import pool                                                           # noqa: E402
+import pool_ext                                                       # noqa: E402
 import testbeds                                                       # noqa: E402
 from causallearn.search.HiddenCausal.RLCD.RLCD_alg import RLCD        # noqa: E402
 from run_discovery import edges_from_cg                               # noqa: E402
+
+sys.path.insert(0, HERE)
+from polychoric import PolychoricRankTest, polychoric_matrix          # noqa: E402
 
 NAME = os.environ.get("DATASET", "sixteenpf")
 ROWS = int(os.environ.get("ROWS", 2000))
@@ -42,6 +46,21 @@ ALPHA = float(os.environ.get("ALPHA", 0.001))
 MIN_CLUSTER = int(os.environ.get("MIN_CLUSTER", 3))
 RLCD_MAX = int(os.environ.get("RLCD_MAX", 25))
 WORKERS = int(os.environ.get("WORKERS", 1))
+# The measure used for the two stages. The main pipeline was made nonlinear in July (dcor targets,
+# GBR residualization) but this discovery path was left on Pearson, which is the inconsistency
+# these switches address.
+#   POLY=1  polychoric correlation in BOTH stages. Pearson attenuates on ordinal data, which
+#           biases the skeleton low and inflates the rank test's type I error on skewed items
+#           (rank_test_calibration.py). Ordinal data only.
+#   SKEL=dcor  distance correlation for the SKELETON only. The skeleton asks a marginal
+#           independence question, where dcor is strictly stronger than Pearson because it sees
+#           nonlinear dependence. It cannot be used for the rank test: RLCD's identifiability is
+#           a rank condition on a cross-covariance matrix, and dcor produces no matrix whose rank
+#           carries that meaning. That is also why polychoric, not dcor, is the rank-test fix:
+#           the rank theory is stated over the underlying continuous responses, which is exactly
+#           what polychoric estimates and what Pearson-of-categories does not.
+POLY = os.environ.get("POLY", "0") == "1"
+SKEL = os.environ.get("SKEL", "poly" if POLY else "pearson")   # pearson | poly | dcor
 # Default SEQUENTIAL, by measurement (16PF, 96 cores): cluster sizes are skewed, the
 # critical path is the largest cluster, and sequential RLCD with the whole machine's BLAS
 # beats process-parallel workers (235s vs 534s at 6 threads/worker vs 805s at 1 thread).
@@ -57,9 +76,14 @@ def _rlcd_cluster(args):
     to the sequential version. Launch the script with OMP_NUM_THREADS=1 so workers do not
     oversubscribe BLAS threads."""
     ci, Xc, names = args
-    cg = RLCD(Xc, node_names=[f"o::{nm}" for nm in names])
+    rt = PolychoricRankTest(Xc) if POLY else None
+    cg = RLCD(Xc, node_names=[f"o::{nm}" for nm in names], ranktest_method=rt)
     d, u = edges_from_cg(cg)
     return ci, d, u
+
+
+def _skeleton_measure_name():
+    return {"pearson": "pearson", "poly": "polychoric", "dcor": "distance correlation"}[SKEL]
 
 
 def _ratify_job(args):
@@ -85,11 +109,19 @@ def _ratify_job(args):
     return ci, out
 
 
-def marginal_skeleton(X, alpha):
-    """Fisher-z marginal independence graph: adjacency iff |z(r)| clears alpha."""
+def marginal_skeleton(X, alpha, R=None, measure="pearson"):
+    """Marginal dependence graph, used only as a permissive floor: the cluster threshold is chosen
+    structurally afterwards.
+
+    For correlation-type measures the edge test is Fisher-z, which is calibrated. Distance
+    correlation has a different null distribution, so Fisher-z would be meaningless there; it gets
+    the same 2/sqrt(n) magnitude floor the pipeline already uses to zero noise-level dependence.
+    That floor is DECLARED as a heuristic, not a calibrated test."""
     n, p = X.shape
-    R = np.corrcoef(X, rowvar=False)
+    R = np.corrcoef(X, rowvar=False) if R is None else R.copy()
     np.fill_diagonal(R, 0.0)
+    if measure == "dcor":
+        return R > 2.0 / np.sqrt(n)
     z = 0.5 * np.log((1 + R) / (1 - R + 1e-12))
     crit = norm.ppf(1 - alpha / 2) / np.sqrt(n - 3)
     return np.abs(z) > crit
@@ -114,14 +146,34 @@ def components(adj):
 
 
 if __name__ == "__main__":
-    ds = {**testbeds.LOADERS, **pool.LOADERS}[NAME]()
+    ds = {**testbeds.LOADERS, **pool.LOADERS, **pool_ext.LOADERS}[NAME]()
     g_pub, X = ds["graph"], np.asarray(ds["X"], float)
     obs = list(g_pub.observed)
     rng = np.random.default_rng(0)
     Xs = X[rng.choice(X.shape[0], min(ROWS, X.shape[0]), replace=False)]
     t0 = time.time()
 
-    adj = marginal_skeleton(Xs, ALPHA)
+    # CORR feeds the skeleton and the threshold sweep. RANK_R feeds RLCD's rank test and stays
+    # polychoric-or-Pearson, never dcor (see the SKEL comment at the top).
+    CORR, RANK_R = None, None
+    off = ~np.eye(Xs.shape[1], dtype=bool)
+    if POLY or SKEL == "poly":
+        print(f"[{NAME}] polychoric correlation over {Xs.shape[1]} items", flush=True)
+        RANK_R = polychoric_matrix(Xs, verbose=True)
+        pear = np.corrcoef(Xs, rowvar=False)
+        print(f"[{NAME}] mean |r|: pearson {np.abs(pear[off]).mean():.3f} -> "
+              f"polychoric {np.abs(RANK_R[off]).mean():.3f} ({time.time() - t0:.0f}s)", flush=True)
+    if SKEL == "poly":
+        CORR = RANK_R
+    elif SKEL == "dcor":
+        import dependence as _dep
+        print(f"[{NAME}] distance correlation over {Xs.shape[1]} items", flush=True)
+        CORR = _dep.dcor_mat(Xs)
+        pear = np.corrcoef(Xs, rowvar=False)
+        print(f"[{NAME}] mean dependence: |pearson| {np.abs(pear[off]).mean():.3f} -> "
+              f"dcor {CORR[off].mean():.3f} ({time.time() - t0:.0f}s)", flush=True)
+
+    adj = marginal_skeleton(Xs, ALPHA, R=CORR, measure=SKEL)
     print(f"[{NAME}] alpha skeleton: {int(adj.sum() // 2)} edges (floor only; the cluster "
           f"threshold is chosen structurally below)", flush=True)
 
@@ -130,7 +182,7 @@ if __name__ == "__main__":
     # instead: the smallest |r| cut at which the skeleton resolves into RLCD-reach
     # clusters. Selection = maximize items covered by clusters of size
     # [MIN_CLUSTER, RLCD_MAX]; tie-break toward the lower threshold. Sweep printed in full.
-    R = np.abs(np.corrcoef(Xs, rowvar=False))
+    R = np.abs(np.corrcoef(Xs, rowvar=False) if CORR is None else CORR)
     np.fill_diagonal(R, 0.0)
     best, sweep = None, []
     for thr in np.arange(0.05, 0.61, 0.01):
@@ -222,7 +274,10 @@ if __name__ == "__main__":
     # latent with maximal child overlap against the ratifying latent's core members.
     # Refused items stay orphaned and are declared. Chunks are many similar small RLCD
     # runs: the process-parallel regime.
-    RATIFY = os.environ.get("RATIFY", "1") == "1"
+    # DEFAULT OFF: ratified attachment was measured harmful (accepted items completed at .205,
+    # worse than .255 as orphans, and dragged natively clustered items from .656 to .531). The
+    # code is kept so the negative result stays reproducible, not because it is a repair.
+    RATIFY = os.environ.get("RATIFY", "0") == "1"
     ratified = []
     if RATIFY:
         parented = {b for a, b in edges if LAT_RE.match(a) and not LAT_RE.match(b)}
@@ -314,8 +369,11 @@ if __name__ == "__main__":
            "rlcd_undirected": [], "rlcd_seconds": time.time() - t0,
            "params": {"rows": ROWS, "alpha": ALPHA, "min_cluster": MIN_CLUSTER,
                       "rlcd_max": RLCD_MAX, "cluster_threshold": THR,
-                      "skeleton": "marginal fisher-z floor + structural |r| threshold",
+                      "rank_test": "polychoric" if POLY else "pearson (causal-learn default)",
+                      "skeleton": ("marginal fisher-z floor + structural threshold on "
+                                   + _skeleton_measure_name()),
                       "ratified_edges": ratified,
                       "top_layer_raw": [list(e) for e in top_edges]}}
-    json.dump(out, open(os.path.join(HERE, "outputs", f"{NAME}.json"), "w"), indent=1)
-    print(f"[{NAME}] saved outputs/{NAME}.json ({time.time() - t0:.0f}s total)", flush=True)
+    tag = os.environ.get("OUT_TAG", "")
+    json.dump(out, open(os.path.join(HERE, "outputs", f"{NAME}{tag}.json"), "w"), indent=1)
+    print(f"[{NAME}] saved outputs/{NAME}{tag}.json ({time.time() - t0:.0f}s total)", flush=True)

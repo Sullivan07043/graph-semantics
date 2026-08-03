@@ -10,8 +10,10 @@ first). On single-construct scales (rse, cfcs) this reduces to the published con
 description by construction. The published key is a CLUSTER-LEVEL REFERENCE for judging,
 never an input to discovery (declared).
 
-Env: BASE (any dataset with a discovery/outputs/<BASE>.json), TASK=1|2, RECORDS_OUT, and the
-usual v6 knobs. JUDGE_MODEL must be set explicitly for judged runs (official: gpt-5.5).
+Env: BASE (the original dataset whose loader gives X and label texts), TASK=1|2, RECORDS_OUT,
+GRAPH_JSON (which discovery output to read, default <BASE>.json), TAG (suffix for the registered
+dataset name, default "rlcd"), and the usual v6 knobs. JUDGE_MODEL must be set explicitly for
+judged runs (official: gpt-5.5).
 """
 import json
 import os
@@ -23,7 +25,13 @@ V6 = os.path.join(os.path.dirname(HERE), "v6")
 sys.path.insert(0, V6)
 
 BASE = os.environ["BASE"]
-os.environ["DATASET"] = f"{BASE}rlcd"
+# BASE names the ORIGINAL dataset (its loader supplies X and the label texts). The discovered
+# graph is a separate thing: GRAPH_JSON picks which discovery output to read, and TAG names the
+# resulting dataset. Keep TAG distinct per graph, otherwise two different structures share one
+# nldep cache under the same dataset name.
+GRAPH_JSON = os.environ.get("GRAPH_JSON", f"{BASE}.json")
+TAG = os.environ.get("TAG", "rlcd")
+os.environ["DATASET"] = f"{BASE}{TAG}"
 DICT = os.environ.get("GRAPHSEM_DICT") or os.path.join(V6, "outputs", "concept_bank_l3_cog.npz")
 os.environ["GRAPHSEM_DICT"] = DICT
 
@@ -92,7 +100,7 @@ if __name__ == "__main__":
 
     def load_discovered():
         base = runner.ALL_LOADERS[BASE]()
-        d = json.load(open(os.path.join(HERE, "outputs", f"{BASE}.json")))
+        d = json.load(open(os.path.join(HERE, "outputs", GRAPH_JSON)))
         edges = [tuple(e) for e in d["rlcd_directed"]] + \
                 [tuple(sorted(e)) for e in d["rlcd_undirected"]]
         nodes = {x for e in edges for x in e}
@@ -120,8 +128,8 @@ if __name__ == "__main__":
                 gt[L] = base["latent_gt"].get(top, next(iter(base["latent_gt"].values()), ""))
             elif base["latent_gt"]:
                 gt[L] = next(iter(base["latent_gt"].values()))
-        return dict(name=f"{BASE}rlcd", graph=g, X=base["X"], labels=base["labels"],
+        return dict(name=f"{BASE}{TAG}", graph=g, X=base["X"], labels=base["labels"],
                     latent_gt=gt)
 
-    runner.ALL_LOADERS[f"{BASE}rlcd"] = load_discovered
+    runner.ALL_LOADERS[f"{BASE}{TAG}"] = load_discovered
     runner.main()

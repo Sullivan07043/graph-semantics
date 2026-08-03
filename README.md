@@ -90,16 +90,29 @@ channel measured .422.
 
 ### New domain, evaluated after the freeze
 
-Kept out of the pool above so the certified record stays fixed. Method and checkpoints
-unchanged. Loader `v6/pool_ext.py`, run with `DATASET=evalnew`, records in
-`v6/outputs/t{1,2}_dass_v6cert.json`.
+Three domains outside the personality questionnaires the pool is built from. Kept separate so
+the certified record stays fixed. Method, checkpoints and dictionary unchanged. Loaders in
+`v6/pool_ext.py`, run with `DATASET=evalnew`, records in `v6/outputs/t{1,2}_<name>_v6cert.json`.
 
-| Dataset | items | lats | i/L | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
-|---|---|---|---|---|---|---|---|---|
-| dass (clinical) | 42 | 3 | 14.0 | **.817** | .906 | .600 | **1.000** | .800 |
+`key` is the published-key check every new testbed must pass before a run: the count of
+observed variables whose highest mean correlation is with their own published latent.
 
-Clinical scale, mildly impure key (two anxiety items cross-load onto stress). Needed no
-dictionary extension.
+| Dataset | items | lats | i/L | key | T1 judge | T1 match | T1 rawcorr | T2 core | T2 naming |
+|---|---|---|---|---|---|---|---|---|---|
+| dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | .800 |
+| wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .400 |
+| nhanes (lab panels) | 38 | 10 | 3.8 | 20/38 | .211 | .736 | .232 | **.980** | .800 |
+
+Task 1 tracks the key check, not i/L: the structure dividend over raw correlation is +.217,
++.150 and -.021 as the key check falls from 40/42 to 16/21 to 20/38, while i/L is 14.0, 3.0
+and 3.8. A graph the data does not support misleads the optimization it constrains. Task 2
+stays high across all three, since translating a latent needs only what its children share.
+
+Provenance differs and is not equal. DASS uses the instrument's own scoring key. WVS uses
+Welzel's published recode syntax, with label texts taken from the source questions because the
+shipped item labels name their own parent construct. NHANES has no shipped key at all: the
+panels are clinical ordering conventions, which is why the key check finds only 20 of 38, and
+its Task 1 failures are sibling swaps within a panel (ALT decoded as AST, and so on).
 
 Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
 adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP

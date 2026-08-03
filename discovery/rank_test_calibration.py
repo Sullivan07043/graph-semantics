@@ -23,8 +23,11 @@ import sys
 import numpy as np
 
 CL = "/data2/shuhao/semantic_interpretation/causal-learn"
+HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, CL)
+sys.path.insert(0, HERE)
 from causallearn.search.HiddenCausal.RLCD.Chi2RankTest import Chi2RankTest  # noqa: E402
+from polychoric import PolychoricRankTest                                  # noqa: E402
 
 REPS = int(os.environ.get("REPS", 200))
 SEED = int(os.environ.get("SEED", 0))
@@ -52,15 +55,20 @@ def discretize(X, cuts):
 
 
 def run(n, k, reps, seed):
+    """Arms are (data profile, rank test). Polychoric is only defined for the discretized profiles,
+    so the continuous row exists for the default test only."""
     rng = np.random.default_rng(seed)
-    arms = ["continuous"] + list(CUTS)
+    arms = ["continuous"] + [f"{c}{suffix}" for c in CUTS for suffix in ("", "+poly")]
     rej = {a: {al: 0 for al in ALPHAS} for a in arms}
     for _ in range(reps):
         X = one_factor(rng, n, k)
         pcols, qcols = list(range(k)), list(range(k, 2 * k))
         for arm in arms:
-            D = X if arm == "continuous" else discretize(X, CUTS[arm])
-            t = Chi2RankTest(D)
+            if arm == "continuous":
+                t = Chi2RankTest(X)
+            else:
+                D = discretize(X, CUTS[arm.replace("+poly", "")])
+                t = PolychoricRankTest(D) if arm.endswith("+poly") else Chi2RankTest(D)
             for al in ALPHAS:
                 # test() returns if_fail_to_reject; a rejection of a TRUE null is a type I error
                 if not t.test(pcols, qcols, 1, al):
@@ -73,6 +81,7 @@ if __name__ == "__main__":
     for n in [2000, 5000]:
         for k in [3, 5]:
             key = f"n{n}_k{k}"
+            print(f"[start {key}] {REPS} reps", flush=True)
             out["cells"][key] = run(n, k, REPS, SEED)
             print(f"[{key}] true rank 1, null 'rank<=1' is TRUE; type I error rate:", flush=True)
             for arm, d in out["cells"][key].items():
