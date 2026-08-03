@@ -22,7 +22,7 @@ import sys
 
 import numpy as np
 
-CL = "/data2/shuhao/semantic_interpretation/causal-learn"
+CL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vendor", "causal-learn")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, CL)
 sys.path.insert(0, HERE)

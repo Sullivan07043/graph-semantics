@@ -197,7 +197,7 @@ def certify(seed=0, n=3000, verbose=True):
     standardized columns. Any disagreement is a bug in the rank test here, not an effect of
     polychoric estimation."""
     import sys
-    sys.path.insert(0, "/data2/shuhao/semantic_interpretation/causal-learn")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vendor", "causal-learn"))
     from causallearn.search.HiddenCausal.RLCD.Chi2RankTest import Chi2RankTest
 
     rng = np.random.default_rng(seed)
