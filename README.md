@@ -49,10 +49,8 @@ narrow a masked item's identity, and it governs Task 1. `†` = judge-collapse d
 there). `‡` = cfcs, whose failure is a known f_neg defect on direction-critical reverse
 wording, not a property of its group.
 
-Both tasks carry a **match** column that passes through no LLM and no dictionary: an optimal
-assignment between the recovered embeddings and the true label embeddings, scored by how many
-land on their own target. Task 2's match is undefined for a single-latent dataset, hence `n/a`
-in two of the three groups.
+`match` uses no LLM and no dictionary: optimal assignment of recovered embeddings to true label
+embeddings, scored by self-assignments. Undefined for a single-latent dataset, hence `n/a`.
 
 | Dataset | items | lats | i/L | T1 judge | T1 match | T2 judge | T2 match | T2 naming |
 |---|---|---|---|---|---|---|---|---|
@@ -93,12 +91,8 @@ on 2026-07-29 and reproduced digit for digit. Untrained, the rebuilt objective r
 v5's .658 exactly (implementation certificate) and the removed duplicated conditional
 channel measured .422.
 
-Where the two Task 2 metrics disagree they point at different stages. Judge far above match on
-the large personality inventories (bigfive +.560, sixteenpf +.488, hexaco +.394): the judge
-verifies one candidate against one target, while match must place every latent at once, and
-neighbouring traits compete for each other's slots. Match above judge on kims (-.350), hsq and
-sd3 (-.200 each): the embeddings land on the right latent, so what is lost sits in the decode
-or in the judge, not in the optimization.
+Largest Task 2 judge-minus-match gaps: bigfive +.560, sixteenpf +.488, hexaco +.394, kims
+-.350. `tools/judge_control.py` re-judges saved decodes against shifted targets.
 
 ### New domain, evaluated after the freeze
 
@@ -114,18 +108,14 @@ count of observed variables whose highest mean correlation is with their own pub
 | dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | **1.000** | .800 |
 | wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .733 | .400 |
 
-DASS takes both the grouping and the scale names from the instrument's own scoring key. WVS
-takes them from Welzel's published recode syntax, with item label texts read off the source
-questions because the shipped labels name their own parent construct.
+Sources: DASS from the instrument's own scoring key; WVS from Welzel's published recode syntax,
+with item label texts read off the source questions because the shipped labels name their own
+parent construct.
 
-Task 1 tracks the key check rather than i/L: the structure dividend over raw correlation is
-+.217 at 40/42 and +.150 at 16/21, while i/L moves the other way, 14.0 then 3.0. A graph the
-data does not support misleads the optimization it constrains. Task 2 stays high on both, since
-translating a latent needs only what its children share.
+Task 1 dividend over raw correlation: +.217 at key 40/42, +.150 at 16/21.
 
-A NHANES laboratory-panel loader also exists in `v6/pool_ext.py` and is not reported here. Its
-panels are clinical ordering conventions with no published latent names, so its latent
-descriptions would be ours rather than the field's, which is not the same kind of evidence.
+A NHANES laboratory-panel loader exists in `v6/pool_ext.py` and is not reported: its panels are
+clinical ordering conventions with no published latent names.
 
 Read-only diagnostics ship with the pipeline: per-node certainty `cert(i)`, structure
 adequacy `V(G,X)` with repair proposals (proposals only — they rediscover common-EF/g/GFP
