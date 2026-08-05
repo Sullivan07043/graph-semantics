@@ -218,3 +218,34 @@ LOADERS = {"dass": dass, "nhanes": nhanes, "wvs": wvs}
 # published latent names, so its latent descriptions would be ours rather than the field's. The
 # loader stays for probing; it is not part of the reported evidence.
 EVAL_NEW = ["dass", "wvs"]
+
+
+# --------------------------------------------------------------- Task 3: robot episode data
+# Registered so run_downstream.py can pair a discovered robot structure with the episode matrix and
+# the variable label texts, exactly as it does for a questionnaire. Built by
+# task3_robotics/load_robomimic.py; not part of EVAL_NEW, which is the given-graph evidence set.
+ROBOT_NPZ = {
+    "liftmg": os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "task3_robotics", "outputs", "lift_mg_episode.npz"),
+}
+
+
+def _robot(name):
+    def loader():
+        import json
+        d = np.load(ROBOT_NPZ[name], allow_pickle=True)
+        obs = [str(x) for x in d["names"]]
+        labels = {o: str(l) for o, l in zip(obs, d["labels"])}
+        g = G.Graph([], obs, [])            # no given graph; the discovered one is injected
+        # Robot latents have no published names. Their Task 2 reference is derived by intervening
+        # on each latent and reading the signed response over named variables, written by
+        # task3_robotics/intervene.py. DECLARED: machine-constructed, so this is weaker evidence
+        # than a questionnaire construct name and must not be pooled with those numbers.
+        gt_path = ROBOT_NPZ[name].replace("_episode.npz", "_latent_gt.json")
+        gt = json.load(open(gt_path))["latent_gt"] if os.path.exists(gt_path) else {}
+        return dict(name=name, graph=g, X=z(np.asarray(d["X"], float)),
+                    labels=labels, latent_gt=gt)
+    return loader
+
+
+LOADERS.update({k: _robot(k) for k in ROBOT_NPZ})

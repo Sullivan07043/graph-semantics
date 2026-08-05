@@ -122,6 +122,12 @@ if __name__ == "__main__":
 
         gt = {}
         for L in lats:
+            # a base set whose latent_gt is keyed by the DISCOVERED latent names supplies the
+            # reference directly. Task 3 uses this: robot latents have no published construct to
+            # vote for, so their reference comes from intervening on each latent by name.
+            if L in base["latent_gt"]:
+                gt[L] = base["latent_gt"][L]
+                continue
             votes = [fac_of[o] for o in obs_leaves(g, L) if o in fac_of]
             if votes:
                 top = max(sorted(set(votes)), key=votes.count)
