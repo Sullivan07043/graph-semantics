@@ -1,0 +1,150 @@
+"""
+LLM judge (TLVD-style yes/no), shared by BOTH paths and BOTH deliverables.
+  mode="latent"     : do the candidate words/name correctly denote the target construct?
+  mode="completion" : do the recovered meaning words identify this SPECIFIC measured variable
+                      (not merely its general family)?
+ACC = fraction judged yes, mirroring TLVD's "proportion of latent variables correctly predicted".
+Key from env OPENAI_API_KEY ONLY (never written to disk). Batched (one call judges a numbered list),
+temperature 0, in-process cache keyed by (mode, recovered, target).
+"""
+import os, json
+import urllib.request
+
+_CACHE = {}
+MODEL = os.environ.get("JUDGE_MODEL", "gpt-5.5")   # default = the ONLY sanctioned judge
+# (user ruling 2026-08-01: 5.5 everywhere; the old gpt-4o-mini default was the .412-vs-.752
+# incomparability trap and must never come back)
+
+# Disk-backed cache (added 2026-07-16 after the L2 eval re-judged identical baseline decodes 3x).
+# Keyed by (model, mode, recovered, target); JUDGE_CACHE=0 disables. Verdicts only (True/False),
+# never None — missing stays missing so failed calls are retried.
+_CACHE_PATH = os.environ.get("JUDGE_CACHE_PATH",
+                             os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                          "outputs", "judge_cache.jsonl"))
+_DISK = os.environ.get("JUDGE_CACHE", "1") == "1"
+if _DISK and os.path.exists(_CACHE_PATH):
+    try:
+        for _line in open(_CACHE_PATH):
+            _r = json.loads(_line)
+            if _r.get("model") == MODEL:
+                _CACHE[(_r["mode"], _r["rec"], _r["tgt"])] = _r["v"]
+    except Exception:
+        pass
+
+
+def _persist(mode, rec_s, tgt, v):
+    if not _DISK or v is None:
+        return
+    try:
+        with open(_CACHE_PATH, "a") as f:
+            f.write(json.dumps({"model": MODEL, "mode": mode, "rec": rec_s,
+                                "tgt": str(tgt), "v": bool(v)}, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
+def available():
+    return bool(os.environ.get("OPENAI_API_KEY"))
+
+
+BASE_URL = os.environ.get("JUDGE_BASE_URL", "https://api.openai.com/v1")
+# OpenRouter: JUDGE_BASE_URL=https://openrouter.ai/api/v1 + vendor-prefixed JUDGE_MODEL
+# (openai/gpt-5.5) + OPENAI_API_KEY=$OPENROUTER_API_KEY (from ~/.secrets/env.sh). Cache is
+# keyed by the model STRING, so OpenRouter verdicts live under their own namespace.
+
+
+def _chat(prompt, model=None):
+    key = os.environ["OPENAI_API_KEY"]
+    payload = {"model": model or MODEL, "temperature": 0,
+               "messages": [{"role": "user", "content": prompt}]}
+    for attempt in range(2):
+        req = urllib.request.Request(f"{BASE_URL}/chat/completions",
+                                     data=json.dumps(payload).encode(),
+                                     headers={"Authorization": f"Bearer {key}",
+                                              "Content-Type": "application/json"})
+        try:
+            r = json.loads(urllib.request.urlopen(req, timeout=120).read())
+            return r["choices"][0]["message"]["content"].strip()
+        except urllib.error.HTTPError as e:
+            msg = e.read().decode(errors="replace")
+            if attempt == 0 and "temperature" in msg and "temperature" in payload:
+                payload.pop("temperature")             # some newer models reject explicit temperature
+                continue
+            raise RuntimeError(f"judge API error: {msg[:200]}")
+    raise RuntimeError("judge API unreachable")
+
+
+def _k(mode, rec, tgt):
+    rec_s = ", ".join(rec) if isinstance(rec, (list, tuple)) else str(rec)
+    return (mode, rec_s, str(tgt))
+
+
+def judge_batch(items, mode):
+    """items = list of (recovered, target); recovered = word list or name string. -> list[bool] | None."""
+    if not available():
+        return None
+    out = [None] * len(items)
+    todo = []
+    for i, it in enumerate(items):
+        v = _CACHE.get(_k(mode, *it))
+        if v is None:
+            todo.append(i)
+        else:
+            out[i] = v
+    if todo:
+        lines = []
+        for r, i in enumerate(todo):
+            rec, tgt = items[i]
+            rec_s = ", ".join(rec) if isinstance(rec, (list, tuple)) else str(rec)
+            if mode == "latent":
+                lines.append(f'{r + 1}. candidate: [{rec_s}] ; target construct: "{tgt}"')
+            else:
+                lines.append(f'{r + 1}. recovered meaning: [{rec_s}] ; true variable: "{tgt}"')
+        if mode == "latent":
+            head = ("You are judging translations of hidden factors. Each candidate is a set of words from a "
+                    "sparse dictionary decomposition, so a few words may be spurious noise. For each numbered "
+                    "item, judge by the DOMINANT meaning of the candidate words: taken together, do they "
+                    "correctly refer to the target construct? Synonyms and close paraphrases count as correct. "
+                    "Do NOT reject an item merely because it contains some unrelated noise words; answer no "
+                    "only if the dominant meaning points to a different construct, or is too generic to "
+                    "identify the target.")
+        else:
+            head = ("You are judging recovered descriptions of measured variables. Each recovered meaning is a "
+                    "set of words from a sparse dictionary decomposition, so a few words may be spurious noise. "
+                    "For each numbered item, judge by the DOMINANT meaning: do the recovered words correctly "
+                    "describe what the true variable measures? Synonyms and close paraphrases count as correct; "
+                    "the words need not repeat the exact label. Answer no only if the dominant meaning "
+                    "describes something else, or is too generic to relate to this variable.")
+        prompt = (head + '\nRespond with ONLY a JSON array of "yes"/"no", one per item, in order.\n\n'
+                  + "\n".join(lines))
+        try:
+            txt = _chat(prompt)
+            arr = json.loads(txt[txt.find("["): txt.rfind("]") + 1])
+            assert len(arr) == len(todo)
+            for r, i in enumerate(todo):
+                v = str(arr[r]).strip().lower().startswith("y")
+                k = _k(mode, *items[i])
+                _CACHE[k] = v
+                _persist(*k, v)
+                out[i] = v
+        except Exception as e:
+            print(f"  [judge batch failed ({e}); per-item fallback]", flush=True)
+            for i in todo:
+                rec, tgt = items[i]
+                rec_s = ", ".join(rec) if isinstance(rec, (list, tuple)) else str(rec)
+                q = (f'Candidate words (sparse decomposition; a few may be spurious noise): [{rec_s}]. Judging '
+                     f'by their DOMINANT meaning, do they correctly refer to the construct "{tgt}"? Synonyms '
+                     f'count as correct; do not reject merely for noise words.' if mode == "latent"
+                     else f'Recovered meaning words (sparse decomposition; a few may be spurious): [{rec_s}]. '
+                          f'Judging by their DOMINANT meaning, do they correctly describe what this variable '
+                          f'measures: "{tgt}"? Synonyms count; reject only if the dominant meaning is about '
+                          f'something else or too generic.')
+                try:
+                    v = _chat(q + " Answer yes or no only.").strip().lower().startswith("y")
+                except Exception:
+                    v = None                              # API failure = MISSING, never "wrong"
+                k = _k(mode, *items[i])
+                _CACHE[k] = v
+                _persist(*k, v)
+                out[i] = v
+    return out

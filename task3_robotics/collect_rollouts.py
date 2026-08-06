@@ -81,7 +81,7 @@ def main():
                      use_camera_obs=False, control_freq=20, reward_shaping=True)
     rng = np.random.default_rng(SEED)
     lo, hi = env.action_spec
-    rows, epis, rews, succ, schema = [], [], [], [], None
+    rows, epis, rews, succ, acts, schema = [], [], [], [], [], None
     for ep in range(EPISODES):
         obs = env.reset()
         if schema is None:
@@ -99,6 +99,7 @@ def main():
                                         for k in sorted(obs)
                                         if k not in SKIP_KEYS and k not in SKIP_DERIVED]))
             epis.append(ep)
+            acts.append(a.copy())
             rews.append(float(r))
             succ.append(float(env._check_success()))
             if done:
@@ -126,7 +127,7 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     np.savez(OUT, X=X[:, keep], names=np.array(names)[keep], labels=np.array(labels)[keep],
              episode=epis, reward=np.asarray(rews, float), success=np.asarray(succ, float),
-             task=TASK, robot=ROBOT)
+             actions=np.asarray(acts, float), task=TASK, robot=ROBOT)
     print(f"[{TASK}] saved {OUT}: {int(keep.sum())} variables, {len(X)} steps, "
           f"{EPISODES} episodes", flush=True)
 
