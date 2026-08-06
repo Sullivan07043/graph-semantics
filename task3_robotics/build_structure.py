@@ -119,9 +119,12 @@ def main():
     }
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(out, open(OUT, "w"), indent=1)
-    np.savez(os.path.join(os.path.dirname(OUT), "lift_mg_latents.npz"),
+    # derive the latents filename from OUT, never hardcode it: a control run with a different
+    # OUT was silently overwriting the main run's latents
+    lat_path = OUT.replace(".json", "_latents.npz")
+    np.savez(lat_path,
              Z=Z, B=B, latents=np.array(lat), names=np.array(names), labels=np.array(labels))
-    print(f"[structure] saved {OUT} and lift_mg_latents.npz", flush=True)
+    print(f"[structure] saved {OUT} and {os.path.basename(lat_path)}", flush=True)
 
     print("\n[structure] strongest children of each latent (sign, variable):")
     for j in range(k):
