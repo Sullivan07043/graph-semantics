@@ -14,7 +14,15 @@ import graph as G
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.environ.get("GRAPHSEM_DATA", os.path.abspath(os.path.join(HERE, "..", "..", "data")))
-CACHE = os.path.join(HERE, "data_cache")
+_CACHE_ENTRY = os.path.join(HERE, "data_cache")
+# Git checks this entry out as a symlink on Unix.  On Windows without symlink
+# privileges it is materialized as a one-line file containing the relative
+# target, so resolve that representation as well.
+if os.path.isfile(_CACHE_ENTRY):
+    with open(_CACHE_ENTRY, encoding="utf-8") as _f:
+        CACHE = os.path.abspath(os.path.join(HERE, _f.read().strip()))
+else:
+    CACHE = _CACHE_ENTRY
 
 
 def z(a):
@@ -90,7 +98,8 @@ def bigfive(nsub=3000):
     construct_of = {c: BIG5_FACTOR[c[0]] for c in item_text}
     g = G.bipartite(construct_of)
     df = pd.read_csv(os.path.join(DATA, "BIG5", "data.csv"), sep="\t")
-    R = df[g.observed].to_numpy(float)
+    # pandas 3 may return a read-only view, but zero is recoded as missing.
+    R = df[g.observed].to_numpy(float, copy=True)
     R[R == 0] = np.nan
     R = R[~np.isnan(R).any(1)]
     if len(R) > nsub:

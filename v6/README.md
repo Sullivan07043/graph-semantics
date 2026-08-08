@@ -10,6 +10,7 @@ Entry point: `main.py` (TASK=1|2, DATASET, L2_ARM=mlp default). Canon: `PLAN.md`
 | Training | `train.py` `negop.py` | joint operator+WeightNet trainer (dev fold-4 MATCH selection) / f_neg |
 | Offline tools | `tools/` | one-time builders, not runtime imports: dictionary build (`build_dictionary.py`), LoRA-space re-encode (`reencode_dict.py`), CogAtlas expansion (`expand_dictionary.py`), LoRA training (`l3_train.py`) |
 | Runners | `run_task1.py` `run_task2.py` `run_bigfive_hier.py` | official protocols; hierarchy pilot |
+| External baselines | `baselines/` (`runners/` contains Task 1/2 entry points; `reports/` contains the report) | five canonical implementations plus their shared protocol, API, tests, runners, and report; see [`baselines/README.md`](baselines/README.md) |
 | Metrics and decode | `metrics.py` `judge.py` `splice_decode.py` | match/exact / LLM judge + disk cache / SpLiCE decode |
 | Diagnostics (read-only) | `certainty.py` `adequacy.py` `influence_decode.py` | cert(i) Def 4 / V(G,X) Def 5 + repair proposals / generative-path influence (P3) |
 | Partially superseded | `latent_constraints.py` | `sign_fix` load-bearing; `augmented_*` superseded by nldep (legacy Pearson path only) |

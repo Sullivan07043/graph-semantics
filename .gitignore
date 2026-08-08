@@ -1,4 +1,6 @@
 __pycache__/
+.pytest_cache/
+.codex_tmp/
 *.pyc
 outputs/
 records*.json
