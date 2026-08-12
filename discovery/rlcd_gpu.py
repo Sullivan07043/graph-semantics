@@ -25,6 +25,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-learn"))
 
+import numpy as np
+
 import causallearn.search.HiddenCausal.RLCD.RLCD_alg as base
 from causallearn.search.HiddenCausal.RLCD.DSU import DSU
 
@@ -230,17 +232,42 @@ def _at_k_serial(G, k, parameters, n_jobs=-1):
     return G, (global_found, global_terminate)
 
 
-def RLCD_gpu(data, ranktest_method=None, **kwargs):
-    """RLCD with the batched serial sweep patched in for the duration of the call."""
+def _recboss_cpdag(X, discount, seed=1):
+    """Stage-1 adjacency from the C BOSS in causal-learn CPDAG encoding (i -> j as
+    A[j, i] = 1, A[i, j] = -1). Replaces the GES stage 1, which took 30+ minutes at p=42."""
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-get", "site"))
+    import causalget as cg
+    R = np.corrcoef(np.asarray(X, float), rowvar=False)
+    dag = cg.boss(R, n=len(X), discount=discount, seed=seed)   # dag[i, j] = 1 means j -> i
+    A = np.zeros(dag.shape)
+    for i, j in zip(*np.nonzero(dag)):
+        A[i, j] = 1
+        A[j, i] = -1
+    return A
+
+
+def RLCD_gpu(data, ranktest_method=None, stage1_method="ges", stage1_discount=2.0, **kwargs):
+    """RLCD with the batched serial sweep patched in for the duration of the call.
+
+    stage1_method="recboss" computes the stage-1 adjacency with the C BOSS (seconds) and
+    hands it to the unchanged partition logic by stubbing the GES call for this one run."""
+    import causallearn.search.ScoreBased.GES as GESmod
     saved_mp = base.findClusters_at_k_mp
     saved_by = base.findClusters_at_k_by_nonsinks
+    saved_ges = GESmod.ges
     base.findClusters_at_k_mp = _at_k_serial
     base.findClusters_at_k_by_nonsinks = _by_nonsinks_batched
+    if stage1_method == "recboss":
+        A = _recboss_cpdag(data, stage1_discount)
+        GESmod.ges = lambda *a, **k: {"G": type("G", (), {"graph": A})()}
+        stage1_method = "ges"
     try:
-        return base.RLCD(data, ranktest_method=ranktest_method, **kwargs)
+        return base.RLCD(data, ranktest_method=ranktest_method,
+                         stage1_method=stage1_method, **kwargs)
     finally:
         base.findClusters_at_k_mp = saved_mp
         base.findClusters_at_k_by_nonsinks = saved_by
+        GESmod.ges = saved_ges
 
 
 def RLCD_serial(data, ranktest_method=None, **kwargs):
