@@ -53,6 +53,8 @@ MUJOCO_GL=egl TASK=Lift ROBOT=Sawyer EPISODES=1000 STEPS=200 \
 NPZ=$T/outputs/body_sawyer_rollouts.npz $PV $T/build_steps.py
 
 # 3. discovery (BOSS + BIC; 15-40 min by column count)
+#    ROUTE=recboss = the C BOSS (seconds; build ../vendor/causal-get/site first, see its
+#    VENDORED.md; float32 scoring needs ROWS+DISCOUNT, e.g. ROWS=50000 DISCOUNT=4)
 NPZ=$T/outputs/body_sawyer_steps.npz ROUTE=boss \
   OUT=$T/outputs/body_sawyer_discovered.json $PV $T/discover.py
 DISC=$T/outputs/body_sawyer_discovered.json \

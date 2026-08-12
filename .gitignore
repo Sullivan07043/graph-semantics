@@ -11,3 +11,5 @@ data_cache/
 logs/
 outputs_*.log
 v5/
+vendor/causal-get/site/
+vendor/causal-get/build/
