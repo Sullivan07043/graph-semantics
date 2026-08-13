@@ -11,5 +11,5 @@ data_cache/
 logs/
 outputs_*.log
 v5/
-vendor/causal-get/site/
-vendor/causal-get/build/
+causal-learn/upstream/causal-get/site/
+causal-learn/upstream/causal-get/build/

@@ -16,6 +16,7 @@ V6 = "/data2/shuhao/semantic_interpretation/graph_semantics/v6"
 OUT = "/data2/shuhao/semantic_interpretation/graph_semantics/discovery/outputs"
 sys.path.insert(0, HERE)
 sys.path.insert(0, V6)
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "upstream", "causal-learn"))
 
 import pool                                                            # noqa: E402
 import testbeds                                                        # noqa: E402

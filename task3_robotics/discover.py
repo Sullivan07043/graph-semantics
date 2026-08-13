@@ -30,11 +30,11 @@ ROUTE boss
     or absent.
 
 ROUTE recboss
-    Same algorithm, the C implementation (vendor/causal-get, J. Ramsey / B. Andrews). Runs from
-    the correlation matrix in seconds instead of tens of minutes, so the BIC penalty DISCOUNT
-    becomes sweepable. discount=1 equals the causal-learn default; the post-filter and the
-    least-squares weights are shared with ROUTE boss. Build vendor/causal-get/site first
-    (bash vendor/causal-get/build.sh).
+    Same algorithm, the C implementation (causal-learn/upstream/causal-get, J. Ramsey /
+    B. Andrews). Runs from the correlation matrix in seconds instead of tens of minutes, so the
+    BIC penalty DISCOUNT becomes sweepable. discount=1 equals the causal-learn default; the
+    post-filter and the least-squares weights are shared with ROUTE boss. Build the site/ dir
+    first (bash causal-learn/upstream/causal-get/build.sh).
 
 Env: NPZ=<step npz> ROUTE=jacobian|boss|recboss|both EPOCHS=400 LAM=0.02 TAU=0.05 DEV=cpu ROWS=0
      DISCOUNT=2 (recboss only)
@@ -47,7 +47,7 @@ import time
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-learn"))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn", "upstream", "causal-learn"))
 
 NPZ = os.environ.get("NPZ", os.path.join(HERE, "outputs", "lift_body_steps.npz"))
 ROUTE = os.environ.get("ROUTE", "both")
@@ -175,7 +175,7 @@ def route_boss(X, cols, past, cur):
 
 
 def route_recboss(X, cols, past, cur):
-    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-get", "site"))
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn", "upstream", "causal-get", "site"))
     import causalget as cg
     discount = float(os.environ.get("DISCOUNT", 2))
     restarts = int(os.environ.get("RESTARTS", 1))

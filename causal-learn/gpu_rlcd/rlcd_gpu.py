@@ -23,7 +23,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-learn"))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "upstream", "causal-learn"))
 
 import numpy as np
 
@@ -235,7 +235,7 @@ def _at_k_serial(G, k, parameters, n_jobs=-1):
 def _recboss_cpdag(X, discount, seed=1):
     """Stage-1 adjacency from the C BOSS in causal-learn CPDAG encoding (i -> j as
     A[j, i] = 1, A[i, j] = -1). Replaces the GES stage 1, which took 30+ minutes at p=42."""
-    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-get", "site"))
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "upstream", "causal-get", "site"))
     import causalget as cg
     R = np.corrcoef(np.asarray(X, float), rowvar=False)
     dag = cg.boss(R, n=len(X), discount=discount, seed=seed)   # dag[i, j] = 1 means j -> i

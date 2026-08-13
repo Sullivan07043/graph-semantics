@@ -38,6 +38,7 @@ from causallearn.search.HiddenCausal.RLCD.RLCD_alg import RLCD        # noqa: E4
 from run_discovery import edges_from_cg                               # noqa: E402
 
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn"))
 from polychoric import PolychoricRankTest, polychoric_matrix          # noqa: E402
 
 NAME = os.environ.get("DATASET", "sixteenpf")

@@ -1,0 +1,24 @@
+import numpy as np
+import pandas as pd
+
+import daosim as ds
+import causalget as cg
+
+
+if __name__ == "__main__":
+  n = 1000
+  p = 1000
+  ad = 6
+
+  g = ds.er_dag(p, ad=ad)
+  _, B, O = ds.corr(g)
+  X = ds.simulate(B, O, n)
+  df = pd.DataFrame(X)
+  R = df.corr().values
+
+  ## TESTING FROM CORR $$
+
+  print("from ndarray (corr):")
+  dag = cg.boss(R, n=n, discount=2)
+  print("SHD:", np.sum(dag != g))
+  print()

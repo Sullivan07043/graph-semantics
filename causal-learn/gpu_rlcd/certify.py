@@ -2,8 +2,9 @@
 
 Three checks, all must pass before GpuRankTest may replace Chi2RankTest:
 
-1. decision parity: on real data (DASS) and on synthetic latent data, random
-   (pcols, qcols, r, alpha) cases must produce the same accept/reject as Chi2RankTest.
+1. decision parity: on synthetic latent data (continuous and skew-discretized), and on a real
+   matrix when DATA=<npz> is set, random (pcols, qcols, r, alpha) cases must produce the same
+   accept/reject as Chi2RankTest.
 2. end-to-end: RLCD run with GpuRankTest must return the same adjacency as with Chi2RankTest
    on a dataset small enough for the CPU test to finish.
 3. batch = single: priming a batch then reading decisions must equal unprimed single calls.
@@ -15,7 +16,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-learn"))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "upstream", "causal-learn"))
 sys.path.insert(0, HERE)
 
 import numpy as np
@@ -100,11 +101,13 @@ def main():
     rng = np.random.default_rng(SEED)
     fails = 0
 
-    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "task3_robotics", "task3_pipeline_v1"))
-    import pool_ext
-    dass = np.asarray(pool_ext.dass()["X"], float)
-    fails += parity("dass", dass, CASES, rng)
+    # optional real-data parity: DATA=<npz with X> (the package itself stays dataset-agnostic)
+    if os.environ.get("DATA"):
+        X = np.asarray(np.load(os.environ["DATA"], allow_pickle=True)["X"], float)
+        fails += parity(os.path.basename(os.environ["DATA"]), X, CASES, rng)
     fails += parity("synth", synth_latent(4000, 30, 6, rng), CASES, rng)
+    fails += parity("synth-skew", np.round(np.clip(
+        synth_latent(4000, 30, 6, rng) + 1.0, -2, 2)), CASES, rng)
     fails += end_to_end(4000, 15, 3, rng)
 
     print("CERTIFY", "PASS" if fails == 0 else f"FAIL ({fails})")

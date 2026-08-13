@@ -25,6 +25,7 @@ from scipy.stats import chi2
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "upstream", "causal-learn"))
 from batched_hsic import ColumnBank                                    # noqa: E402
 from causallearn.search.FCMBased.lingam.hsic import hsic_test_gamma    # noqa: E402
 from causallearn.search.HiddenCausal.GIN.GIN import (                  # noqa: E402

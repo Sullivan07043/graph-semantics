@@ -1,0 +1,12 @@
+import numpy as np
+import pandas as pd
+import causalget as cg
+
+if __name__ == "__main__":
+    df = pd.read_csv("data_p=20_n=1000.txt", sep="\t")
+    R = df.corr().values
+    n = df.shape[0]
+
+    print("from ndarray (corr):")
+    dag = cg.boss(R, n=n, discount=2)
+    print(dag)

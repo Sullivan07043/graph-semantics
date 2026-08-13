@@ -22,9 +22,11 @@ import sys
 
 import numpy as np
 
-CL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vendor", "causal-learn")
 HERE = os.path.dirname(os.path.abspath(__file__))
+CLHOME = os.path.join(os.path.dirname(HERE), "causal-learn")
+CL = os.path.join(CLHOME, "upstream", "causal-learn")
 sys.path.insert(0, CL)
+sys.path.insert(0, CLHOME)          # polychoric.py lives at the causal-learn home
 sys.path.insert(0, HERE)
 from causallearn.search.HiddenCausal.RLCD.Chi2RankTest import Chi2RankTest  # noqa: E402
 from polychoric import PolychoricRankTest                                  # noqa: E402

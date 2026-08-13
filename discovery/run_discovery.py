@@ -24,6 +24,8 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 V6 = os.path.join(os.path.dirname(HERE), "v6")
 sys.path.insert(0, V6)
+# pin the repo's causallearn (upstream/ copy); the venv also has a pip causal-learn, never rely on it
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn", "upstream", "causal-learn"))
 
 import numpy as np                                                    # noqa: E402
 import graph as G                                                     # noqa: E402
