@@ -120,6 +120,29 @@ rawcorr copies the label of the most correlated visible channel. Label copying i
 match; on questionnaires its judge exposes it. Judge is off-scale here, so read rawcorr with
 that caveat.
 
+## Robot-LODO, four stacks (2026-08-13)
+
+Protocol change: leave-one-robot-out replaces joint-dev as the official split. Each target robot
+gets its own model, trained on the other robots only (`task3_pipeline_v1/run_lodo*.sh`).
+Training: 20 epochs, K=400, K_GRAD=60, source fold-4 selection, scalar negative edges unless
+stated. Judge uses a dictionary re-encoded in each stack's own space
+(`task3_pipeline_v1/reencode_bank.py`).
+
+UR5e (held-out), judge / match:
+
+| stack | judge | match |
+|---|---|---|
+| base E5 | .142 | .311 |
+| frozen questionnaire LoRA, scalar | .189 | **.397** |
+| frozen questionnaire LoRA, semantic f_neg | **.236** | .303 |
+| robot-trained LoRA (`TRAIN_LORA=1`) | **.236** | .281 |
+
+Dev targets (judge / match): Panda .157/.190, .281/.290, .124/.376, .229/.286; Sawyer
+.246/.168, .075/.114, .136/.468, .254/.171; IIWA .203/.139, .181/.183, .161/.317, .250/.117
+(same stack order). Match is measured inside each stack's own embedding space; cross-stack
+match comparisons carry that caveat. Negative-edge verdict: scalar (the semantic dev-match
+lead does not transfer to the held-out robot).
+
 Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the
 wrist-roll column of the positional Jacobian is exactly zero on all four, and BOSS-fitted weights
