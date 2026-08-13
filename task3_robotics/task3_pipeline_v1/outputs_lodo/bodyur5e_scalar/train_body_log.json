@@ -1,0 +1,108 @@
+{
+ "K": 400,
+ "op_lr": 0.001,
+ "wn_lr": 0.0003,
+ "lam_audit": 0.1,
+ "encoder_mode": "lora",
+ "dev_sets": [
+  "liftbody",
+  "bodysawyer",
+  "bodyiiwa"
+ ],
+ "epochs": [
+  {
+   "train_outer": 0.7165992185473442,
+   "train_audit": 0.0,
+   "val_outer": 0.5486015677452087,
+   "val_audit": 0.0,
+   "val_match": 0.2896825396825397,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.5705031901597977,
+   "train_audit": 9.565858272253536e-05,
+   "val_outer": 0.5557259221871694,
+   "val_audit": 2.0819231091688075e-06,
+   "val_match": 0.3452380952380952,
+   "match_per_ds": {
+    "liftbody": 0.5,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.6698220074176788,
+   "train_audit": 4.3371343053877354e-05,
+   "val_outer": 0.9828089078267416,
+   "val_audit": 0.0,
+   "val_match": 0.2896825396825397,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 1.075373152891795,
+   "train_audit": 7.560911778152028e-08,
+   "val_outer": 1.0432358582814534,
+   "val_audit": 0.0,
+   "val_match": 0.24801587301587302,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.731029232343038,
+   "train_audit": 0.00011254769439498584,
+   "val_outer": 0.3975508511066437,
+   "val_audit": 0.0013504998447994392,
+   "val_match": 0.39087301587301587,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.7143,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.2859206559757392,
+   "train_audit": 0.0014288954638080515,
+   "val_outer": 0.18324962258338928,
+   "val_audit": 0.0005822327639180003,
+   "val_match": 0.35912698412698413,
+   "match_per_ds": {
+    "liftbody": 0.6667,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.17883119732141495,
+   "train_audit": 0.05894358566729352,
+   "val_outer": 0.13575719545284906,
+   "val_audit": 0.1394192948937416,
+   "val_match": 0.2341269841269841,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.25
+   }
+  }
+ ],
+ "start_val": {
+  "outer": 1.0852532585461934,
+  "audit": 0.0,
+  "match": 0.3452380952380952,
+  "match_per_ds": {
+   "liftbody": 0.5,
+   "bodysawyer": 0.2857,
+   "bodyiiwa": 0.25
+  }
+ }
+}

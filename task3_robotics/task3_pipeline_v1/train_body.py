@@ -107,6 +107,13 @@ if ENCODER_MODE == "lora":
             return np.concatenate(out)
 
     encode._MODEL = _LoraST()
+
+    # TRAIN_LORA=1: the adapters train WITH the pair (LODO keeps target-robot labels unseen).
+    # Anchors stay detached (no backprop through the K-step solve into the encoder); gradient
+    # reaches the adapters through the outer-loss TARGETS, recomputed with grad per step.
+    TRAIN_LORA = os.environ.get("TRAIN_LORA", "0") == "1"
+    if TRAIN_LORA:
+        _st.train()
 elif ENCODER_MODE == "base":
     from sentence_transformers import SentenceTransformer
 
@@ -119,6 +126,11 @@ elif ENCODER_MODE == "base":
     )
 else:
     raise ValueError(f"unsupported CORE_ENCODER_MODE={ENCODER_MODE!r}; use 'lora' or 'base'")
+
+if ENCODER_MODE != "lora":
+    TRAIN_LORA = False
+LORA_LR = float(os.environ.get("LORA_LR", 1e-4))
+LORA_BODY = os.path.join(ARTIFACT_DIR, "lora_body.pt")
 
 
 def prep(name):
@@ -143,17 +155,19 @@ def prep(name):
     folds = [perm[i::FOLDS] for i in range(FOLDS)]
     return dict(name=name, g=g, obs=obs, T=T, W=W, pc=pc, br=br, ci=ci,
                 edge_par=edge_par, edge_cond=edge_cond,
-                lat_names=lat_names, G=G, folds=folds)
+                lat_names=lat_names, G=G, folds=folds,
+                texts=[labels[o] for o in obs])
 
 
-def outer_loss(tensors, d_, fold, device):
+def outer_loss(tensors, d_, fold, device, targets=None):
     obs, T = d_["obs"], d_["T"]
     masked = sorted(int(i) for i in d_["folds"][fold])
     terms_ = []
     for i in masked:
         n = obs[i]
         if n in tensors:
-            t = torch.tensor(T[i], dtype=torch.float32, device=device)
+            t = targets[i] if targets is not None else \
+                torch.tensor(T[i], dtype=torch.float32, device=device)
             terms_.append(1 - torch.nn.functional.cosine_similarity(tensors[n], t, dim=0))
     lt = []
     if d_["G"] is not None:
@@ -167,7 +181,7 @@ def outer_loss(tensors, d_, fold, device):
     return lo
 
 
-def solve_pair(d_, fold, module, gen_op, train, device, want_match=False):
+def solve_pair(d_, fold, module, gen_op, train, device, want_match=False, targets=None):
     """-> (outer, audit, match_or_None) for one (dataset, fold). match = the free Hungarian
     match-ACC on the fold's masked observed nodes — the DECISION metric for epoch selection
     (embedding-space outer loss was measured to decouple from decode quality)."""
@@ -180,7 +194,7 @@ def solve_pair(d_, fold, module, gen_op, train, device, want_match=False):
         inner_lr=INNER_LR, lam_zero=0.3, lam_norm=0.1, seed=fold, device=device,
         residual=1.0, lam_res=1.0, partial_corr=d_["pc"], bridge=d_["br"],
         train=train, feats=feats)
-    outer = outer_loss(tensors, d_, fold, device)
+    outer = outer_loss(tensors, d_, fold, device, targets=targets)
     vis_t = {n: torch.tensor(v, dtype=torch.float32, device=device) for n, v in vis.items()}
     Xp = torch.stack([tensors[p] if p in tensors else vis_t[p] for p in d_["edge_par"]])
     audit = gen_op.sign_audit(Xp, d_["edge_cond"])
@@ -215,11 +229,29 @@ def main():
     print(f"[{ts()}] init: " + ("RESUMED body pair" if resume else
           "FRESH pair: WeightNet zero-init head (multipliers==1), operator ZERO-INIT (==linear)"),
           flush=True)
-    opt = torch.optim.Adam([
+    opt_groups = [
         {"params": gen_op.delta.parameters(), "lr": OP_LR},
         {"params": module.parameters(), "lr": WN_LR},
-    ])
+    ]
     trainable = list(gen_op.delta.parameters()) + list(module.parameters())
+    if TRAIN_LORA:
+        if resume and os.path.exists(LORA_BODY):
+            lora.load_lora(_st, LORA_BODY)
+        lora_params = [p for p in _st.parameters() if p.requires_grad]
+        opt_groups.append({"params": lora_params, "lr": LORA_LR})
+        trainable += lora_params
+        print(f"[{ts()}] TRAIN_LORA: {sum(p.numel() for p in lora_params)} adapter params "
+              f"train at lr={LORA_LR}", flush=True)
+    opt = torch.optim.Adam(opt_groups)
+
+    def refresh_T():
+        """Rewrite each dataset's numpy label embeddings from the CURRENT encoder. Anchors,
+        validation and match all follow the space as it moves."""
+        for n_ in names:
+            data[n_]["T"] = encode.embed(data[n_]["texts"])   # embed() adds the e5 prefix
+
+    def save_lora(path):
+        torch.save({"state": lora.lora_state(_st)}, path)
 
     log = {"K": K, "op_lr": OP_LR, "wn_lr": WN_LR, "lam_audit": LAM_AUDIT,
            "encoder_mode": ENCODER_MODE, "dev_sets": names, "epochs": []}
@@ -245,6 +277,8 @@ def main():
     best_match = float(np.mean(vm))            # epoch-0 state is a valid candidate
     LM.save(module, WN_CKPT, "mlp")
     GO.save(gen_op, OP_CKPT)
+    if TRAIN_LORA:
+        save_lora(LORA_BODY)
     for ep in range(EPOCHS):
         rng = np.random.default_rng(100 + ep)
         order = rng.permutation(len(pairs))
@@ -252,7 +286,11 @@ def main():
         for j, pi in enumerate(order):
             n, f = pairs[int(pi)]
             opt.zero_grad()
-            outer, audit, _ = solve_pair(data[n], f, module, gen_op, True, DEVICE)
+            targets = None
+            if TRAIN_LORA:
+                targets = lora.encode_grad(_st, data[n]["texts"], DEVICE, max_len=128)
+            outer, audit, _ = solve_pair(data[n], f, module, gen_op, True, DEVICE,
+                                         targets=targets)
             if not torch.isfinite(outer.detach()):
                 print(f"[{ts()}] ep{ep} SKIP {n}/f{f}: non-finite outer", flush=True)
                 opt.zero_grad(); continue
@@ -266,11 +304,15 @@ def main():
             if j % 8 == 0:
                 print(f"[{ts()}] ep{ep} {j}/{len(pairs)} outer={np.mean(tl[-8:]):.4f} "
                       f"audit={np.mean(ta[-8:]):.4f}", flush=True)
+        if TRAIN_LORA:
+            refresh_T()          # anchors, val and match follow the moved space
         vo, va, vm = val_pass()
         v, m = float(np.mean(vo)), float(np.mean(vm))
         # per-epoch pair always saved (post-hoc screening never loses an epoch)
         LM.save(module, os.path.join(ARTIFACT_DIR, f"wn_body_ep{ep}.pt"), "mlp")
         GO.save(gen_op, os.path.join(ARTIFACT_DIR, f"gen_operator_body_ep{ep}.pt"))
+        if TRAIN_LORA:
+            save_lora(os.path.join(ARTIFACT_DIR, f"lora_body_ep{ep}.pt"))
         log["epochs"].append({"train_outer": float(np.mean(tl)), "train_audit": float(np.mean(ta)),
                               "val_outer": v, "val_audit": float(np.mean(va)),
                               "val_match": m,
@@ -283,6 +325,8 @@ def main():
             best_match = m
             LM.save(module, WN_CKPT, "mlp")
             GO.save(gen_op, OP_CKPT)
+            if TRAIN_LORA:
+                save_lora(LORA_BODY)           # canonical triple: pair + adapter move together
         json.dump(log, open(os.path.join(ARTIFACT_DIR, "train_body_log.json"), "w"), indent=1)
     print(f"[{ts()}] done. best dev fold-4 MATCH={best_match:.4f} "
           f"(start {log['start_val']['match']:.4f}). Held-out runs ONCE on the canonical pair; "

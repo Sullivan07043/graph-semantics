@@ -1,0 +1,242 @@
+{
+ "K": 400,
+ "op_lr": 0.001,
+ "wn_lr": 0.0003,
+ "lam_audit": 0.1,
+ "encoder_mode": "lora",
+ "dev_sets": [
+  "liftbody",
+  "bodysawyer"
+ ],
+ "epochs": [
+  {
+   "train_outer": 0.9732587188482285,
+   "train_audit": 0.0,
+   "val_outer": 1.147606909275055,
+   "val_audit": 0.0,
+   "val_match": 0.23809523809523808,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.7377116195857525,
+   "train_audit": 0.0,
+   "val_outer": 0.7920758724212646,
+   "val_audit": 0.0,
+   "val_match": 0.22619047619047616,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.8978943303227425,
+   "train_audit": 0.0,
+   "val_outer": 0.9261272847652435,
+   "val_audit": 0.0,
+   "val_match": 0.14285714285714285,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.6566183194518089,
+   "train_audit": 0.0,
+   "val_outer": 0.5402362048625946,
+   "val_audit": 0.0,
+   "val_match": 0.14285714285714285,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.46721965447068214,
+   "train_audit": 0.00029490630913642235,
+   "val_outer": 0.6353193819522858,
+   "val_audit": 0.0003172211909259204,
+   "val_match": 0.30952380952380953,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.4617127813398838,
+   "train_audit": 0.0003672341881610919,
+   "val_outer": 0.5300529301166534,
+   "val_audit": 0.0,
+   "val_match": 0.15476190476190477,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.5983947329223156,
+   "train_audit": 4.7818608436500654e-05,
+   "val_outer": 0.8243511021137238,
+   "val_audit": 0.0004545071569737047,
+   "val_match": 0.14285714285714285,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 1.0916568487882614,
+   "train_audit": 0.024683118008852034,
+   "val_outer": 1.2374701499938965,
+   "val_audit": 0.10531321540474892,
+   "val_match": 0.16666666666666666,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.0
+   }
+  },
+  {
+   "train_outer": 1.008170910179615,
+   "train_audit": 0.11376453610137105,
+   "val_outer": 0.6146431565284729,
+   "val_audit": 0.032071009278297424,
+   "val_match": 0.23809523809523808,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.5361424647271633,
+   "train_audit": 0.012472984526539221,
+   "val_outer": 0.3273938447237015,
+   "val_audit": 0.0009813752840273082,
+   "val_match": 0.0,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.0
+   }
+  },
+  {
+   "train_outer": 0.27214077673852444,
+   "train_audit": 0.004034882105770521,
+   "val_outer": 0.19281261414289474,
+   "val_audit": 0.0,
+   "val_match": 0.30952380952380953,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.30238892138004303,
+   "train_audit": 0.0010192821464443114,
+   "val_outer": 0.47358380258083344,
+   "val_audit": 0.00038998020500002895,
+   "val_match": 0.21428571428571427,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.4286
+   }
+  },
+  {
+   "train_outer": 0.5198740027844906,
+   "train_audit": 0.003932609011826571,
+   "val_outer": 0.6881360411643982,
+   "val_audit": 0.002784280281048268,
+   "val_match": 0.15476190476190477,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.6010513417422771,
+   "train_audit": 0.0030966513222665526,
+   "val_outer": 0.3383287638425827,
+   "val_audit": 2.5643486878834665e-05,
+   "val_match": 0.07142857142857142,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.3162116017192602,
+   "train_audit": 0.00011596429681048903,
+   "val_outer": 0.2050401195883751,
+   "val_audit": 1.147107013821369e-06,
+   "val_match": 0.39285714285714285,
+   "match_per_ds": {
+    "liftbody": 0.5,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.28965061716735363,
+   "train_audit": 0.0004915546596748754,
+   "val_outer": 0.21527119725942612,
+   "val_audit": 0.000825371767859906,
+   "val_match": 0.30952380952380953,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857
+   }
+  },
+  {
+   "train_outer": 0.2449223268777132,
+   "train_audit": 9.165929077425972e-05,
+   "val_outer": 0.267919197678566,
+   "val_audit": 0.0009910144763125572,
+   "val_match": 0.2976190476190476,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.4286
+   }
+  },
+  {
+   "train_outer": 0.19411005452275276,
+   "train_audit": 0.0009871703950921074,
+   "val_outer": 0.1405419297516346,
+   "val_audit": 0.0,
+   "val_match": 0.07142857142857142,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.13674228079617023,
+   "train_audit": 4.837267510993115e-07,
+   "val_outer": 0.11415329948067665,
+   "val_audit": 0.0,
+   "val_match": 0.15476190476190477,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.1429
+   }
+  },
+  {
+   "train_outer": 0.14109557401388884,
+   "train_audit": 0.0,
+   "val_outer": 0.11866891756653786,
+   "val_audit": 0.0,
+   "val_match": 0.15476190476190477,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.1429
+   }
+  }
+ ],
+ "start_val": {
+  "outer": 1.084559440612793,
+  "audit": 0.0,
+  "match": 0.22619047619047616,
+  "match_per_ds": {
+   "liftbody": 0.1667,
+   "bodysawyer": 0.2857
+  }
+ }
+}

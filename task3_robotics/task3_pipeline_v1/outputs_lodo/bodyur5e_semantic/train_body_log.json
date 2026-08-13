@@ -1,0 +1,96 @@
+{
+ "K": 400,
+ "op_lr": 0.001,
+ "wn_lr": 0.0003,
+ "lam_audit": 0.1,
+ "encoder_mode": "lora",
+ "dev_sets": [
+  "liftbody",
+  "bodysawyer",
+  "bodyiiwa"
+ ],
+ "epochs": [
+  {
+   "train_outer": 1.0983153184254963,
+   "train_audit": 0.0006930203041216979,
+   "val_outer": 1.278569499651591,
+   "val_audit": 0.0005960349129357686,
+   "val_match": 0.24801587301587302,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.7884513835112253,
+   "train_audit": 0.00024254301735027184,
+   "val_outer": 1.1517146428426106,
+   "val_audit": 0.0028397561982274055,
+   "val_match": 0.31746031746031744,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.5
+   }
+  },
+  {
+   "train_outer": 0.70452847580115,
+   "train_audit": 0.0011165685235283718,
+   "val_outer": 0.7685805757840475,
+   "val_audit": 0.0,
+   "val_match": 0.24801587301587302,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.668113482495149,
+   "train_audit": 0.0022824913163882834,
+   "val_outer": 0.5345863302548727,
+   "val_audit": 0.0,
+   "val_match": 0.19246031746031744,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.6272592842578888,
+   "train_audit": 0.023707920966747526,
+   "val_outer": 0.5263230800628662,
+   "val_audit": 0.00993199273943901,
+   "val_match": 0.2896825396825397,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.4210212131341298,
+   "train_audit": 0.0013575976924281956,
+   "val_outer": 0.31771716475486755,
+   "val_audit": 0.00012009240541980641,
+   "val_match": 0.19246031746031744,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodysawyer": 0.2857,
+    "bodyiiwa": 0.125
+   }
+  }
+ ],
+ "start_val": {
+  "outer": 1.120165189107259,
+  "audit": 0.0,
+  "match": 0.2341269841269841,
+  "match_per_ds": {
+   "liftbody": 0.1667,
+   "bodysawyer": 0.2857,
+   "bodyiiwa": 0.25
+  }
+ }
+}
