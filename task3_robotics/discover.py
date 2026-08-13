@@ -29,7 +29,15 @@ ROUTE boss
     is one static graph, so a configuration-dependent edge can only be represented as present
     or absent.
 
-Env: NPZ=<step npz> ROUTE=jacobian|boss|both EPOCHS=400 LAM=0.02 TAU=0.05 DEV=cpu ROWS=0
+ROUTE recboss
+    Same algorithm, the C implementation (causal-learn/upstream/causal-get, J. Ramsey /
+    B. Andrews). Runs from the correlation matrix in seconds instead of tens of minutes, so the
+    BIC penalty DISCOUNT becomes sweepable. discount=1 equals the causal-learn default; the
+    post-filter and the least-squares weights are shared with ROUTE boss. Build the site/ dir
+    first (bash causal-learn/upstream/causal-get/build.sh).
+
+Env: NPZ=<step npz> ROUTE=jacobian|boss|recboss|both EPOCHS=400 LAM=0.02 TAU=0.05 DEV=cpu ROWS=0
+     DISCOUNT=2 (recboss only)
 """
 import json
 import os
@@ -39,7 +47,7 @@ import time
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "vendor", "causal-learn"))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn", "upstream", "causal-learn"))
 
 NPZ = os.environ.get("NPZ", os.path.join(HERE, "outputs", "lift_body_steps.npz"))
 ROUTE = os.environ.get("ROUTE", "both")
@@ -125,27 +133,23 @@ def route_jacobian(X, cols, past, cur):
     return edges, J, [cols[i] for i in src], [cols[i] for i in cur]
 
 
-def route_boss(X, cols, past, cur):
-    from causallearn.search.PermutationBased.BOSS import boss
-    t0 = time.time()
-    g = boss(X, score_func="local_score_BIC_from_cov", node_names=cols, verbose=False)
-    print(f"  [boss] search done in {time.time() - t0:.0f}s", flush=True)
-    A = g.graph
-    keep = set()
+def filter_and_weight(directed, X, cols, past, cur):
+    """Shared tail of the BOSS routes: time/tier filter, then least-squares weights.
+
+    directed = iterable of (i, j) index pairs meaning i -> j. Keeps i -> j when it runs across
+    time (past to current) or contemporaneously along the physics tier order. Weights are the
+    least squares of each child on its retained parents, the ML fit under the same
+    linear-Gaussian model BIC scores.
+    """
     pastset, curset = set(past), set(cur)
-    for i in range(len(cols)):
-        for j in range(len(cols)):
-            if i == j:
-                continue
-            # causal-learn encodes i -> j as graph[j, i] = 1 and graph[i, j] = -1
-            if not (A[j, i] == 1 and A[i, j] == -1):
-                continue
-            if i in pastset and j in curset:
-                keep.add((i, j))                            # across time, always allowed
-            elif i in curset and j in curset and tier(cols[i]) < tier(cols[j]):
-                keep.add((i, j))                            # contemporaneous, physics order
-    # weights: least squares of each child on its retained parents, the ML fit under the same
-    # linear-Gaussian model BIC scores
+    keep = set()
+    for i, j in directed:
+        if i == j:
+            continue
+        if i in pastset and j in curset:
+            keep.add((i, j))                                # across time, always allowed
+        elif i in curset and j in curset and tier(cols[i]) < tier(cols[j]):
+            keep.add((i, j))                                # contemporaneous, physics order
     edges = []
     for j in curset:
         ps = sorted(i for (i, jj) in keep if jj == j)
@@ -155,7 +159,33 @@ def route_boss(X, cols, past, cur):
         beta = np.linalg.lstsq(A_, X[:, j], rcond=None)[0][:-1]
         for k, i in enumerate(ps):
             edges.append((cols[i], cols[j], float(beta[k])))
-    return edges, None
+    return edges
+
+
+def route_boss(X, cols, past, cur):
+    from causallearn.search.PermutationBased.BOSS import boss
+    t0 = time.time()
+    g = boss(X, score_func="local_score_BIC_from_cov", node_names=cols, verbose=False)
+    print(f"  [boss] search done in {time.time() - t0:.0f}s", flush=True)
+    A = g.graph
+    # causal-learn encodes i -> j as graph[j, i] = 1 and graph[i, j] = -1
+    directed = [(i, j) for i in range(len(cols)) for j in range(len(cols))
+                if A[j, i] == 1 and A[i, j] == -1]
+    return filter_and_weight(directed, X, cols, past, cur), None
+
+
+def route_recboss(X, cols, past, cur):
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "causal-learn", "upstream", "causal-get", "site"))
+    import causalget as cg
+    discount = float(os.environ.get("DISCOUNT", 2))
+    restarts = int(os.environ.get("RESTARTS", 1))
+    t0 = time.time()
+    R = np.corrcoef(X, rowvar=False)
+    dag = cg.boss(R, n=len(X), discount=discount, restarts=restarts, seed=1)
+    print(f"  [recboss] search done in {time.time() - t0:.1f}s "
+          f"(discount={discount}, restarts={restarts}, {int(dag.sum())} raw edges)", flush=True)
+    directed = [(int(j), int(i)) for i, j in zip(*np.nonzero(dag))]   # dag[i, j] = 1 means j -> i
+    return filter_and_weight(directed, X, cols, past, cur), None
 
 
 def main():
@@ -176,6 +206,13 @@ def main():
         e, _ = route_boss(X, cols, past, cur)
         out["boss"] = [{"from": a, "to": b, "weight": w} for a, b, w in e]
         print(f"[discover] boss: {len(e)} forward-in-time edges", flush=True)
+    if ROUTE == "recboss":
+        print("[discover] route: recboss", flush=True)
+        e, _ = route_recboss(X, cols, past, cur)
+        # stored under the "boss" key: same algorithm, and every downstream reader
+        # (summarize_graph.py, evaluate_vs_truth.py) selects routes["boss"]
+        out["boss"] = [{"from": a, "to": b, "weight": w} for a, b, w in e]
+        print(f"[discover] recboss: {len(e)} kept edges", flush=True)
     path = os.environ.get("OUT", os.path.join(HERE, "outputs", "lift_body_discovered.json"))
     json.dump({"source": os.path.basename(NPZ), "tau": TAU, "lam": LAM, "routes": out},
               open(path, "w"), indent=1)

@@ -14,3 +14,5 @@ data/pool/robomimic/
 logs/
 outputs_*.log
 v5/
+causal-learn/upstream/causal-get/site/
+causal-learn/upstream/causal-get/build/

@@ -108,11 +108,51 @@ count of observed variables whose highest mean correlation is with their own pub
 | dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | **1.000** | .800 |
 | wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .733 | .400 |
 
+rawcorr copies the label of the most correlated visible variable. Label copying inflates its
+match; judge is its informative column.
+
 Sources: DASS from the instrument's own scoring key; WVS from Welzel's published recode syntax,
 with item label texts read off the source questions because the shipped labels name their own
 parent construct.
 
 Task 1 dividend over raw correlation: +.217 at key 40/42, +.150 at 16/21.
+
+### Closed loop over the full pool
+
+GPU-RLCD discovered graph in place of the published key, frozen v6 downstream unchanged.
+Discovery in `causal-learn/gpu_rlcd/` (stage-1 discount auto-escalates until the largest
+partition group is 30 or smaller), graphs in `discovery/outputs/<ds>_gpurlcd.json`, runs via
+`discovery/run_closedloop_lane.sh`. Cells are given -> discovered.
+
+| Dataset | T1 judge | T1 match | T2 judge |
+|---|---|---|---|
+| bigfive | .840 -> .540 | .800 -> .420 | 1.00 -> .740 |
+| himi | .833 -> .717 | 1.00 -> .717 | .967 -> .600 |
+| tlvd | .700 -> .600 | 1.00 -> 1.00 | .700 -> n/a |
+| cfcs | .067 -> .400 | .667 -> .867 | 1.00 -> .514 |
+| darktriad | .740 -> .620 | .700 -> .190 | 1.00 -> .480 |
+| gcbs | .733 -> .400 | 1.00 -> .600 | 1.00 -> .867 |
+| hexaco | .867 -> .717 | .483 -> .562 | .987 -> .768 |
+| hs | .820 -> .800 | .840 -> .720 | 1.00 -> .833 |
+| hsq | .814 -> .471 | .638 -> .686 | .800 -> .720 |
+| kims | .818 -> .618 | .800 -> .625 | .650 -> .836 |
+| mach | .550 -> .450 | .800 -> .500 | .000 -> .000 |
+| npas | .273 -> .033 | .160 -> .033 | 1.00 -> .967 |
+| riasec | .584 -> .351 | .840 -> .776 | 1.00 -> .911 |
+| rse | 1.00 -> .800 | 1.00 -> .800 | 1.00 -> .850 |
+| scs | 1.00 -> 1.00 | .800 -> .400 | 1.00 -> .950 |
+| sd3 | .640 -> .260 | .747 -> .460 | .800 -> n/a |
+| sixteenpf | .771 -> .690 | .698 -> .653 | .900 -> .367 |
+| tma | .580 -> .620 | .520 -> .620 | 1.00 -> .500 |
+| wpi | .165 -> .370 | .233 -> .550 | 1.00 -> .800 |
+| dass | .817 -> .689 | .906 -> .506 | 1.00 -> .911 |
+| wvs | .340 -> .150 | .800 -> .600 | .933 -> .640 |
+
+Means over the 19 sets with both sides complete: T1 judge .664 -> .549, T1 match
+.720 -> .570, T2 judge .907 -> .698. The weak-key scales gain from discovery (cfcs T1 judge
+.067 -> .400, wpi .165 -> .370, tma .580 -> .620). sd3 and tlvd discovered zero latents, so
+their discovered T2 is undefined. sixteenpf via GPU-RLCD (T1 .690/.653) supersedes the 2026-08
+hierarchical-discovery numbers (.414/.272).
 
 A NHANES laboratory-panel loader exists in `v6/pool_ext.py` and is not reported: its panels are
 clinical ordering conventions with no published latent names.

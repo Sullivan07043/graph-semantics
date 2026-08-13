@@ -100,6 +100,8 @@ MUJOCO_GL=egl TASK=Lift ROBOT=Sawyer EPISODES=1000 STEPS=200 \
 NPZ=$T/outputs/body_sawyer_rollouts.npz $PV $T/build_steps.py
 
 # 3. discovery (BOSS + BIC; 15-40 min by column count)
+#    ROUTE=recboss = the C BOSS (seconds; build ../causal-learn/upstream/causal-get/site first,
+#    see its VENDORED.md; float32 scoring needs ROWS+DISCOUNT, e.g. ROWS=50000 DISCOUNT=4)
 NPZ=$T/outputs/body_sawyer_steps.npz ROUTE=boss \
   OUT=$T/outputs/body_sawyer_discovered.json $PV $T/discover.py
 DISC=$T/outputs/body_sawyer_discovered.json \
@@ -160,6 +162,10 @@ UR5e (held-out, 6 joints, chance .11):
 | uniform | linear | rawcorr | trained | naming |
 |---|---|---|---|---|
 | .217 | .242 | .328 | .358 | **.361** |
+
+rawcorr copies the label of the most correlated visible channel. Label copying inflates its
+match; on questionnaires its judge exposes it. Judge is off-scale here, so read rawcorr with
+that caveat.
 
 Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the

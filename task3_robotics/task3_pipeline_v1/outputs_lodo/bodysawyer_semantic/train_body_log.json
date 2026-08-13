@@ -1,0 +1,242 @@
+{
+ "K": 400,
+ "op_lr": 0.001,
+ "wn_lr": 0.0003,
+ "lam_audit": 0.1,
+ "encoder_mode": "lora",
+ "dev_sets": [
+  "liftbody",
+  "bodyiiwa"
+ ],
+ "epochs": [
+  {
+   "train_outer": 0.9977564737200737,
+   "train_audit": 0.0,
+   "val_outer": 1.0072778761386871,
+   "val_audit": 0.0,
+   "val_match": 0.20833333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.7355540692806244,
+   "train_audit": 1.3258237174795795e-08,
+   "val_outer": 0.9275487661361694,
+   "val_audit": 0.0,
+   "val_match": 0.29166666666666663,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.8380511552095413,
+   "train_audit": 0.0,
+   "val_outer": 0.840099036693573,
+   "val_audit": 0.0,
+   "val_match": 0.29166666666666663,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.6352133043110371,
+   "train_audit": 0.0007445732480846345,
+   "val_outer": 0.6800406277179718,
+   "val_audit": 0.000378001923309057,
+   "val_match": 0.125,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.6069017983973026,
+   "train_audit": 0.0004384470730656176,
+   "val_outer": 0.6692789793014526,
+   "val_audit": 0.0022636032663285732,
+   "val_match": 0.125,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.44234219193458557,
+   "train_audit": 0.0002638903324454489,
+   "val_outer": 0.738882839679718,
+   "val_audit": 0.0004573880178213585,
+   "val_match": 0.0625,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.6883967891335487,
+   "train_audit": 0.0005229457733193499,
+   "val_outer": 0.7422896325588226,
+   "val_audit": 0.0,
+   "val_match": 0.20833333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.6528697274625301,
+   "train_audit": 0.0017692518085823394,
+   "val_outer": 0.5803094506263733,
+   "val_audit": 5.4512427595909685e-05,
+   "val_match": 0.20833333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.33480866253376007,
+   "train_audit": 6.40972388055161e-06,
+   "val_outer": 0.4259279817342758,
+   "val_audit": 0.0,
+   "val_match": 0.125,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.43226685747504234,
+   "train_audit": 6.857897005829727e-06,
+   "val_outer": 0.7061872184276581,
+   "val_audit": 0.0,
+   "val_match": 0.29166666666666663,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.731671467423439,
+   "train_audit": 8.017163395379612e-07,
+   "val_outer": 0.5055152773857117,
+   "val_audit": 2.472875166859012e-05,
+   "val_match": 0.20833333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.33556308783590794,
+   "train_audit": 9.639406198402867e-05,
+   "val_outer": 0.3654509484767914,
+   "val_audit": 0.0,
+   "val_match": 0.08333333333333333,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.0
+   }
+  },
+  {
+   "train_outer": 0.5601922459900379,
+   "train_audit": 0.00832403643107682,
+   "val_outer": 0.9037920534610748,
+   "val_audit": 0.07000062987208366,
+   "val_match": 0.0625,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 1.1147054582834244,
+   "train_audit": 0.18114820774644613,
+   "val_outer": 0.8402233719825745,
+   "val_audit": 0.13375970721244812,
+   "val_match": 0.0,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.0
+   }
+  },
+  {
+   "train_outer": 0.6204831898212433,
+   "train_audit": 0.0363863456582294,
+   "val_outer": 0.526735931634903,
+   "val_audit": 0.0,
+   "val_match": 0.0625,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.125
+   }
+  },
+  {
+   "train_outer": 0.7460879758000374,
+   "train_audit": 4.3307310420459544e-05,
+   "val_outer": 0.4753792732954025,
+   "val_audit": 0.0,
+   "val_match": 0.125,
+   "match_per_ds": {
+    "liftbody": 0.0,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.38764872774481773,
+   "train_audit": 0.004605152318617911,
+   "val_outer": 0.5193102061748505,
+   "val_audit": 0.009318462572991848,
+   "val_match": 0.16666666666666666,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodyiiwa": 0.0
+   }
+  },
+  {
+   "train_outer": 0.5020036660134792,
+   "train_audit": 0.014181831604219042,
+   "val_outer": 0.4236363172531128,
+   "val_audit": 0.006605016416870058,
+   "val_match": 0.16666666666666666,
+   "match_per_ds": {
+    "liftbody": 0.3333,
+    "bodyiiwa": 0.0
+   }
+  },
+  {
+   "train_outer": 0.34091964922845364,
+   "train_audit": 0.004808890487765893,
+   "val_outer": 0.24987128376960754,
+   "val_audit": 0.0,
+   "val_match": 0.20833333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.25
+   }
+  },
+  {
+   "train_outer": 0.3462968058884144,
+   "train_audit": 0.0005688555755796187,
+   "val_outer": 0.35632649064064026,
+   "val_audit": 0.001471620606025681,
+   "val_match": 0.14583333333333331,
+   "match_per_ds": {
+    "liftbody": 0.1667,
+    "bodyiiwa": 0.125
+   }
+  }
+ ],
+ "start_val": {
+  "outer": 1.1046571731567383,
+  "audit": 0.0,
+  "match": 0.20833333333333331,
+  "match_per_ds": {
+   "liftbody": 0.1667,
+   "bodyiiwa": 0.25
+  }
+ }
+}
