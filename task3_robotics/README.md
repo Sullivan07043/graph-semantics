@@ -71,7 +71,7 @@ env L2_ARM=frozen GENOP=0 RESIDUAL=1.0 LAM_RES=1.0 BRIDGE=pearson NLDEP=1 POLFIX
   RCHAN=hard CI_MODE=marginal_shrink CUDA_VISIBLE_DEVICES=1 TORCH_THREADS=8 K=400 \
   TASK=1 DATASET=bodysawyer $PV main.py
 
-# 6. training (dev robots only; ~4 min/epoch; canonical = best dev fold-4 match)
+# 6. training (dev robots only; ~4 min/epoch; selected pair = best dev fold-4 match)
 env DEV_SETS=liftbody,bodysawyer,bodyiiwa EPOCHS=20 K=400 K_GRAD=60 \
   CUDA_VISIBLE_DEVICES=1 DEVICE=cuda TORCH_THREADS=8 $PV train_body.py
 
@@ -143,7 +143,7 @@ Dev targets (judge / match): Panda .157/.190, .281/.290, .124/.376, .229/.286; S
 match comparisons carry that caveat. Negative-edge verdict: scalar (the semantic dev-match
 lead does not transfer to the held-out robot).
 
-Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
+Training: 20 epochs, selected pair = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the
 wrist-roll column of the positional Jacobian is exactly zero on all four, and BOSS-fitted weights
 correlate .901 (Panda) / .999 (Sawyer, 3 edges) with the analytic Jacobian.
@@ -160,7 +160,7 @@ the cube and its contact edge are out of scope here (state-dependent edge, defer
 | `outputs/body_<r>_boss_summary.json` | channel-level graph, signs, edge_types |
 | `outputs/body_<r>_true.json` | verified physics graph |
 | `outputs/lift_body_*` | Panda equivalents |
-| `task3_pipeline_v1/outputs/{gen_operator_body,wn_body}.pt` | canonical trained pair (ep14) |
+| `task3_pipeline_v1/outputs/{gen_operator_body,wn_body}.pt` | selected trained pair (ep14) |
 | `task3_pipeline_v1/outputs/*_ep<k>.pt` | every epoch, for post-hoc screening |
 | `outputs/t1_naming_<ds>.json` | naming baseline records |
 | `../v6/outputs/concept_bank_l3_robot.npz` | dictionary + 35 index/axis atoms |
