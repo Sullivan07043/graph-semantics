@@ -246,6 +246,27 @@ def _recboss_cpdag(X, discount, seed=1):
     return A
 
 
+MAX_GROUP = int(os.environ.get("RLCD_MAX_GROUP", 30))
+
+
+def _recboss_auto(X, thres=3):
+    """Escalate the stage-1 discount until the largest partition group is MAX_GROUP or
+    smaller. RLCD's unfold phase is exponential in the latents per group, so a dense stage-1
+    graph (strongly correlated scales at discount 2) stalls it. Returns the adjacency."""
+    p = np.asarray(X).shape[1]
+    fake_names = [f"X{i}" for i in range(p)]
+    A = None
+    for d in (2, 4, 8, 16, 32, 64):
+        A = _recboss_cpdag(X, d)
+        groups = base.getPartition(fake_names, np.abs(A), thres)
+        biggest = max((len(g) for g in groups), default=0)
+        print(f"  [stage1 auto] discount={d}: {len(groups)} groups, largest {biggest}",
+              flush=True)
+        if biggest <= MAX_GROUP:
+            return A
+    return A
+
+
 def RLCD_gpu(data, ranktest_method=None, stage1_method="ges", stage1_discount=2.0, **kwargs):
     """RLCD with the batched serial sweep patched in for the duration of the call.
 
@@ -258,7 +279,10 @@ def RLCD_gpu(data, ranktest_method=None, stage1_method="ges", stage1_discount=2.
     base.findClusters_at_k_mp = _at_k_serial
     base.findClusters_at_k_by_nonsinks = _by_nonsinks_batched
     if stage1_method == "recboss":
-        A = _recboss_cpdag(data, stage1_discount)
+        if str(stage1_discount) == "auto":
+            A = _recboss_auto(data)
+        else:
+            A = _recboss_cpdag(data, float(stage1_discount))
         GESmod.ges = lambda *a, **k: {"G": type("G", (), {"graph": A})()}
         stage1_method = "ges"
     try:

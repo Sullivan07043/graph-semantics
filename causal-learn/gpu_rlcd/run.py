@@ -25,7 +25,8 @@ from rlcd_gpu import RLCD_gpu
 
 MAXK = int(os.environ.get("MAXK", 3))
 STAGE1 = os.environ.get("STAGE1", "recboss")
-DISCOUNT = float(os.environ.get("STAGE1_DISCOUNT", 2))
+DISCOUNT = os.environ.get("STAGE1_DISCOUNT", "2")   # a number, or "auto" (escalate until
+                                                    # the largest stage-1 group <= RLCD_MAX_GROUP)
 
 
 def synth(p, n=8000, seed=0):
