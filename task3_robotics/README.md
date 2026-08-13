@@ -35,6 +35,53 @@ task3_pipeline_v1/train_body.py    operator + WeightNet training on the dev robo
 t1_naming_baseline.py              LLM naming arm (gpt-4o-mini over graph neighbours)
 ```
 
+## External baselines
+
+`task3_robotics/baselines/run_task1.py` is the robot-domain adapter for the five canonical
+implementations under `v6/baselines/`: Feature Propagation, GraphMAE-GCN, CLIP-Dissect E5,
+Automated Interpretability, and Delphi. It uses the same BOSS graph, seed-0 five folds, masked
+channel split, frozen base-E5 Match-ACC, and one-mid-episode row per episode as the current robot
+Task 1. Exact match and LLM Judge are not run.
+
+GraphMAE is retrained on robots: each dev target is trained on the other two dev robots, while the
+held-out UR5e checkpoint is trained only on Panda, Sawyer, and IIWA. Questionnaire checkpoints are
+never loaded. CLIP-Dissect uses a fixed robot/physics WordNet bank with static joint and axis atoms.
+AutoInterp and Delphi retain their original sampling and scoring procedures but use separately
+versioned robot-channel prompts and API cache keys.
+
+```bash
+cd graph-semantics
+PYTHON=.venv/bin/python  # Windows: .venv/Scripts/python.exe
+
+# LLM-free methods
+$PYTHON -m task3_robotics.baselines.run_task1 \
+  --datasets all \
+  --baselines feature-propagation,graphmae-gcn,clip-dissect-e5 \
+  --data-dir task3_robotics/outputs \
+  --output-dir task3_robotics/outputs/baselines/task1_external_robot4_boss_seed0_v1
+
+# API methods; resumable, with no LLM Judge and a configurable dollar cap
+OPENAI_API_KEY="$OPENAI_API_KEY" $PYTHON -m task3_robotics.baselines.run_task1 \
+  --datasets all --baselines autointerp,delphi \
+  --data-dir task3_robotics/outputs \
+  --output-dir task3_robotics/outputs/baselines/task1_external_robot4_boss_seed0_v1 \
+  --model gpt-4o-mini --budget-usd 2 --case-workers 1
+```
+
+`--case-workers 1` is the safe default for a 200k-token/minute OpenAI tier; higher values may be
+used only when the account limit can absorb the larger AutoInterp and Delphi prompts. Semantically
+invalid structured responses use separately versioned correction prompts, so their cached originals
+cannot make a resumed run fail repeatedly.
+
+When using OpenRouter instead of the official OpenAI endpoint, also set
+`BASELINE_API_BASE_URL=https://openrouter.ai/api/v1`, expose the OpenRouter key as
+`OPENAI_API_KEY`, and pass `--model openai/gpt-4o-mini`. The combined result is written to
+`summary.json`; GraphMAE marks Panda, Sawyer, and IIWA as `dev-lodo`, other methods mark them as
+`dev`, and every method marks UR5e as `heldout`.
+
+The local regeneration table and its comparison with the historical README values are recorded in
+[`reports/robot_task1_external_baselines.md`](reports/robot_task1_external_baselines.md).
+
 Panda uses robomimic instead of collection: `lift_mg_low_dim_dense_v15.hdf5` under
 `data/pool/robomimic/`, converted by `load_steps.py` to `lift_body_steps.npz`.
 
@@ -112,7 +159,7 @@ UR5e (held-out, 6 joints, chance .11):
 
 | uniform | linear | rawcorr | trained | naming |
 |---|---|---|---|---|
-| .217 | .242 | .328 | **.358** | .361 |
+| .217 | .242 | .328 | .358 | **.361** |
 
 Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the

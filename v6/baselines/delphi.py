@@ -3,6 +3,8 @@
 from ._llm_interpretability import (
     DELPHI_DETECT_PROMPT_VERSION,
     DELPHI_EXPLAIN_PROMPT_VERSION,
+    ROBOT_DELPHI_DETECT_PROMPT_VERSION,
+    ROBOT_DELPHI_EXPLAIN_PROMPT_VERSION,
     BaselineOutputError,
     run_delphi,
 )
@@ -10,6 +12,8 @@ from ._llm_interpretability import (
 __all__ = [
     "DELPHI_DETECT_PROMPT_VERSION",
     "DELPHI_EXPLAIN_PROMPT_VERSION",
+    "ROBOT_DELPHI_DETECT_PROMPT_VERSION",
+    "ROBOT_DELPHI_EXPLAIN_PROMPT_VERSION",
     "BaselineOutputError",
     "run_delphi",
 ]

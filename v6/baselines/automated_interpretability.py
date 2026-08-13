@@ -7,6 +7,8 @@ Interpretability and Delphi can expose independent, method-specific imports.
 from ._llm_interpretability import (
     AUTOINTERP_EXPLAIN_PROMPT_VERSION,
     AUTOINTERP_SIMULATE_PROMPT_VERSION,
+    ROBOT_AUTOINTERP_EXPLAIN_PROMPT_VERSION,
+    ROBOT_AUTOINTERP_SIMULATE_PROMPT_VERSION,
     BaselineOutputError,
     run_autointerp,
 )
@@ -14,6 +16,8 @@ from ._llm_interpretability import (
 __all__ = [
     "AUTOINTERP_EXPLAIN_PROMPT_VERSION",
     "AUTOINTERP_SIMULATE_PROMPT_VERSION",
+    "ROBOT_AUTOINTERP_EXPLAIN_PROMPT_VERSION",
+    "ROBOT_AUTOINTERP_SIMULATE_PROMPT_VERSION",
     "BaselineOutputError",
     "run_autointerp",
 ]

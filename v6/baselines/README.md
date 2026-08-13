@@ -16,6 +16,12 @@ PyTorch, while the CLIP-Dissect adaptation uses the project's frozen E5
 encoder. Only Automated Interpretability and Delphi read `OPENAI_API_KEY`.
 Their default model is `gpt-4o-mini`, and `--model` can override it.
 
+The redesigned robot Task 1 reuses these canonical implementations through the thin adapter at
+`task3_robotics/baselines/run_task1.py`. Robot-specific loading, GraphMAE Robot-LODO splits,
+and CLIP-Dissect vocabulary construction stay in `task3_robotics/baselines/`; separately versioned
+robot prompt variants live beside the shared algorithms in `_llm_interpretability.py`. The
+questionnaire/report-19 runners, default prompts, and artifacts remain unchanged.
+
 Shared infrastructure is isolated in `api.py` and `protocol.py`. Automated
 Interpretability and Delphi share private validation and sampling code in
 `_llm_interpretability.py`; their public imports are separated so callers do

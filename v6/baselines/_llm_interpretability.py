@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import re
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar
 
 import numpy as np
 
@@ -23,6 +23,12 @@ AUTOINTERP_EXPLAIN_PROMPT_VERSION = "autointerp-survey-explainer-v1"
 AUTOINTERP_SIMULATE_PROMPT_VERSION = "autointerp-survey-simulator-v1"
 DELPHI_EXPLAIN_PROMPT_VERSION = "delphi-survey-explainer-v1"
 DELPHI_DETECT_PROMPT_VERSION = "delphi-survey-detector-v1"
+ROBOT_AUTOINTERP_EXPLAIN_PROMPT_VERSION = "autointerp-robot-channel-explainer-v1"
+ROBOT_AUTOINTERP_SIMULATE_PROMPT_VERSION = "autointerp-robot-channel-simulator-v1"
+ROBOT_DELPHI_EXPLAIN_PROMPT_VERSION = "delphi-robot-channel-explainer-v1"
+ROBOT_DELPHI_DETECT_PROMPT_VERSION = "delphi-robot-channel-detector-v1"
+SEMANTIC_REPAIR_PROMPT_VERSION = "semantic-repair-v1"
+SEMANTIC_REPAIR_ATTEMPTS = 2
 
 _CANDIDATE_IDS = ("C1", "C2", "C3")
 _INTERPRETATION_KEYS = {"construct_name", "explanation"}
@@ -36,7 +42,10 @@ _PROVENANCE_KEYS = (
     "cost_usd",
     "timestamp",
     "cached",
+    "semantic_repair_attempts",
 )
+
+_Validated = TypeVar("_Validated")
 
 
 class BaselineOutputError(BaselineAPIError):
@@ -83,6 +92,124 @@ _DELPHI_EXPLANATION_SCHEMA: dict[str, Any] = {
 }
 
 
+def _prompt_bundle(domain: str) -> dict[str, str]:
+    """Return domain-specific wording without changing either method's protocol."""
+
+    if domain == "survey":
+        return {
+            "autointerp_explain_version": AUTOINTERP_EXPLAIN_PROMPT_VERSION,
+            "autointerp_simulate_version": AUTOINTERP_SIMULATE_PROMPT_VERSION,
+            "delphi_explain_version": DELPHI_EXPLAIN_PROMPT_VERSION,
+            "delphi_detect_version": DELPHI_DETECT_PROMPT_VERSION,
+            "autointerp_explain_system": (
+                "You explain a hidden scalar feature from observed response profiles. "
+                "Infer only the underlying bipolar human dimension. Return only JSON "
+                "matching the supplied schema. Do not mention any study, source, file, "
+                "person identity, or hidden label."
+            ),
+            "autointerp_explain_user": (
+                "The examples below pair a response profile with its standardized "
+                "feature activation and a 0-to-10 activation bin. A bin of 10 is the "
+                "strong positive pole and 0 is the opposite pole. Produce a neutral "
+                "1-to-4-word construct_name and exactly one sentence explaining what "
+                "makes the activation high versus low.\n\nExamples:\n"
+            ),
+            "autointerp_simulate_system": (
+                "You simulate a scalar feature from a supplied interpretation and "
+                "previously unseen response profiles. Return only JSON matching "
+                "the supplied schema."
+            ),
+            "autointerp_simulate_user": (
+                "Use the interpretation to predict one integer activation_bin from "
+                "0 to 10 for every profile. A value of 10 means the positive pole is "
+                "strongly present and 0 means the opposite pole. Do not omit or add "
+                "sample IDs.\n\nInterpretation:\n"
+            ),
+            "delphi_explain_system": (
+                "You contrast response profiles where a hidden feature is strong with "
+                "similar profiles where it is weak. Return only JSON matching the "
+                "supplied schema. Do not mention any study, source, file, person "
+                "identity, or hidden label."
+            ),
+            "delphi_explain_user": (
+                "Infer three distinct candidate interpretations for the underlying "
+                "bipolar human dimension. Each candidate needs its fixed candidate_id, "
+                "a neutral 1-to-4-word construct_name, and exactly one sentence "
+                "explaining what makes the feature strong versus weak. Return C1, C2, "
+                "and C3 exactly once.\n\nContrastive examples:\n"
+            ),
+            "delphi_detect_system": (
+                "You detect whether each supplied interpretation is strongly present "
+                "in each response profile. Score all interpretations jointly and return "
+                "only JSON matching the supplied schema."
+            ),
+            "delphi_detect_user": (
+                "For every profile, assign each candidate an integer probability from "
+                "0 to 100 that the candidate's positive pole is strongly present. "
+                "Return every sample ID once and score C1, C2, and C3 for each.\n\n"
+            ),
+        }
+    if domain == "robot":
+        return {
+            "autointerp_explain_version": ROBOT_AUTOINTERP_EXPLAIN_PROMPT_VERSION,
+            "autointerp_simulate_version": ROBOT_AUTOINTERP_SIMULATE_PROMPT_VERSION,
+            "delphi_explain_version": ROBOT_DELPHI_EXPLAIN_PROMPT_VERSION,
+            "delphi_detect_version": ROBOT_DELPHI_DETECT_PROMPT_VERSION,
+            "autointerp_explain_system": (
+                "You explain a hidden scalar robot state-or-action channel from "
+                "observed robot-state snapshots. Infer only the underlying physical "
+                "quantity or command, including a joint or axis identifier when the "
+                "evidence supports it. Return only JSON matching the supplied schema. "
+                "Do not mention any source, file, sample identity, or hidden label."
+            ),
+            "autointerp_explain_user": (
+                "The examples below pair a robot-state snapshot with its standardized "
+                "hidden-channel activation and a 0-to-10 activation bin. A bin of 10 "
+                "is the strong positive pole and 0 is the opposite pole. Produce a "
+                "neutral 1-to-4-word construct_name and exactly one sentence explaining "
+                "what makes the channel value high versus low.\n\nExamples:\n"
+            ),
+            "autointerp_simulate_system": (
+                "You simulate a scalar robot state-or-action channel from a supplied "
+                "interpretation and previously unseen robot-state snapshots. Return "
+                "only JSON matching the supplied schema."
+            ),
+            "autointerp_simulate_user": (
+                "Use the interpretation to predict one integer activation_bin from "
+                "0 to 10 for every robot-state snapshot. A value of 10 means the "
+                "positive pole is strongly present and 0 means the opposite pole. "
+                "Do not omit or add sample IDs.\n\nInterpretation:\n"
+            ),
+            "delphi_explain_system": (
+                "You contrast robot-state snapshots where a hidden state-or-action "
+                "channel is strong with similar snapshots where it is weak. Return "
+                "only JSON matching the supplied schema. Do not mention any source, "
+                "file, sample identity, or hidden label."
+            ),
+            "delphi_explain_user": (
+                "Infer three distinct candidate interpretations for the underlying "
+                "robot physical quantity or command. Each candidate needs its fixed "
+                "candidate_id, a neutral 1-to-4-word construct_name, and exactly one "
+                "sentence explaining what makes the channel strong versus weak. "
+                "Include a joint or axis identifier only when supported. Return C1, "
+                "C2, and C3 exactly once.\n\nContrastive examples:\n"
+            ),
+            "delphi_detect_system": (
+                "You detect whether each supplied robot-channel interpretation is "
+                "strongly present in each robot-state snapshot. Score all "
+                "interpretations jointly and return only JSON matching the supplied "
+                "schema."
+            ),
+            "delphi_detect_user": (
+                "For every robot-state snapshot, assign each candidate an integer "
+                "probability from 0 to 100 that the candidate's positive pole is "
+                "strongly present. Return every sample ID once and score C1, C2, and "
+                "C3 for each.\n\n"
+            ),
+        }
+    raise ValueError("domain must be 'survey' or 'robot'")
+
+
 # ---------------------------------------------------------------------------
 # Automated Interpretability
 
@@ -92,6 +219,9 @@ def run_autointerp(
     profiles: Sequence[str],
     activations: Sequence[float] | np.ndarray,
     seed: int = 0,
+    *,
+    domain: str = "survey",
+    repair_semantic_errors: bool = False,
 ) -> dict[str, Any]:
     """Run explanation plus disjoint held-out activation simulation.
 
@@ -102,6 +232,7 @@ def run_autointerp(
     an explanation but no simulation metric.
     """
 
+    prompts = _prompt_bundle(domain)
     text, values = _validate_profiles_and_activations(profiles, activations)
     rng = _rng(seed)
     count = len(text)
@@ -135,29 +266,17 @@ def run_autointerp(
         }
         for position, index in enumerate(explain_indices, 1)
     ]
-    explanation_response = _complete(
+    explanation_response, interpretation = _complete_validated(
         client,
-        system_prompt=(
-            "You explain a hidden scalar feature from observed response profiles. "
-            "Infer only the underlying bipolar human dimension. Return only JSON "
-            "matching the supplied schema. Do not mention any study, source, file, "
-            "person identity, or hidden label."
-        ),
-        user_prompt=(
-            "The examples below pair a response profile with its standardized "
-            "feature activation and a 0-to-10 activation bin. A bin of 10 is the "
-            "strong positive pole and 0 is the opposite pole. Produce a neutral "
-            "1-to-4-word construct_name and exactly one sentence explaining what "
-            "makes the activation high versus low.\n\nExamples:\n"
-            + _json(explanation_examples)
-        ),
+        system_prompt=prompts["autointerp_explain_system"],
+        user_prompt=prompts["autointerp_explain_user"] + _json(explanation_examples),
         schema=_AUTOINTERP_EXPLANATION_SCHEMA,
-        prompt_version=AUTOINTERP_EXPLAIN_PROMPT_VERSION,
+        prompt_version=prompts["autointerp_explain_version"],
         max_output_tokens=180,
-    )
-    interpretation = _validate_interpretation(
-        _response_data(explanation_response),
-        context="Automated Interpretability explanation",
+        validator=lambda data: _validate_interpretation(
+            data, context="Automated Interpretability explanation"
+        ),
+        repair_semantic_errors=repair_semantic_errors,
     )
 
     predicted: list[int] = []
@@ -170,28 +289,20 @@ def run_autointerp(
             for position, index in enumerate(simulate_indices, 1)
         ]
         sample_ids = [example["sample_id"] for example in simulation_examples]
-        simulation_response = _complete(
+        simulation_response, predicted = _complete_validated(
             client,
-            system_prompt=(
-                "You simulate a scalar feature from a supplied interpretation and "
-                "previously unseen response profiles. Return only JSON matching "
-                "the supplied schema."
-            ),
+            system_prompt=prompts["autointerp_simulate_system"],
             user_prompt=(
-                "Use the interpretation to predict one integer activation_bin from "
-                "0 to 10 for every profile. A value of 10 means the positive pole is "
-                "strongly present and 0 means the opposite pole. Do not omit or add "
-                "sample IDs.\n\nInterpretation:\n"
+                prompts["autointerp_simulate_user"]
                 + _json(interpretation)
                 + "\n\nProfiles:\n"
                 + _json(simulation_examples)
             ),
             schema=_simulation_schema(sample_ids),
-            prompt_version=AUTOINTERP_SIMULATE_PROMPT_VERSION,
+            prompt_version=prompts["autointerp_simulate_version"],
             max_output_tokens=max(160, 26 * len(sample_ids)),
-        )
-        predicted = _validate_simulation(
-            _response_data(simulation_response), sample_ids
+            validator=lambda data: _validate_simulation(data, sample_ids),
+            repair_semantic_errors=repair_semantic_errors,
         )
         true_bins = [int(bins[index]) for index in simulate_indices]
         true_activations = [float(values[index]) for index in simulate_indices]
@@ -225,6 +336,9 @@ def run_delphi(
     activations: Sequence[float] | np.ndarray,
     response_vectors: Sequence[Sequence[float]] | np.ndarray,
     seed: int = 0,
+    *,
+    domain: str = "survey",
+    repair_semantic_errors: bool = False,
 ) -> dict[str, Any]:
     """Run contrastive explanation, validation selection, and held-out detection.
 
@@ -237,6 +351,7 @@ def run_delphi(
     deterministically between validation and test.
     """
 
+    prompts = _prompt_bundle(domain)
     text, values = _validate_profiles_and_activations(profiles, activations)
     vectors = np.asarray(response_vectors, dtype=float)
     if vectors.ndim != 2 or vectors.shape[0] != len(text) or vectors.shape[1] < 1:
@@ -291,27 +406,16 @@ def run_delphi(
             for position, index in enumerate(hard_negative_indices, 1)
         ],
     }
-    explanation_response = _complete(
+    explanation_response, candidates = _complete_validated(
         client,
-        system_prompt=(
-            "You contrast response profiles where a hidden feature is strong with "
-            "similar profiles where it is weak. Return only JSON matching the "
-            "supplied schema. Do not mention any study, source, file, person "
-            "identity, or hidden label."
-        ),
-        user_prompt=(
-            "Infer three distinct candidate interpretations for the underlying "
-            "bipolar human dimension. Each candidate needs its fixed candidate_id, "
-            "a neutral 1-to-4-word construct_name, and exactly one sentence "
-            "explaining what makes the feature strong versus weak. Return C1, C2, "
-            "and C3 exactly once.\n\nContrastive examples:\n"
-            + _json(generation_context)
-        ),
+        system_prompt=prompts["delphi_explain_system"],
+        user_prompt=prompts["delphi_explain_user"] + _json(generation_context),
         schema=_DELPHI_EXPLANATION_SCHEMA,
-        prompt_version=DELPHI_EXPLAIN_PROMPT_VERSION,
+        prompt_version=prompts["delphi_explain_version"],
         max_output_tokens=420,
+        validator=_validate_candidates,
+        repair_semantic_errors=repair_semantic_errors,
     )
-    candidates = _validate_candidates(_response_data(explanation_response))
 
     validation_scores: list[list[int]] = []
     validation_provenance: Optional[dict[str, Any]] = None
@@ -326,10 +430,14 @@ def run_delphi(
             validation_future = pool.submit(
                 _run_detector, client, candidates, text, validation_indices,
                 sample_prefix="V",
+                domain=domain,
+                repair_semantic_errors=repair_semantic_errors,
             )
             test_future = pool.submit(
                 _run_detector, client, candidates, text, test_indices,
                 sample_prefix="T",
+                domain=domain,
+                repair_semantic_errors=repair_semantic_errors,
             )
             validation_response, validation_scores = validation_future.result()
             test_response, test_scores = test_future.result()
@@ -337,12 +445,16 @@ def run_delphi(
         test_provenance = _provenance(test_response)
     elif validation_indices:
         validation_response, validation_scores = _run_detector(
-            client, candidates, text, validation_indices, sample_prefix="V"
+            client, candidates, text, validation_indices, sample_prefix="V",
+            domain=domain,
+            repair_semantic_errors=repair_semantic_errors,
         )
         validation_provenance = _provenance(validation_response)
     elif test_indices:
         test_response, test_scores = _run_detector(
-            client, candidates, text, test_indices, sample_prefix="T"
+            client, candidates, text, test_indices, sample_prefix="T",
+            domain=domain,
+            repair_semantic_errors=repair_semantic_errors,
         )
         test_provenance = _provenance(test_response)
 
@@ -403,33 +515,31 @@ def _run_detector(
     indices: list[int],
     *,
     sample_prefix: str,
+    domain: str = "survey",
+    repair_semantic_errors: bool = False,
 ) -> tuple[Mapping[str, Any], list[list[int]]]:
+    prompts = _prompt_bundle(domain)
     examples = [
         {"sample_id": f"{sample_prefix}{position:03d}", "profile": profiles[index]}
         for position, index in enumerate(indices, 1)
     ]
     sample_ids = [example["sample_id"] for example in examples]
-    response = _complete(
+    response, scores = _complete_validated(
         client,
-        system_prompt=(
-            "You detect whether each supplied interpretation is strongly present "
-            "in each response profile. Score all interpretations jointly and return "
-            "only JSON matching the supplied schema."
-        ),
+        system_prompt=prompts["delphi_detect_system"],
         user_prompt=(
-            "For every profile, assign each candidate an integer probability from "
-            "0 to 100 that the candidate's positive pole is strongly present. "
-            "Return every sample ID once and score C1, C2, and C3 for each.\n\n"
-            "Candidate interpretations:\n"
+            prompts["delphi_detect_user"]
+            + "Candidate interpretations:\n"
             + _json(candidates)
             + "\n\nProfiles:\n"
             + _json(examples)
         ),
         schema=_detector_schema(sample_ids),
-        prompt_version=DELPHI_DETECT_PROMPT_VERSION,
+        prompt_version=prompts["delphi_detect_version"],
         max_output_tokens=max(260, 48 * len(sample_ids)),
+        validator=lambda data: _validate_detection(data, sample_ids),
+        repair_semantic_errors=repair_semantic_errors,
     )
-    scores = _validate_detection(_response_data(response), sample_ids)
     return response, scores
 
 
@@ -515,6 +625,73 @@ def _complete(
     if not isinstance(response, Mapping):
         raise BaselineOutputError("baseline client returned a non-object response")
     return response
+
+
+def _complete_validated(
+    client: BaselineAPIClient,
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    schema: Mapping[str, Any],
+    prompt_version: str,
+    max_output_tokens: int,
+    validator: Callable[[Mapping[str, Any]], _Validated],
+    repair_semantic_errors: bool,
+) -> tuple[Mapping[str, Any], _Validated]:
+    """Complete and optionally repair JSON that fails caller-level semantics.
+
+    OpenAI's strict schema guarantees field types and bounds, but it cannot
+    express constraints such as unique sample IDs, one sentence, or a four-word
+    name.  A normal cached response remains immutable.  When repair is enabled,
+    a failed response is supplied to a separate, versioned correction prompt,
+    so an interrupted run can resume from both the original and repair caches.
+    """
+
+    response = _complete(
+        client,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        schema=schema,
+        prompt_version=prompt_version,
+        max_output_tokens=max_output_tokens,
+    )
+    errors: list[str] = []
+    for attempt in range(SEMANTIC_REPAIR_ATTEMPTS + 1):
+        try:
+            validated = validator(_response_data(response))
+            annotated = dict(response)
+            annotated["semantic_repair_attempts"] = attempt
+            return annotated, validated
+        except BaselineOutputError as exc:
+            errors.append(str(exc))
+            if not repair_semantic_errors or attempt >= SEMANTIC_REPAIR_ATTEMPTS:
+                raise
+
+        previous = response.get("data")
+        response = _complete(
+            client,
+            system_prompt=(
+                "You correct a prior JSON response for the same task. Preserve its "
+                "semantic judgments while fixing the stated protocol violation. "
+                "Return only JSON matching the supplied schema."
+            ),
+            user_prompt=(
+                "Original task:\n"
+                + user_prompt
+                + "\n\nPrevious JSON:\n"
+                + _json(previous)
+                + "\n\nLocal validation error:\n"
+                + errors[-1]
+                + "\n\nReturn a corrected response."
+            ),
+            schema=schema,
+            prompt_version=(
+                f"{prompt_version}-{SEMANTIC_REPAIR_PROMPT_VERSION}-attempt-{attempt + 1}"
+            ),
+            max_output_tokens=max_output_tokens,
+        )
+
+    raise AssertionError("semantic repair loop terminated unexpectedly")
 
 
 def _response_data(response: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -864,6 +1041,10 @@ __all__ = [
     "AUTOINTERP_SIMULATE_PROMPT_VERSION",
     "DELPHI_EXPLAIN_PROMPT_VERSION",
     "DELPHI_DETECT_PROMPT_VERSION",
+    "ROBOT_AUTOINTERP_EXPLAIN_PROMPT_VERSION",
+    "ROBOT_AUTOINTERP_SIMULATE_PROMPT_VERSION",
+    "ROBOT_DELPHI_EXPLAIN_PROMPT_VERSION",
+    "ROBOT_DELPHI_DETECT_PROMPT_VERSION",
     "BaselineOutputError",
     "run_autointerp",
     "run_delphi",

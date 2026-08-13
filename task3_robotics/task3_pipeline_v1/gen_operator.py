@@ -28,10 +28,27 @@ CKPT = os.environ.get("GENOP_CKPT", os.path.join(HERE, "outputs", "gen_operator.
 COND = 3   # [sign(+-1), |w|, 1{latent->latent}]
 
 
+class ScalarNeg(nn.Module):
+    """Robot-domain negative edge: preserve the direction and flip only its scalar sign."""
+
+    def forward(self, x):
+        return -x
+
+
+def _negative_operator(mode):
+    if mode == "scalar":
+        return ScalarNeg()
+    if mode == "semantic":
+        import negop
+        return negop.load()
+    raise ValueError(f"unsupported GENOP_NEGATIVE_MODE={mode!r}")
+
+
 class GenOperator(nn.Module):
-    def __init__(self, d, neg_op, hid=256):
+    def __init__(self, d, neg_op, hid=256, negative_mode="semantic"):
         super().__init__()
         self.d = d
+        self.negative_mode = negative_mode
         self.neg = neg_op
         for p in self.neg.parameters():
             p.requires_grad_(False)
@@ -86,19 +103,26 @@ def edge_table(g, W, device="cpu"):
 
 
 def save(op, path=CKPT):
-    torch.save({"d": op.d, "hid": op.delta[0].out_features, "state": op.delta.state_dict()}, path)
+    torch.save({"d": op.d, "hid": op.delta[0].out_features,
+                "negative_mode": op.negative_mode, "state": op.delta.state_dict()}, path)
 
 
 def load_or_init(d=1024, device="cpu", path=CKPT):
     """Trained checkpoint if present, else zero-init (== exact v5 linear+f_neg behavior).
-    f_neg always comes frozen from negop.CKPT."""
-    import negop
-    fneg = negop.load()
+    Questionnaire runs use the frozen semantic f_neg; robot runs set
+    GENOP_NEGATIVE_MODE=scalar and do not load a questionnaire checkpoint."""
+    mode = os.environ.get("GENOP_NEGATIVE_MODE", "semantic").strip().lower()
     if os.path.exists(path):
         ck = torch.load(path, map_location="cpu")
-        op = GenOperator(ck["d"], fneg, hid=ck["hid"])
+        saved_mode = ck.get("negative_mode", "semantic")
+        if saved_mode != mode:
+            raise ValueError(
+                f"generation checkpoint negative mode {saved_mode!r} does not match {mode!r}"
+            )
+        op = GenOperator(ck["d"], _negative_operator(mode), hid=ck["hid"],
+                         negative_mode=mode)
         op.delta.load_state_dict(ck["state"])
     else:
-        op = GenOperator(d, fneg)
+        op = GenOperator(d, _negative_operator(mode), negative_mode=mode)
     op.to(device).eval()
     return op

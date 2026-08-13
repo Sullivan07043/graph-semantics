@@ -14,9 +14,13 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ARTIFACT_DIR = os.path.abspath(
+    os.environ.get("CORE_OUTPUT_DIR", os.path.join(HERE, "outputs"))
+)
+os.environ.setdefault("GENOP_NEGATIVE_MODE", "scalar")
 sys.path.insert(0, HERE)
 
-DICT = os.environ.get("GRAPHSEM_DICT") or os.path.join(HERE, "outputs", "concept_bank_l3_cog.npz")
+DICT = os.environ.get("GRAPHSEM_DICT") or os.path.join(ARTIFACT_DIR, "concept_bank_l3_cog.npz")
 os.environ["GRAPHSEM_DICT"] = DICT   # v6 default: expanded bank (+1390 Cognitive Atlas terms)
 
 import numpy as np                                                    # noqa: E402
@@ -24,34 +28,50 @@ import torch                                                          # noqa: E4
 import encode                                                         # noqa: E402
 import lora                                       # noqa: E402
 
+if os.environ.get("DEPENDENCE_OUT"):
+    import dependence as _dependence                                 # noqa: E402
+    _dependence.OUT = os.path.abspath(os.environ["DEPENDENCE_OUT"])
+
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 4)))
-CKPT = os.path.join(HERE, "outputs", "l3_lora.pt")
+ENCODER_MODE = os.environ.get("CORE_ENCODER_MODE", "lora").strip().lower()
+CKPT = os.environ.get("LORA_CKPT", os.path.join(ARTIFACT_DIR, "l3_lora.pt"))
 _v = np.load(DICT, allow_pickle=True)
-assert abs(float(_v["lora_version"]) - os.path.getmtime(CKPT)) < 1.0, \
-    "dictionary was encoded with a DIFFERENT lora checkpoint — re-run reencode_dict.py"
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-_st = lora.load_st(DEVICE)
-lora.inject(_st)
-lora.load_lora(_st, CKPT)
-_st.eval()
+if ENCODER_MODE == "lora":
+    assert abs(float(_v["lora_version"]) - os.path.getmtime(CKPT)) < 1.0, \
+        "dictionary was encoded with a DIFFERENT lora checkpoint — re-run reencode_dict.py"
+    _st = lora.load_st(DEVICE)
+    lora.inject(_st)
+    lora.load_lora(_st, CKPT)
+    _st.eval()
 
+    class _LoraST:
+        """Duck-types the bit of SentenceTransformer that encode.embed uses."""
 
-class _LoraST:
-    """Duck-types the bit of SentenceTransformer that encode.embed uses."""
+        def encode(self, texts, batch_size=1024, normalize_embeddings=True):
+            out = []
+            with torch.no_grad():
+                for i in range(0, len(texts), 256):
+                    # encode.embed already prepended the prefix; encode_grad adds it too -> strip here
+                    stripped = [t[len("query: "):] if t.startswith("query: ") else t
+                                for t in texts[i:i + 256]]
+                    out.append(lora.encode_grad(_st, stripped, DEVICE, max_len=128).cpu().numpy())
+            return np.concatenate(out)
 
-    def encode(self, texts, batch_size=1024, normalize_embeddings=True):
-        out = []
-        with torch.no_grad():
-            for i in range(0, len(texts), 256):
-                # encode.embed already prepended the prefix; encode_grad adds it too -> strip here
-                stripped = [t[len("query: "):] if t.startswith("query: ") else t
-                            for t in texts[i:i + 256]]
-                out.append(lora.encode_grad(_st, stripped, DEVICE, max_len=128).cpu().numpy())
-        return np.concatenate(out)
+    encode._MODEL = _LoraST()
+elif ENCODER_MODE == "base":
+    from sentence_transformers import SentenceTransformer
 
-
-encode._MODEL = _LoraST()
+    encode._MODEL = SentenceTransformer(
+        "intfloat/e5-large-v2",
+        revision="f169b11e22de13617baa190a028a32f3493550b6",
+        device=DEVICE,
+        cache_folder=os.environ.get("HF_CACHE"),
+        local_files_only=os.environ.get("HF_HUB_OFFLINE", "0") == "1",
+    )
+else:
+    raise ValueError(f"unsupported CORE_ENCODER_MODE={ENCODER_MODE!r}; use 'lora' or 'base'")
 
 ARM = os.environ.get("L2_ARM", "mlp")          # v6 main line: WeightNet solver on the v6 core
 if ARM == "mlp":
@@ -59,7 +79,7 @@ if ARM == "mlp":
     import core                                                       # noqa: E402
     import l2_modules as LM                    # noqa: E402
     _MODULE = LM.load(os.environ.get("L2_CKPT",             # default = the CERTIFIED v6 pair
-                                     os.path.join(HERE, "outputs", "l2_mlp_v6.pt")))
+                                     os.path.join(ARTIFACT_DIR, "l2_mlp_v6.pt")))
     # (was l2_mlp.pt = the v5 WeightNet, a pre-certification leftover that made unconfigured
     #  third-party runs silently score as v5; fixed 2026-08-02)
     K = int(os.environ.get("K", 60))

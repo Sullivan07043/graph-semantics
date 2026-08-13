@@ -10,6 +10,7 @@ records*.json
 *.log
 data_cache/*.sav
 data_cache/
+data/pool/robomimic/
 logs/
 outputs_*.log
 v5/

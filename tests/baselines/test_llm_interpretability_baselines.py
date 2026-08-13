@@ -147,6 +147,28 @@ class AutoInterpTests(unittest.TestCase):
             run_autointerp(client, ["respondent 0", "respondent 1"], [-1, 1])
         self.assertEqual(len(client.calls), 1)
 
+    def test_optional_semantic_repair_uses_a_separate_resumable_prompt(self):
+        def handler(call):
+            if "semantic-repair-v1" in call["prompt_version"]:
+                return _interpretation(name="Joint Angular Velocity")
+            return _interpretation(name="Robot Joint One Angular Velocity Channel")
+
+        client = FakeClient(handler)
+        result = run_autointerp(
+            client,
+            ["robot snapshot 0"],
+            [1.0],
+            domain="robot",
+            repair_semantic_errors=True,
+        )
+
+        self.assertEqual(result["construct_name"], "Joint Angular Velocity")
+        self.assertEqual(len(client.calls), 2)
+        self.assertIn("semantic-repair-v1", client.calls[1]["prompt_version"])
+        self.assertEqual(
+            result["api_provenance"]["explainer"]["semantic_repair_attempts"], 1
+        )
+
 
 class DelphiTests(unittest.TestCase):
     @staticmethod

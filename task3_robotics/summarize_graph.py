@@ -16,6 +16,20 @@ ROUTE = os.environ.get("ROUTE", "boss")
 OUT = os.environ.get("OUT", os.path.join(HERE, "outputs", "lift_body_summary.json"))
 
 
+def dataset_name(path):
+    """Infer the Task 3 dataset ID from the discovered-graph filename."""
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    if stem.startswith("lift_body_"):
+        return "liftbody"
+    if stem.startswith("body_"):
+        robot = stem[len("body_"):].split("_", 1)[0]
+        if robot:
+            return f"body{robot}"
+    raise ValueError(
+        "cannot infer robot dataset from DISC filename; use lift_body_* or body_<robot>_*"
+    )
+
+
 def main():
     edges = json.load(open(DISC))["routes"][ROUTE]
     best, btype = {}, {}
@@ -29,7 +43,7 @@ def main():
             btype[k] = "contemp" if e["from"].endswith("@t") else "lag"
     nodes = sorted({x for k in best for x in k})
     out = {
-        "dataset": "liftbody",
+        "dataset": dataset_name(DISC),
         "rlcd_directed": [[a, b] for a, b in sorted(best)],
         "rlcd_undirected": [],
         "signs": {f"{a}->{b}": w for (a, b), w in best.items()},
