@@ -30,9 +30,20 @@ def main():
     np.savez(npz, X=X, names=np.array(names))
     env = dict(os.environ)
     env["NPZ"] = npz
-    env.setdefault("OUT", os.path.join(HERE, "outputs", f"{DATASET}_rlcd_gpu.json"))
+    out = env.setdefault("OUT", os.path.join(HERE, "outputs", f"{DATASET}_rlcd_gpu.json"))
     runner = os.path.join(ROOT, "causal-learn", "gpu_rlcd", "run.py")
-    sys.exit(subprocess.call([sys.executable, runner], env=env))
+    rc = subprocess.call([sys.executable, runner], env=env)
+    if rc != 0:
+        sys.exit(rc)
+    # convert to the run_downstream graph format (rlcd_directed / rlcd_undirected)
+    import json
+    d = json.load(open(out))
+    down = os.path.join(HERE, "outputs", f"{DATASET}_gpurlcd.json")
+    json.dump({"rlcd_directed": d["edges"], "rlcd_undirected": [],
+               "params": {"source": os.path.basename(out), "stage1": d["stage1"],
+                          "maxk": d["maxk"], "seconds": d["seconds"]}},
+              open(down, "w"), indent=1)
+    print(f"[{DATASET}] downstream graph -> {down}", flush=True)
 
 
 if __name__ == "__main__":

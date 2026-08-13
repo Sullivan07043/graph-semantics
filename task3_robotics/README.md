@@ -116,6 +116,10 @@ UR5e (held-out, 6 joints, chance .11):
 |---|---|---|---|---|
 | .217 | .242 | .328 | **.358** | .361 |
 
+rawcorr copies the label of the most correlated visible channel. Label copying inflates its
+match; on questionnaires its judge exposes it. Judge is off-scale here, so read rawcorr with
+that caveat.
+
 Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the
 wrist-roll column of the positional Jacobian is exactly zero on all four, and BOSS-fitted weights

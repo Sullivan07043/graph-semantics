@@ -108,11 +108,25 @@ count of observed variables whose highest mean correlation is with their own pub
 | dass (clinical scales) | 42 | 3 | 14.0 | 40/42 | **.817** | .906 | .600 | **1.000** | **1.000** | .800 |
 | wvs (survey values) | 21 | 9 | 3.0 | 16/21 | .340 | .800 | .190 | **.933** | .733 | .400 |
 
+rawcorr copies the label of the most correlated visible variable. Label copying inflates its
+match; judge is its informative column.
+
 Sources: DASS from the instrument's own scoring key; WVS from Welzel's published recode syntax,
 with item label texts read off the source questions because the shipped labels name their own
 parent construct.
 
 Task 1 dividend over raw correlation: +.217 at key 40/42, +.150 at 16/21.
+
+Closed loop (GPU-RLCD discovered graph in place of the published key; discovery in
+`causal-learn/gpu_rlcd/`, graphs in `discovery/outputs/<ds>_gpurlcd.json`, runs via
+`discovery/run_closedloop_ds.sh`):
+
+| Dataset | protocol | T1 judge | T1 match | T2 judge |
+|---|---|---|---|---|
+| dass | published key | .817 | .906 | 1.000 |
+| dass | discovered (164 s, purity .88) | .689 | .506 | .911 |
+| wvs | published key | .340 | .800 | .933 |
+| wvs | discovered (46 s, 5 covers) | .150 | .600 | .640 |
 
 A NHANES laboratory-panel loader exists in `v6/pool_ext.py` and is not reported: its panels are
 clinical ordering conventions with no published latent names.
