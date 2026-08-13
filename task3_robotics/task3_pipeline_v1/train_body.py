@@ -47,6 +47,12 @@ import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ARTIFACT_DIR = os.path.abspath(
+    os.environ.get("CORE_OUTPUT_DIR", os.path.join(HERE, "outputs"))
+)
+# The robot-body protocol uses signed physical coefficients, not the questionnaire-trained
+# semantic-negation network. Keep the shared module's questionnaire default unchanged elsewhere.
+os.environ.setdefault("GENOP_NEGATIVE_MODE", "scalar")
 sys.path.insert(0, HERE)
 import pool                                                           # noqa: E402
 import encode                                                         # noqa: E402
@@ -59,6 +65,9 @@ import core                                                           # noqa: E4
 import l2_modules as LM                                               # noqa: E402
 from run_task1 import ALL_LOADERS                                     # noqa: E402
 
+if os.environ.get("DEPENDENCE_OUT"):
+    NL.dep.OUT = os.path.abspath(os.environ["DEPENDENCE_OUT"])
+
 torch.set_num_threads(int(os.environ.get("TORCH_THREADS", 8)))
 
 K = int(os.environ.get("K", 60))
@@ -69,35 +78,47 @@ LAM_AUDIT = float(os.environ.get("LAM_AUDIT", 0.1))
 EPOCHS = int(os.environ.get("EPOCHS", 4))
 DEVICE = os.environ.get("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 FOLDS = 5
-WN_CKPT = os.path.join(HERE, "outputs", "wn_body.pt")
-OP_CKPT = os.path.join(HERE, "outputs", "gen_operator_body.pt")
-WN_INIT = os.path.join(HERE, "outputs", "l2_mlp.pt")                  # frozen v5 (read-only)
-LORA_CKPT = os.path.join(HERE, "outputs", "l3_lora.pt")
+WN_CKPT = os.path.join(ARTIFACT_DIR, "wn_body.pt")
+OP_CKPT = os.path.join(ARTIFACT_DIR, "gen_operator_body.pt")
+WN_INIT = os.path.join(ARTIFACT_DIR, "l2_mlp.pt")                    # frozen v5 (read-only)
+LORA_CKPT = os.environ.get("LORA_CKPT", os.path.join(ARTIFACT_DIR, "l3_lora.pt"))
+ENCODER_MODE = os.environ.get("CORE_ENCODER_MODE", "lora").strip().lower()
 
 
 def ts():
     return time.strftime("%H:%M:%S")
 
 
-# ---- LoRA encoder for all embeddings (same space as inference; main.py wiring) ----
-_st = lora.load_st(DEVICE)
-lora.inject(_st)
-lora.load_lora(_st, LORA_CKPT)
-_st.eval()
+# ---- Encoder for all embeddings (must match inference). ----
+if ENCODER_MODE == "lora":
+    _st = lora.load_st(DEVICE)
+    lora.inject(_st)
+    lora.load_lora(_st, LORA_CKPT)
+    _st.eval()
 
+    class _LoraST:
+        def encode(self, texts, batch_size=1024, normalize_embeddings=True):
+            out = []
+            with torch.no_grad():
+                for i in range(0, len(texts), 256):
+                    stripped = [t[len("query: "):] if t.startswith("query: ") else t
+                                for t in texts[i:i + 256]]
+                    out.append(lora.encode_grad(_st, stripped, DEVICE, max_len=128).cpu().numpy())
+            return np.concatenate(out)
 
-class _LoraST:
-    def encode(self, texts, batch_size=1024, normalize_embeddings=True):
-        out = []
-        with torch.no_grad():
-            for i in range(0, len(texts), 256):
-                stripped = [t[len("query: "):] if t.startswith("query: ") else t
-                            for t in texts[i:i + 256]]
-                out.append(lora.encode_grad(_st, stripped, DEVICE, max_len=128).cpu().numpy())
-        return np.concatenate(out)
+    encode._MODEL = _LoraST()
+elif ENCODER_MODE == "base":
+    from sentence_transformers import SentenceTransformer
 
-
-encode._MODEL = _LoraST()
+    encode._MODEL = SentenceTransformer(
+        "intfloat/e5-large-v2",
+        revision="f169b11e22de13617baa190a028a32f3493550b6",
+        device=DEVICE,
+        cache_folder=os.environ.get("HF_CACHE"),
+        local_files_only=os.environ.get("HF_HUB_OFFLINE", "0") == "1",
+    )
+else:
+    raise ValueError(f"unsupported CORE_ENCODER_MODE={ENCODER_MODE!r}; use 'lora' or 'base'")
 
 
 def prep(name):
@@ -173,7 +194,8 @@ def solve_pair(d_, fold, module, gen_op, train, device, want_match=False):
 
 def main():
     names = os.environ.get("DEV_SETS", "liftbody,bodysawyer,bodyiiwa").split(",")
-    print(f"[{ts()}] prep {len(names)} dev datasets (LoRA space) ...", flush=True)
+    os.makedirs(ARTIFACT_DIR, exist_ok=True)
+    print(f"[{ts()}] prep {len(names)} dev datasets ({ENCODER_MODE} E5 space) ...", flush=True)
     data = {}
     for n in names:
         data[n] = prep(n)
@@ -199,7 +221,8 @@ def main():
     ])
     trainable = list(gen_op.delta.parameters()) + list(module.parameters())
 
-    log = {"K": K, "op_lr": OP_LR, "wn_lr": WN_LR, "lam_audit": LAM_AUDIT, "epochs": []}
+    log = {"K": K, "op_lr": OP_LR, "wn_lr": WN_LR, "lam_audit": LAM_AUDIT,
+           "encoder_mode": ENCODER_MODE, "dev_sets": names, "epochs": []}
 
     def val_pass():
         module.eval(); gen_op.eval()
@@ -246,8 +269,8 @@ def main():
         vo, va, vm = val_pass()
         v, m = float(np.mean(vo)), float(np.mean(vm))
         # per-epoch pair always saved (post-hoc screening never loses an epoch)
-        LM.save(module, os.path.join(HERE, "outputs", f"wn_body_ep{ep}.pt"), "mlp")
-        GO.save(gen_op, os.path.join(HERE, "outputs", f"gen_operator_body_ep{ep}.pt"))
+        LM.save(module, os.path.join(ARTIFACT_DIR, f"wn_body_ep{ep}.pt"), "mlp")
+        GO.save(gen_op, os.path.join(ARTIFACT_DIR, f"gen_operator_body_ep{ep}.pt"))
         log["epochs"].append({"train_outer": float(np.mean(tl)), "train_audit": float(np.mean(ta)),
                               "val_outer": v, "val_audit": float(np.mean(va)),
                               "val_match": m,
@@ -260,7 +283,7 @@ def main():
             best_match = m
             LM.save(module, WN_CKPT, "mlp")
             GO.save(gen_op, OP_CKPT)
-        json.dump(log, open(os.path.join(HERE, "outputs", "train_body_log.json"), "w"), indent=1)
+        json.dump(log, open(os.path.join(ARTIFACT_DIR, "train_body_log.json"), "w"), indent=1)
     print(f"[{ts()}] done. best dev fold-4 MATCH={best_match:.4f} "
           f"(start {log['start_val']['match']:.4f}). Held-out runs ONCE on the canonical pair; "
           f"adoption decided by the user.", flush=True)
