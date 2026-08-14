@@ -9,7 +9,7 @@ restores them.
 
 | file | what |
 |---|---|
-| `gpu_ranktest.py` | `GpuRankTest`: Wilks chi-square decisions on batched float64 whitened-SVD canonical correlations. Duck-types `Chi2RankTest`, adds `prime()` batch API. |
+| `gpu_ranktest.py` | `GpuRankTest`: Wilks chi-square decisions on batched float64 whitened-SVD CCA correlations. Duck-types `Chi2RankTest`, adds `prime()` batch API. |
 | `rlcd_gpu.py` | `RLCD_gpu(X, ...)` entry, `RLCD_serial` deterministic reference, recboss stage-1 injection |
 | `certify.py` | the gate: decision parity + end-to-end graph identity vs the CPU reference |
 | `run.py` | runner: `NPZ=` / `CSV=` / `SYNTH=` in, graph json out |

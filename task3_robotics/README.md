@@ -118,7 +118,7 @@ env L2_ARM=frozen GENOP=0 RESIDUAL=1.0 LAM_RES=1.0 BRIDGE=pearson NLDEP=1 POLFIX
   RCHAN=hard CI_MODE=marginal_shrink CUDA_VISIBLE_DEVICES=1 TORCH_THREADS=8 K=400 \
   TASK=1 DATASET=bodysawyer $PV main.py
 
-# 6. training (dev robots only; ~4 min/epoch; canonical = best dev fold-4 match)
+# 6. training (dev robots only; ~4 min/epoch; selected pair = best dev fold-4 match)
 env DEV_SETS=liftbody,bodysawyer,bodyiiwa EPOCHS=20 K=400 K_GRAD=60 \
   CUDA_VISIBLE_DEVICES=1 DEVICE=cuda TORCH_THREADS=8 $PV train_body.py
 
@@ -167,7 +167,30 @@ rawcorr copies the label of the most correlated visible channel. Label copying i
 match; on questionnaires its judge exposes it. Judge is off-scale here, so read rawcorr with
 that caveat.
 
-Training: 20 epochs, canonical = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
+## Robot-LODO, four stacks (2026-08-13)
+
+Protocol change: leave-one-robot-out replaces joint-dev as the official split. Each target robot
+gets its own model, trained on the other robots only (`task3_pipeline_v1/run_lodo*.sh`).
+Training: 20 epochs, K=400, K_GRAD=60, source fold-4 selection, scalar negative edges unless
+stated. Judge uses a dictionary re-encoded in each stack's own space
+(`task3_pipeline_v1/reencode_bank.py`).
+
+UR5e (held-out), judge / match:
+
+| stack | judge | match |
+|---|---|---|
+| base E5 | .142 | .311 |
+| frozen questionnaire LoRA, scalar | .189 | **.397** |
+| frozen questionnaire LoRA, semantic f_neg | **.236** | .303 |
+| robot-trained LoRA (`TRAIN_LORA=1`) | **.236** | .281 |
+
+Dev targets (judge / match): Panda .157/.190, .281/.290, .124/.376, .229/.286; Sawyer
+.246/.168, .075/.114, .136/.468, .254/.171; IIWA .203/.139, .181/.183, .161/.317, .250/.117
+(same stack order). Match is measured inside each stack's own embedding space; cross-stack
+match comparisons carry that caveat. Negative-edge verdict: scalar (the semantic dev-match
+lead does not transfer to the held-out robot).
+
+Training: 20 epochs, selected pair = epoch 14, dev fold-4 match .3175 against the .2341 zero-init
 start. Discovery vs truth: BOSS recall .56-.71, precision .12-.16 across the four robots; the
 wrist-roll column of the positional Jacobian is exactly zero on all four, and BOSS-fitted weights
 correlate .901 (Panda) / .999 (Sawyer, 3 edges) with the analytic Jacobian.
@@ -184,7 +207,7 @@ the cube and its contact edge are out of scope here (state-dependent edge, defer
 | `outputs/body_<r>_boss_summary.json` | channel-level graph, signs, edge_types |
 | `outputs/body_<r>_true.json` | verified physics graph |
 | `outputs/lift_body_*` | Panda equivalents |
-| `task3_pipeline_v1/outputs/{gen_operator_body,wn_body}.pt` | canonical trained pair (ep14) |
+| `task3_pipeline_v1/outputs/{gen_operator_body,wn_body}.pt` | selected trained pair (ep14) |
 | `task3_pipeline_v1/outputs/*_ep<k>.pt` | every epoch, for post-hoc screening |
 | `outputs/t1_naming_<ds>.json` | naming baseline records |
 | `../v6/outputs/concept_bank_l3_robot.npz` | dictionary + 35 index/axis atoms |
