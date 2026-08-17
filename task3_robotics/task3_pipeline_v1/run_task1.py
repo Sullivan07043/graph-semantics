@@ -191,7 +191,8 @@ def run_dataset(ds, C, cwords, records):
         for a, P in preds.items():
             arms[a]["exact"].append(metrics.exact_acc(P, masked, Tn))
             arms[a]["match"].append(metrics.match_acc(P, masked, T))
-            words = metrics.decode_words(P, C, cwords, alpha) if judge_mod.available() else None
+            words = metrics.decode_words(P, C, cwords, alpha) \
+                if (judge_mod.available() or os.environ.get("FORCE_DECODE") == "1") else None
             jacc, verd = (metrics.judge_completion(words, [labels[obs[i]] for i in masked])
                           if words else (None, None))
             if jacc is not None:
