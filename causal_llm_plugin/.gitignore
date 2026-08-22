@@ -1,0 +1,5 @@
+outputs/mappers/
+outputs/*.log
+__pycache__/
+*.pyc
+outputs/glue*
